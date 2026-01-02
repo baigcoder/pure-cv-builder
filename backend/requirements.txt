@@ -1,0 +1,10 @@
+# Web Backend for RenderCV
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.9
+pyyaml>=6.0.2
+groq>=0.4.0
+python-dotenv>=1.0.0
+
+# RenderCV dependencies (installed from parent)
+# The backend imports from rendercv package directly
