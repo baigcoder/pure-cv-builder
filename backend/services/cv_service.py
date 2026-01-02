@@ -131,13 +131,13 @@ class CVService:
         if github:
             social_networks.append({"network": "GitHub", "username": github})
         
-        # Build CV section
+        # Build CV section - use rendercv v2.x field names
         cv_section = {
             "name": name or "Your Name",
         }
         
         if headline:
-            cv_section["label"] = headline
+            cv_section["headline"] = headline
         if email:
             cv_section["email"] = email
         if phone:
@@ -152,10 +152,13 @@ class CVService:
         # Build sections based on order
         sections = {}
         
-        # Summary section
+        # Summary section - rendercv v2.x uses simple text sections
         summary = str(cv_data.get("summary", "") or "")
         if summary:
-            sections["summary"] = [summary]
+            sections["Summary"] = [summary]
+        else:
+            # Ensure at least one section exists
+            sections["Summary"] = ["A professional seeking new opportunities."]
         
         # Experience section
         experience = cv_data.get("experience", [])
