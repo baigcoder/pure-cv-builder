@@ -1,27 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
-
 :root {
-  /* PureCV Color Palette - Midnight Ink & Ghost White */
-  --white: #ffffff;
-  --bg: #ffffff;
-  --surface: #f8fafc;
-  --primary: #0f172a;
+  /* Premium PURE Color Palette - HSL for harmony */
+  --p-h: 220;
+  /* Primary Hue (Slate) */
+  --a-h: 239;
+  /* Accent Hue (Indigo) */
+
+  --white: hsl(0, 0%, 100%);
+  --bg: hsl(210, 40%, 98%);
+  --surface: hsl(210, 40%, 99%);
+
+  --primary: hsl(var(--p-h), 45%, 11%);
   /* Midnight Ink */
-  --primary-light: #1e293b;
-  --accent: #6366f1;
+  --primary-light: hsl(var(--p-h), 35%, 20%);
+
+  --accent: hsl(var(--a-h), 84%, 67%);
   /* Indigo Aura */
-  --accent-light: rgba(99, 102, 241, 0.1);
-  --border: #e2e8f0;
-  /* Soft Slate */
-  --border-focus: #6366f1;
+  --accent-light: hsla(var(--a-h), 84%, 67%, 0.1);
+  --accent-glow: hsla(var(--a-h), 84%, 67%, 0.25);
 
-  --text: #0f172a;
-  --text-muted: #64748b;
-  --text-light: #94a3b8;
+  --border: hsl(210, 32%, 91%);
+  --border-focus: var(--accent);
 
-  --success: #10b981;
-  --error: #ef4444;
-  --warning: #f59e0b;
+  --text: hsl(var(--p-h), 45%, 11%);
+  --text-muted: hsl(215, 16%, 47%);
+  --text-light: hsl(215, 20%, 65%);
+
+  --success: hsl(160, 84%, 39%);
+  --error: hsl(0, 84%, 60%);
+  --warning: hsl(38, 92%, 50%);
+
+  /* Glassmorphism Tokens */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --glass-blur: 12px;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -29,42 +40,62 @@
   --space-md: 1rem;
   --space-lg: 1.5rem;
   --space-xl: 2rem;
-  --space-2xl: 3rem;
+  --space-2xl: 4rem;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  /* Shadows - Layered for depth */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  --shadow-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+  --shadow-premium: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 30px rgba(0, 0, 0, 0.08);
 
   /* Radius */
-  --radius-sm: 4px;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   /* Transitions */
-  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html,
 body {
   max-width: 100vw;
   overflow-x: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--text);
   background: var(--bg);
   line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
   scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-light);
 }
 
 /* Selection color */
@@ -169,40 +200,35 @@ button {
 .form-input,
 .form-textarea {
   width: 100%;
-  padding: 0.875rem 0.5rem;
-  background: rgba(255, 255, 255, 0.5);
-  border: none;
-  border-bottom: 2px solid var(--border);
-  border-radius: 4px 4px 0 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 0.95rem;
   font-weight: 500;
   color: var(--text);
-  letter-spacing: 0.01em;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
 }
 
 .form-input:hover,
 .form-textarea:hover {
-  background: rgba(255, 255, 255, 0.7);
-  border-bottom-color: var(--text-light);
+  border-color: var(--text-light);
 }
 
 .form-input:focus,
 .form-textarea:focus {
-  background: rgba(255, 255, 255, 0.9);
-  border-bottom-color: var(--accent);
-  border-bottom-width: 2px;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+  background: var(--white);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 .form-input::placeholder,
 .form-textarea::placeholder {
   color: var(--text-light);
   font-weight: 400;
-  font-style: italic;
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .form-input-error {

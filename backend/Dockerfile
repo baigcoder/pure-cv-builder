@@ -9,21 +9,17 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for caching
-COPY web/backend/requirements.txt ./requirements.txt
+COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy RenderCV source
-COPY src/ ./src/
-COPY web/backend/ ./web/backend/
-
-# Set working directory to backend
-WORKDIR /app/web/backend
+# Copy backend source code
+COPY . ./
 
 # Set Python path
-ENV PYTHONPATH="/app/src:/app/web/backend"
+ENV PYTHONPATH="/app"
 ENV ENVIRONMENT="production"
 
 EXPOSE 8000
 
-# Run with gunicorn + uvicorn workers
+# Run with uvicorn
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

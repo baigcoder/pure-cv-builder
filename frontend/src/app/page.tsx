@@ -42,6 +42,7 @@ export default function Home() {
 
   return (
     <div className={styles.landing}>
+      <div className={styles.meshGradient} />
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <div className={styles.logo}>
@@ -211,23 +212,17 @@ export default function Home() {
                   </button>
                 </div>
 
-                <div className={styles.modalBody} style={{ padding: '1.5rem' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                <div className={styles.modalBody}>
+                  <div className={styles.tagContainer}>
                     {selectedTemplate.tags.map(tag => (
                       <span key={tag} className={styles.tag}>{tag}</span>
                     ))}
                   </div>
-                  <div style={{
-                    background: '#f8f9fa',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    maxHeight: '400px',
-                    overflow: 'auto'
-                  }}>
+                  <div className={styles.previewContainer}>
                     <img
                       src={selectedTemplate.image}
                       alt={selectedTemplate.name}
-                      style={{ width: '100%', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      className={styles.modalImg}
                     />
                   </div>
                 </div>

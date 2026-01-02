@@ -411,8 +411,8 @@ function EditorContent() {
         <div className={styles.editorLayout}>
             <header className={styles.header}>
                 <div className={styles.logoArea}>
-                    <Logo />
-                    <span style={{ letterSpacing: '0.1em' }}>PURE</span>
+                    <Logo width={28} height={28} />
+                    <span style={{ letterSpacing: '0.1em', fontWeight: 800 }}>PURE</span>
                 </div>
                 <div className={styles.headerActions}>
                     <button
@@ -549,57 +549,47 @@ function EditorContent() {
                                             {wordCount}w
                                         </span>
                                     )}
-                                    <div
-                                        className={`${styles.progressRing} ${progress === 100 ? styles.progressComplete : ""}`}
-                                        style={{ "--progress": `${progress * 3.6}deg` } as any}
-                                        title={`${progress}% complete`}
-                                    >
-                                        {progress === 100 && (
-                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                                        )}
-                                    </div>
+                                    {progress === 100 && (
+                                        <div style={{ marginLeft: wordCount > 0 ? '0' : 'auto' }}>
+                                            <svg style={{ color: 'var(--success)' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                                        </div>
+                                    )}
                                 </button>
                             );
                         })}
 
-                        <div style={{ marginTop: 'auto', padding: '1rem', textAlign: 'center', borderTop: '1px solid var(--border)' }}>
+
+                        <div className={styles.sidebarFooter}>
                             {(() => {
                                 const totalWords = Object.keys(BASE_SECTIONS)
                                     .filter(s => s !== 'design')
                                     .reduce((sum, s) => sum + getSectionWordCount(s), 0);
                                 const ats = calculateATSScore();
-                                const scoreColor = ats.score >= 80 ? '#38a169' : ats.score >= 60 ? '#d69e2e' : '#e53e3e';
+                                const scoreColor = ats.score >= 80 ? 'var(--success)' : ats.score >= 60 ? 'var(--warning)' : 'var(--error)';
                                 return (
-                                    <>
-                                        <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '0.5rem',
-                                            marginBottom: '0.5rem'
-                                        }}>
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>ATS Score:</span>
-                                            <span style={{
-                                                fontSize: '1rem',
-                                                fontWeight: 700,
-                                                color: scoreColor
-                                            }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                        <div className={styles.atsScore}>
+                                            <span className={styles.atsLabel}>ATS Strength</span>
+                                            <span style={{ color: scoreColor }} className={styles.atsValue}>
                                                 {ats.score}%
                                             </span>
+                                            {ats.tips.length > 0 && (
+                                                <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '0.5rem', lineHeight: 1.4 }}>
+                                                    {ats.tips[0]}
+                                                </p>
+                                            )}
                                         </div>
-                                        {ats.tips.length > 0 && (
-                                            <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', opacity: 0.8 }}>
-                                                💡 {ats.tips[0]}
+                                        <div style={{ textAlign: 'center' }}>
+                                            <p style={{
+                                                fontSize: '0.75rem',
+                                                color: 'var(--text-light)',
+                                                fontWeight: 500,
+                                                letterSpacing: '0.02em'
+                                            }}>
+                                                Approx. {totalWords} words
                                             </p>
-                                        )}
-                                        <p style={{
-                                            fontSize: '0.7rem',
-                                            color: '#718096',
-                                            marginTop: '0.5rem'
-                                        }}>
-                                            📝 {totalWords} words
-                                        </p>
-                                    </>
+                                        </div>
+                                    </div>
                                 );
                             })()}
                         </div>
@@ -1560,40 +1550,51 @@ function EditorContent() {
                             {isGenerating && (
                                 <div style={{
                                     position: 'absolute',
-                                    bottom: '1.5rem',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    zIndex: 10,
-                                    background: 'rgba(15, 23, 42, 0.9)',
-                                    color: 'white',
-                                    padding: '0.5rem 1rem',
+                                    top: '1.5rem',
+                                    right: '1.5rem',
+                                    zIndex: 20,
+                                    background: 'var(--white)',
+                                    color: 'var(--primary)',
+                                    padding: '0.625rem 1.25rem',
                                     borderRadius: 'var(--radius-full)',
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.75rem',
                                     fontSize: '0.75rem',
-                                    fontWeight: '600',
+                                    fontWeight: '800',
                                     boxShadow: 'var(--shadow-lg)',
-                                    backdropFilter: 'blur(4px)'
+                                    border: '1px solid var(--border)',
+                                    animation: 'slideUp 0.4s ease'
                                 }}>
-                                    <div className="spinner" style={{ width: '14px', height: '14px', borderTopColor: 'white' }}></div>
-                                    Drafting...
+                                    <div className="spinner" style={{ width: '14px', height: '14px' }}></div>
+                                    SYNCHRONIZING
                                 </div>
                             )}
+
+                            {isGenerating && !previewUrl && (
+                                <div className="skeleton" style={{ width: '100%', height: '100%' }}></div>
+                            )}
+
                             {previewUrl ? (
-                                <div className="animate-fade" style={{ width: '100%', height: '100%' }}>
+                                <div className={isGenerating ? "" : "animate-fade"} style={{ width: '100%', height: '100%', opacity: isGenerating ? 0.6 : 1, transition: 'opacity 0.3s ease' }}>
                                     <img src={previewUrl} alt="Preview" className={styles.previewImage} />
                                 </div>
                             ) : (
-                                <div className={styles.previewPlaceholder}>
-                                    {isGenerating ? (
-                                        <div className="spinner" style={{ width: '32px', height: '32px' }}></div>
-                                    ) : (
-                                        <div style={{ opacity: 0.5, fontSize: '0.875rem', color: 'var(--text-light)' }}>
-                                            Enter content to generate preview
+                                !isGenerating && (
+                                    <div className={styles.previewPlaceholder}>
+                                        <div style={{
+                                            padding: '2rem',
+                                            border: '2px dashed var(--border)',
+                                            borderRadius: 'var(--radius-lg)',
+                                            background: 'var(--white)',
+                                            color: 'var(--text-light)',
+                                            fontWeight: 500,
+                                            fontSize: '0.9rem'
+                                        }}>
+                                            Your CV will appear here as you type.
                                         </div>
-                                    )}
-                                </div>
+                                    </div>
+                                )
                             )}
                         </div>
                     </div>
