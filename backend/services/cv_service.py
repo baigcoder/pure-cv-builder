@@ -2,18 +2,15 @@
 CV Rendering Service.
 
 Wraps RenderCV core functionality for web API use.
-Handles temporary file management and cleanup.
+Uses the rendercv CLI for rendering since the PyPI package is CLI-based.
 """
 
 import tempfile
 import shutil
+import subprocess
 from pathlib import Path
 import yaml
-
-# Import RenderCV modules
-from rendercv.renderer.typst import generate_typst
-from rendercv.renderer.pdf_png import generate_pdf, generate_png
-from rendercv.schema.rendercv_model_builder import build_rendercv_dictionary_and_model
+import os
 
 
 class CVService:
@@ -59,27 +56,31 @@ class CVService:
             with open(yaml_path, "w", encoding="utf-8") as f:
                 yaml.dump(full_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
             
-            # Build model from YAML file
-            _, rendercv_model = build_rendercv_dictionary_and_model(yaml_path)
+            # Use rendercv CLI to render
+            output_dir = temp_dir / "output"
+            result = subprocess.run(
+                ["rendercv", "render", str(yaml_path), "--output-folder-name", str(output_dir)],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
             
-            # Generate Typst file
-            typst_path = generate_typst(rendercv_model)
-            
-            if typst_path is None:
-                raise ValueError("Failed to generate Typst file")
+            if result.returncode != 0:
+                raise ValueError(f"RenderCV failed: {result.stderr}")
             
             name = cv_data.get('name', 'CV').replace(' ', '_')
             
+            # Find generated files
             if output_format == "pdf":
-                # Generate PDF
-                pdf_path = generate_pdf(rendercv_model, typst_path)
-                if pdf_path and pdf_path.exists():
-                    return pdf_path.read_bytes(), f"{name}_CV.pdf"
+                # Find PDF file
+                pdf_files = list(output_dir.glob("**/*.pdf"))
+                if pdf_files:
+                    return pdf_files[0].read_bytes(), f"{name}_CV.pdf"
             else:
-                # Generate PNG (first page only for preview)
-                png_paths = generate_png(rendercv_model, typst_path)
-                if png_paths and len(png_paths) > 0:
-                    return png_paths[0].read_bytes(), f"{name}_CV.png"
+                # Find PNG file (first page)
+                png_files = sorted(output_dir.glob("**/*.png"))
+                if png_files:
+                    return png_files[0].read_bytes(), f"{name}_CV.png"
             
             raise ValueError("Failed to generate output")
             
@@ -123,220 +124,14 @@ class CVService:
             social_networks.append({"network": "LinkedIn", "username": linkedin})
         if github:
             social_networks.append({"network": "GitHub", "username": github})
-        # Build sections - we'll collect them in proper industrial CV order at the end
-        # The order is: Summary → Experience → Education → Projects → Skills → Publications → Honors → Patents → Talks
         
-        section_summary = None
-        section_experience = None
-        section_education = None
-        section_projects = None
-        section_skills = None
-        section_publications = None
-        section_honors = None
-        section_patents = None
-        section_talks = None
-        
-        # Summary section
-        if cv_data.get("summary") and cv_data["summary"].strip():
-            section_summary = [cv_data["summary"].strip()]
-        
-        # Experience section
-        if cv_data.get("experience"):
-            experience_list = []
-            for exp in cv_data["experience"]:
-                # Skip entries without meaningful company/position
-                company = str(exp.get("company", "") or "").strip()
-                position = str(exp.get("position", "") or "").strip()
-                if not company and not position:
-                    continue
-                entry = {
-                    "company": company or "Company",
-                    "position": position or "Position",
-                }
-                if exp.get("start_date"):
-                    entry["start_date"] = exp["start_date"]
-                if exp.get("end_date"):
-                    entry["end_date"] = exp["end_date"]
-                if exp.get("location"):
-                    entry["location"] = exp["location"]
-                if exp.get("summary"):
-                    entry["summary"] = exp["summary"]
-                # Filter out empty highlights
-                highlights = [h for h in exp.get("highlights", []) if h and h.strip()]
-                if highlights:
-                    entry["highlights"] = highlights
-                experience_list.append(entry)
-            if experience_list:
-                section_experience = experience_list
-        
-        # Education section
-        if cv_data.get("education"):
-            education_list = []
-            for edu in cv_data["education"]:
-                # RenderCV requires both institution AND area for EducationEntry
-                institution = str(edu.get("institution", "") or "").strip()
-                area = str(edu.get("area", "") or "").strip()
-                # Skip entries without required fields
-                if not institution or not area:
-                    continue
-                entry = {"institution": institution, "area": area}
-                if edu.get("degree"):
-                    entry["degree"] = edu["degree"]
-                if edu.get("start_date"):
-                    entry["start_date"] = edu["start_date"]
-                if edu.get("end_date"):
-                    entry["end_date"] = edu["end_date"]
-                if edu.get("location"):
-                    entry["location"] = edu["location"]
-                if edu.get("summary"):
-                    entry["summary"] = edu["summary"]
-                highlights = [h for h in edu.get("highlights", []) if h and h.strip()]
-                if highlights:
-                    entry["highlights"] = highlights
-                education_list.append(entry)
-            if education_list:
-                section_education = education_list
-        
-        # Projects section
-        if cv_data.get("projects"):
-            projects_list = []
-            for proj in cv_data["projects"]:
-                # Skip entries without a meaningful name
-                name = str(proj.get("name", "") or "").strip()
-                if not name:
-                    continue
-                entry = {"name": name}
-                if proj.get("date"):
-                    entry["date"] = proj["date"]
-                if proj.get("start_date"):
-                    entry["start_date"] = proj["start_date"]
-                if proj.get("end_date"):
-                    entry["end_date"] = proj["end_date"]
-                if proj.get("location"):
-                    entry["location"] = proj["location"]
-                if proj.get("url"):
-                    # Format as markdown link if URL provided
-                    entry["name"] = f"[{name}]({proj['url']})"
-                if proj.get("summary"):
-                    entry["summary"] = proj["summary"]
-                highlights = [h for h in proj.get("highlights", []) if h and h.strip()]
-                if highlights:
-                    entry["highlights"] = highlights
-                projects_list.append(entry)
-            if projects_list:
-                section_projects = projects_list
-        
-        # Skills section
-        if cv_data.get("skills"):
-            skills_list = [
-                {"label": str(skill.get("label", "") or "").strip(), "details": str(skill.get("details", "") or "").strip()}
-                for skill in cv_data["skills"]
-                if str(skill.get("label", "") or "").strip() or str(skill.get("details", "") or "").strip()
-            ]
-            if skills_list:
-                section_skills = skills_list
-        
-        # Publications section
-        if cv_data.get("publications"):
-            publications_list = []
-            for pub in cv_data["publications"]:
-                # RenderCV requires both title AND authors for PublicationEntry
-                title = str(pub.get("title", "") or "").strip()
-                if not title:
-                    continue
-                
-                # Handle authors - can be string or list, REQUIRED field
-                authors = pub.get("authors", [])
-                author_list = []
-                if isinstance(authors, str):
-                    # Parse comma-separated string
-                    author_list = [a.strip() for a in authors.split(",") if a.strip()]
-                elif isinstance(authors, list):
-                    author_list = [str(a).strip() for a in authors if str(a).strip()]
-                
-                # Skip if no authors provided
-                if not author_list:
-                    continue
-                
-                entry = {"title": title, "authors": author_list}
-                
-                if pub.get("journal"):
-                    entry["journal"] = pub["journal"]
-                if pub.get("date"):
-                    entry["date"] = pub["date"]
-                if pub.get("doi"):
-                    entry["doi"] = pub["doi"]
-                if pub.get("url"):
-                    entry["url"] = pub["url"]
-                if pub.get("summary"):
-                    entry["summary"] = pub["summary"]
-                    
-                publications_list.append(entry)
-            if publications_list:
-                section_publications = publications_list
-        
-        # Honors section (selected_honors in RenderCV)
-        if cv_data.get("honors"):
-            honors_list = [
-                {"bullet": str(h.get("bullet", "") or "").strip()}
-                for h in cv_data["honors"]
-                if str(h.get("bullet", "") or "").strip()
-            ]
-            if honors_list:
-                section_honors = honors_list
-        
-        # Patents section
-        if cv_data.get("patents"):
-            patents_list = [
-                {"number": str(p.get("number", "") or "").strip()}
-                for p in cv_data["patents"]
-                if str(p.get("number", "") or "").strip()
-            ]
-            if patents_list:
-                section_patents = patents_list
-        
-        # Invited Talks section
-        if cv_data.get("talks"):
-            talks_list = [
-                {"reversed_number": str(t.get("reversed_number", "") or "").strip()}
-                for t in cv_data["talks"]
-                if str(t.get("reversed_number", "") or "").strip()
-            ]
-            if talks_list:
-                section_talks = talks_list
-        
-        # Map section IDs to their content and YAML keys
-        section_map = {
-            "summary": ("Summary", section_summary),
-            "experience": ("experience", section_experience),
-            "education": ("education", section_education),
-            "projects": ("projects", section_projects),
-            "skills": ("skills", section_skills),
-            "publications": ("publications", section_publications),
-            "honors": ("selected_honors", section_honors),
-            "patents": ("patents", section_patents),
-            "talks": ("invited_talks", section_talks),
+        # Build CV section
+        cv_section = {
+            "name": name or "Your Name",
         }
         
-        # Default section order if not provided
-        if not section_order:
-            section_order = ["summary", "experience", "education", "projects", "skills", 
-                           "publications", "honors", "patents", "talks"]
-        
-        # Build sections in the order specified by section_order
-        sections = {}
-        for section_id in section_order:
-            if section_id in section_map:
-                yaml_key, content = section_map[section_id]
-                if content:  # Only add non-empty sections
-                    sections[yaml_key] = content
-        
-        # Build final CV section
-        cv_section = {}
-        if name:
-            cv_section["name"] = name
         if headline:
-            cv_section["headline"] = headline
+            cv_section["label"] = headline
         if email:
             cv_section["email"] = email
         if phone:
@@ -347,44 +142,178 @@ class CVService:
             cv_section["website"] = website
         if social_networks:
             cv_section["social_networks"] = social_networks
+        
+        # Build sections based on order
+        sections = {}
+        
+        # Summary section
+        summary = str(cv_data.get("summary", "") or "")
+        if summary:
+            sections["summary"] = [summary]
+        
+        # Experience section
+        experience = cv_data.get("experience", [])
+        if experience:
+            exp_entries = []
+            for exp in experience:
+                if not exp.get("company"):
+                    continue
+                entry = {
+                    "company": exp.get("company", ""),
+                    "position": exp.get("title", ""),
+                }
+                
+                # Handle dates
+                start_date = exp.get("startDate", "")
+                end_date = exp.get("endDate", "")
+                if start_date:
+                    entry["start_date"] = start_date
+                if end_date:
+                    entry["end_date"] = end_date
+                elif exp.get("current"):
+                    entry["end_date"] = "present"
+                    
+                if exp.get("location"):
+                    entry["location"] = exp.get("location")
+                    
+                # Handle highlights/description
+                description = exp.get("description", "")
+                if description:
+                    # Split by newlines for multiple highlights
+                    highlights = [h.strip() for h in description.split('\n') if h.strip()]
+                    if highlights:
+                        entry["highlights"] = highlights
+                
+                exp_entries.append(entry)
+            
+            if exp_entries:
+                sections["experience"] = exp_entries
+        
+        # Education section
+        education = cv_data.get("education", [])
+        if education:
+            edu_entries = []
+            for edu in education:
+                if not edu.get("institution"):
+                    continue
+                entry = {
+                    "institution": edu.get("institution", ""),
+                    "area": edu.get("degree", ""),
+                }
+                
+                start_date = edu.get("startDate", "")
+                end_date = edu.get("endDate", "")
+                if start_date:
+                    entry["start_date"] = start_date
+                if end_date:
+                    entry["end_date"] = end_date
+                    
+                if edu.get("location"):
+                    entry["location"] = edu.get("location")
+                    
+                highlights = []
+                if edu.get("gpa"):
+                    highlights.append(f"GPA: {edu.get('gpa')}")
+                if edu.get("description"):
+                    highlights.extend([h.strip() for h in edu.get("description", "").split('\n') if h.strip()])
+                if highlights:
+                    entry["highlights"] = highlights
+                
+                edu_entries.append(entry)
+            
+            if edu_entries:
+                sections["education"] = edu_entries
+        
+        # Skills section
+        skills = cv_data.get("skills", [])
+        if skills:
+            skill_entries = []
+            for skill in skills:
+                if skill.get("category") and skill.get("items"):
+                    skill_entries.append({
+                        "label": skill.get("category"),
+                        "details": skill.get("items")
+                    })
+            if skill_entries:
+                sections["technologies"] = skill_entries
+        
+        # Projects section
+        projects = cv_data.get("projects", [])
+        if projects:
+            proj_entries = []
+            for proj in projects:
+                if not proj.get("name"):
+                    continue
+                entry = {
+                    "name": proj.get("name", ""),
+                }
+                
+                start_date = proj.get("startDate", "")
+                end_date = proj.get("endDate", "")
+                if start_date:
+                    entry["start_date"] = start_date
+                if end_date:
+                    entry["end_date"] = end_date
+                
+                if proj.get("url"):
+                    normalized_url = normalize_url(proj.get("url", ""))
+                    if normalized_url:
+                        entry["url"] = normalized_url
+                
+                description = proj.get("description", "")
+                if description:
+                    highlights = [h.strip() for h in description.split('\n') if h.strip()]
+                    if highlights:
+                        entry["highlights"] = highlights
+                
+                proj_entries.append(entry)
+            
+            if proj_entries:
+                sections["projects"] = proj_entries
+        
+        # Publications section
+        publications = cv_data.get("publications", [])
+        if publications:
+            pub_entries = []
+            for pub in publications:
+                if not pub.get("title"):
+                    continue
+                entry = {
+                    "title": pub.get("title", ""),
+                }
+                if pub.get("authors"):
+                    entry["authors"] = [a.strip() for a in pub.get("authors", "").split(',')]
+                if pub.get("venue"):
+                    entry["journal"] = pub.get("venue")
+                if pub.get("date"):
+                    entry["date"] = pub.get("date")
+                if pub.get("url"):
+                    normalized_url = normalize_url(pub.get("url", ""))
+                    if normalized_url:
+                        entry["url"] = normalized_url
+                
+                pub_entries.append(entry)
+            
+            if pub_entries:
+                sections["publications"] = pub_entries
+        
+        # Add sections to CV
         if sections:
             cv_section["sections"] = sections
         
         # Build design section
-        design = {"theme": theme}
+        design = {
+            "theme": theme,
+        }
         
-        # Apply design settings if provided
         if design_settings:
-            primary_color = design_settings.get("primaryColor")
-            font_family = design_settings.get("fontFamily")
-            
-            if primary_color:
-                design["colors"] = {
-                    "name": primary_color,
-                    "headline": primary_color,
-                    "connections": primary_color,
-                    "section_titles": primary_color,
-                    "links": primary_color,
-                }
-            
-            if font_family:
-                design["typography"] = {
-                    "font_family": {
-                        "body": font_family,
-                        "name": font_family,
-                        "headline": font_family,
-                        "connections": font_family,
-                        "section_titles": font_family,
-                    }
-                }
+            if design_settings.get("primaryColor"):
+                design["color"] = design_settings.get("primaryColor")
+            if design_settings.get("fontFamily"):
+                design["font"] = design_settings.get("fontFamily")
         
+        # Build final structure
         return {
             "cv": cv_section,
             "design": design
         }
-    
-    @classmethod
-    def generate_yaml(cls, cv_data: dict, theme: str = "classic", design_settings: dict = None) -> str:
-        """Generate YAML string from CV data."""
-        full_data = cls._build_yaml_structure(cv_data, theme, design_settings)
-        return yaml.dump(full_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
