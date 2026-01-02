@@ -56,13 +56,13 @@ class CVService:
             with open(yaml_path, "w", encoding="utf-8") as f:
                 yaml.dump(full_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
             
-            # Use rendercv CLI to render
+            # Use rendercv CLI via python -m to render
             output_dir = temp_dir / "output"
             result = subprocess.run(
-                ["rendercv", "render", str(yaml_path), "--output-folder-name", str(output_dir)],
+                ["python", "-m", "rendercv", "render", str(yaml_path), "--output-folder-name", str(output_dir)],
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=120
             )
             
             if result.returncode != 0:
