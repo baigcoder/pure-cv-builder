@@ -312,16 +312,11 @@ class CVService:
         if sections:
             cv_section["sections"] = sections
         
-        # Build design section
+        # Build design section - rendercv v2.x only uses theme
+        # Color and font customization requires the full colors/typography structure
         design = {
             "theme": theme,
         }
-        
-        if design_settings:
-            if design_settings.get("primaryColor"):
-                design["color"] = design_settings.get("primaryColor")
-            if design_settings.get("fontFamily"):
-                design["font"] = design_settings.get("fontFamily")
         
         # Build final structure
         return {
