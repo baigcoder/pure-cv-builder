@@ -3,10 +3,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for PDF/PNG generation
+# Install system dependencies and Typst from GitHub releases
 RUN apt-get update && apt-get install -y \
-    typst \
-    && rm -rf /var/lib/apt/lists/*
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://github.com/typst/typst/releases/download/v0.12.0/typst-x86_64-unknown-linux-musl.tar.xz \
+    | tar -xJ -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
 
 # Copy requirements first for caching
 COPY requirements.txt ./requirements.txt
