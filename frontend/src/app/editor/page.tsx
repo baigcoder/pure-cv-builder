@@ -245,19 +245,6 @@ function EditorContent() {
         return { score, tips };
     };
 
-    // Toggle bold formatting (markdown **text**)
-    const toggleBold = (value: string, field: keyof CVData) => {
-        if (value.startsWith('**') && value.endsWith('**')) {
-            // Remove bold
-            updateField(field, value.slice(2, -2));
-        } else {
-            // Add bold
-            updateField(field, `**${value}**`);
-        }
-    };
-
-    const isBold = (value: string) => value.startsWith('**') && value.endsWith('**');
-
     const getAISuggestion = async (text: string, type: string, context: string = "") => {
         setIsAISuggesting(true);
         try {
@@ -973,33 +960,13 @@ function EditorContent() {
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label">Institution <span style={{ color: '#e53e3e' }}>*</span></label>
-                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    <input className="form-input" placeholder="e.g. MIT"
-                                                        value={edu.institution || ""} onChange={e => {
-                                                            const newEdu = [...cvData.education];
-                                                            newEdu[i].institution = e.target.value;
-                                                            updateField("education", newEdu);
-                                                        }}
-                                                        style={{ flex: 1 }}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newEdu = [...cvData.education];
-                                                            const val = newEdu[i].institution || "";
-                                                            newEdu[i].institution = isBold(val) ? val.slice(2, -2) : `**${val}**`;
-                                                            updateField("education", newEdu);
-                                                        }}
-                                                        disabled={!edu.institution?.trim()}
-                                                        style={{
-                                                            width: '28px', height: '28px', border: '1px solid var(--border)',
-                                                            borderRadius: '4px', background: isBold(edu.institution || "") ? '#6366F1' : 'var(--bg)',
-                                                            color: isBold(edu.institution || "") ? 'white' : 'var(--text)', fontWeight: 700,
-                                                            cursor: edu.institution?.trim() ? 'pointer' : 'not-allowed', fontSize: '0.8rem'
-                                                        }}
-                                                        title="Toggle Bold"
-                                                    >B</button>
-                                                </div>
+                                                <input className="form-input" placeholder="e.g. MIT"
+                                                    value={edu.institution || ""} onChange={e => {
+                                                        const newEdu = [...cvData.education];
+                                                        newEdu[i].institution = e.target.value;
+                                                        updateField("education", newEdu);
+                                                    }}
+                                                />
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                                 <div className="form-group">
@@ -1168,33 +1135,13 @@ function EditorContent() {
                                             </div>
                                             <div className="form-group">
                                                 <label className="form-label">Project Name <span style={{ color: '#e53e3e' }}>*</span></label>
-                                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                                    <input className="form-input" placeholder="e.g. Open Source CLI Tool"
-                                                        value={proj.name || ""} onChange={e => {
-                                                            const newProj = [...cvData.projects];
-                                                            newProj[i].name = e.target.value;
-                                                            updateField("projects", newProj);
-                                                        }}
-                                                        style={{ flex: 1 }}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newProj = [...cvData.projects];
-                                                            const val = newProj[i].name || "";
-                                                            newProj[i].name = isBold(val) ? val.slice(2, -2) : `**${val}**`;
-                                                            updateField("projects", newProj);
-                                                        }}
-                                                        disabled={!proj.name?.trim()}
-                                                        style={{
-                                                            width: '28px', height: '28px', border: '1px solid var(--border)',
-                                                            borderRadius: '4px', background: isBold(proj.name || "") ? '#6366F1' : 'var(--bg)',
-                                                            color: isBold(proj.name || "") ? 'white' : 'var(--text)', fontWeight: 700,
-                                                            cursor: proj.name?.trim() ? 'pointer' : 'not-allowed', fontSize: '0.8rem'
-                                                        }}
-                                                        title="Toggle Bold"
-                                                    >B</button>
-                                                </div>
+                                                <input className="form-input" placeholder="e.g. Open Source CLI Tool"
+                                                    value={proj.name || ""} onChange={e => {
+                                                        const newProj = [...cvData.projects];
+                                                        newProj[i].name = e.target.value;
+                                                        updateField("projects", newProj);
+                                                    }}
+                                                />
                                             </div>
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                                                 <div className="form-group">

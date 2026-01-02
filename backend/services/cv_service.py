@@ -54,14 +54,6 @@ class CVService:
             # Build full YAML structure
             full_data = cls._build_yaml_structure(cv_data, theme, design_settings, section_order)
             
-            # Debug: Print section order
-            cv_section = full_data.get("cv", {})
-            print(f"[DEBUG] CV name: {cv_section.get('name', 'NONE')}")
-            if cv_section.get("sections"):
-                print(f"[DEBUG] Section order: {list(cv_section['sections'].keys())}")
-            else:
-                print("[DEBUG] No sections found!")
-            
             # Write YAML file - sort_keys=False is CRITICAL to preserve section order!
             yaml_path = temp_dir / "cv.yaml"
             with open(yaml_path, "w", encoding="utf-8") as f:
