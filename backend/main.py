@@ -34,6 +34,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Railway."""
+    return {"status": "healthy"}
+
 # CORS middleware - use environment variable for production
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
 allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
