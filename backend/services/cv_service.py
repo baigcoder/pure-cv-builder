@@ -66,7 +66,9 @@ class CVService:
             )
             
             if result.returncode != 0:
-                raise ValueError(f"RenderCV failed (code {result.returncode}): stdout={result.stdout[:500]}, stderr={result.stderr[:500]}")
+                # Read the generated YAML for debugging
+                yaml_content = yaml_path.read_text()[:500] if yaml_path.exists() else "YAML file not found"
+                raise ValueError(f"RenderCV failed (code {result.returncode}): stdout={result.stdout[:2000]}, stderr={result.stderr[:500]}, yaml={yaml_content}")
             
             name = cv_data.get('name', 'CV').replace(' ', '_')
             
