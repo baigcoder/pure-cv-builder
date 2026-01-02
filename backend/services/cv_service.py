@@ -70,19 +70,25 @@ class CVService:
             
             name = cv_data.get('name', 'CV').replace(' ', '_')
             
+            # RenderCV creates output in a subdirectory - check multiple locations
+            search_dirs = [output_dir, temp_dir]
+            
             # Find generated files
             if output_format == "pdf":
-                # Find PDF file
-                pdf_files = list(output_dir.glob("**/*.pdf"))
-                if pdf_files:
-                    return pdf_files[0].read_bytes(), f"{name}_CV.pdf"
+                for search_dir in search_dirs:
+                    pdf_files = list(search_dir.glob("**/*.pdf"))
+                    if pdf_files:
+                        return pdf_files[0].read_bytes(), f"{name}_CV.pdf"
             else:
-                # Find PNG file (first page)
-                png_files = sorted(output_dir.glob("**/*.png"))
-                if png_files:
-                    return png_files[0].read_bytes(), f"{name}_CV.png"
+                for search_dir in search_dirs:
+                    png_files = sorted(search_dir.glob("**/*.png"))
+                    if png_files:
+                        return png_files[0].read_bytes(), f"{name}_CV.png"
             
-            raise ValueError("Failed to generate output")
+            # Debug: list all files in temp_dir for troubleshooting
+            all_files = list(temp_dir.glob("**/*"))
+            file_list = [str(f.relative_to(temp_dir)) for f in all_files if f.is_file()]
+            raise ValueError(f"Failed to generate output. Files found: {file_list}, stdout: {result.stdout[:500]}")
             
         finally:
             # Cleanup temp directory
