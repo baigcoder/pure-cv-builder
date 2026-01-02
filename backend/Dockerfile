@@ -4,6 +4,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Install system dependencies and Typst from GitHub releases
+# Cache bust: v2
 RUN apt-get update && apt-get install -y \
     curl \
     xz-utils \
