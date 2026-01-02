@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     && curl -fsSL https://github.com/typst/typst/releases/download/v0.12.0/typst-x86_64-unknown-linux-musl.tar.xz \
     | tar -xJ -C /usr/local/bin --strip-components=1 typst-x86_64-unknown-linux-musl/typst
 
-# Copy requirements first for caching
+# Copy requirements first - cache bust v3 to force reinstall with rendercv[full]
 COPY requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
