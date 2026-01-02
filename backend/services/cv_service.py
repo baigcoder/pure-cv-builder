@@ -66,7 +66,7 @@ class CVService:
             )
             
             if result.returncode != 0:
-                raise ValueError(f"RenderCV failed: {result.stderr}")
+                raise ValueError(f"RenderCV failed (code {result.returncode}): stdout={result.stdout[:500]}, stderr={result.stderr[:500]}")
             
             name = cv_data.get('name', 'CV').replace(' ', '_')
             
