@@ -1,218 +1,327 @@
 <div align="center">
-  
-# 📄 RenderCV
 
-### _Professional CV Generator for Academics & Engineers_
+# ✨ PURE CV Builder
 
-[![test](https://github.com/rendercv/rendercv/actions/workflows/test.yaml/badge.svg?branch=main)](https://github.com/rendercv/rendercv/actions/workflows/test.yaml)
-[![coverage](https://coverage-badge.samuelcolvin.workers.dev/rendercv/rendercv.svg)](https://coverage-badge.samuelcolvin.workers.dev/redirect/rendercv/rendercv)
-[![docs](https://img.shields.io/badge/docs-mkdocs-rgb(0%2C79%2C144))](https://docs.rendercv.com)
-[![pypi-version](https://img.shields.io/pypi/v/rendercv?label=PyPI%20version&color=rgb(0%2C79%2C144))](https://pypi.python.org/pypi/rendercv)
-[![pypi-downloads](https://img.shields.io/pepy/dt/rendercv?label=PyPI%20downloads&color=rgb(0%2C%2079%2C%20144))](https://pypistats.org/packages/rendercv)
+### _The Purest Way to Build Your Professional CV_
+
+[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Visit_Now-6366F1?style=for-the-badge)](https://purecvfrontend-production.up.railway.app)
+[![API Status](https://img.shields.io/badge/🔧_API-Online-22C55E?style=for-the-badge)](https://pure-cv-builder-production.up.railway.app/health)
 
 ---
 
-🌐 **Live Demo:** [purecvfrontend-production.up.railway.app](https://purecvfrontend-production.up.railway.app)
+<img src="https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/classic.png" alt="Pure CV Preview" width="400"/>
 
-🔧 **API Endpoint:** [pure-cv-builder-production.up.railway.app](https://pure-cv-builder-production.up.railway.app)
+**A minimalist, precision-engineered CV builder for high-performing professionals.**
+
+[🚀 Start Building](https://purecvfrontend-production.up.railway.app) • [📖 Documentation](https://docs.rendercv.com) • [💻 GitHub](https://github.com/baigcoder/pure-cv-builder)
 
 </div>
 
 ---
 
-## ✨ Features
+## 🎯 Why Pure CV?
 
-| Feature | Description |
-|---------|-------------|
-| 🎯 **YAML-Powered** | Write your CV as structured YAML - no more fighting with Word templates |
-| 📊 **Version Control** | Track every change with Git - your CV is just text |
-| 🎨 **5 Professional Themes** | Classic, ModernCV, Academic, Tech, Entry Level |
-| ⚡ **Real-time Preview** | Instant PDF preview as you type |
-| 🤖 **AI-Powered Suggestions** | Smart content recommendations for headlines & summaries |
-| 📈 **ATS Score Calculator** | Optimize your CV for Applicant Tracking Systems |
-| 🌍 **Multi-Language Support** | Localization for any language |
-| 🔧 **Extensive Customization** | Control colors, fonts, margins, and typography |
+> *"No fluff, just precision-engineered templates that get you hired."*
 
----
+Traditional CV builders are bloated with unnecessary features. **Pure CV** strips away the noise and focuses on what matters: creating professional, ATS-optimized CVs in minutes.
 
-## 🖥️ Web Application
-
-Our modern web editor provides a seamless CV building experience:
-
-### 🎨 Theme Gallery
-Choose from 5 professionally designed themes optimized for different career stages:
-
-| Theme | Best For |
-|-------|----------|
-| **Classic** | Traditional professional roles |
-| **ModernCV** | Modern two-column design |
-| **Academic** | Research & academic careers |
-| **Tech** | Engineering & tech focused |
-| **Entry Level** | Students & new graduates |
-
-### 🛠️ Editor Features
-- **Live Preview** - See changes instantly
-- **Section Navigation** - Easy organization (Profile, Experience, Education, Skills, Projects, Publications, Awards)
-- **Drag & Drop Reordering** - Customize section priority
-- **Photo Upload** - Optional profile photo support
-- **Export to PDF** - One-click download
+| Problem | Pure CV Solution |
+|---------|------------------|
+| 😤 Complex interfaces with 100+ options | ✅ Clean, focused editor with intuitive navigation |
+| 😤 Generic templates that all look the same | ✅ 5 curated, research-backed professional themes |
+| 😤 PDFs that fail ATS scanners | ✅ Typography-perfect, ATS-optimized output |
+| 😤 No feedback on CV quality | ✅ Real-time ATS score & improvement tips |
+| 😤 Hours spent on formatting | ✅ Live preview - see changes instantly |
 
 ---
 
-## 📦 CLI Installation
+## ✨ Core Features
 
-Install RenderCV (Requires Python 3.12+):
+### 📝 Smart CV Editor
+
+<table>
+<tr>
+<td width="50%">
+
+**Section-Based Navigation**
+- 👤 Profile (Name, Headline, Contact, Summary)
+- 💼 Work Experience
+- 🎓 Education
+- 🛠️ Skills
+- 📁 Projects
+- 📚 Publications
+- 🏆 Awards & Certifications
+- 📜 Patents
+- 🎤 Talks & Presentations
+
+</td>
+<td width="50%">
+
+**Intelligent Helpers**
+- ✨ AI-powered content suggestions
+- 📊 Real-time ATS score calculator
+- 📈 Word count per section
+- ✅ Section completion tracking
+- 🔄 Auto-save with sync status
+- ⚠️ Form validation with error hints
+
+</td>
+</tr>
+</table>
+
+---
+
+### 🤖 AI-Powered Writing Assistant
+
+Powered by advanced language models to help you craft compelling content:
+
+| AI Feature | Description |
+|------------|-------------|
+| **✨ Headline Generator** | Creates impactful professional headlines based on your profile |
+| **✨ Summary Polish** | Refines your professional summary for maximum impact |
+| **✨ Experience Bullets** | Transforms basic job duties into achievement-focused bullets |
+| **✨ Education Highlights** | Enhances academic achievements and coursework descriptions |
+| **✨ Project Descriptions** | Improves project summaries with technical precision |
+| **✨ Skills Suggestions** | Recommends relevant skills based on your experience |
+| **✨ Honor Formatting** | Properly formats awards and certifications |
+
+---
+
+### 🎨 Professional Theme Gallery
+
+Choose from 5 meticulously designed templates:
+
+| Theme | Style | Best For |
+|-------|-------|----------|
+| **Classic Professional** | Traditional, formal | Corporate roles, Banking, Law |
+| **Modern Minimal** | Two-column, clean | Design, Marketing, Tech startups |
+| **Academic Focus** | Detailed, research-oriented | PhD, Research, Academia |
+| **Technical Precision** | Skills-first, hierarchical | Engineering, Software, DevOps |
+| **Entry Level** | Education-first, potential-focused | Students, Fresh graduates, Career changers |
+
+Each theme features:
+- ✅ ATS-optimized typography
+- ✅ Professional color schemes
+- ✅ Perfect spacing & alignment
+- ✅ LaTeX-quality PDF output
+
+---
+
+### 🎛️ Design Customization
+
+Personalize your CV while maintaining professional standards:
+
+```
+🎨 Colors
+├── 10 curated color presets (Classic Blue, Modern Indigo, Elegant Teal, etc.)
+├── Custom hex color picker
+└── Consistent application across headings & links
+
+🔤 Typography  
+├── 7 professional font families
+├── Source Sans 3 (default)
+├── Inter, Roboto, Open Sans, Lato
+└── Georgia, Times New Roman (traditional)
+
+📐 Layout
+├── US Letter / A4 page sizes
+├── Adjustable margins
+└── Section ordering by theme
+```
+
+---
+
+### 📊 ATS Score Calculator
+
+Real-time optimization feedback with actionable tips:
+
+```
+┌─────────────────────────────────────────┐
+│         ATS Strength: 85%               │
+├─────────────────────────────────────────┤
+│ ✅ Contact info complete (+20 pts)      │
+│ ✅ Summary 50+ characters (+15 pts)     │
+│ ✅ Work experience with bullets (+25)   │
+│ ✅ Education section filled (+15 pts)   │
+│ ✅ Skills section present (+15 pts)     │
+│ ⚠️ Aim for 300-700 total words (+10)   │
+└─────────────────────────────────────────┘
+```
+
+---
+
+### ⚡ Real-Time Preview
+
+- **Instant Updates**: See your CV update as you type (1.5s debounce)
+- **Full-Page Preview**: High-resolution PNG rendering
+- **Sync Status**: Visual indicator shows save state
+- **Error Feedback**: Field-level validation messages
+
+---
+
+### 📤 Export Options
+
+| Format | Use Case | Quality |
+|--------|----------|---------|
+| **PDF** | Job applications, printing | LaTeX-quality, vector graphics |
+| **PNG** | Quick preview, sharing | High-resolution image |
+| **YAML** | Version control, CLI usage | Structured data format |
+
+---
+
+## 🏗️ Technical Architecture
+
+```
+pure-cv-builder/
+│
+├── 🎨 frontend/                    # Next.js 15 + React 19
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── page.tsx           # Landing page with template gallery
+│   │   │   └── editor/
+│   │   │       ├── page.tsx       # Main CV editor (1600+ lines)
+│   │   │       └── editor.module.css
+│   │   └── components/
+│   │       └── Brand.tsx          # Logo & icons
+│   ├── public/                    # Theme preview images
+│   └── package.json
+│
+├── ⚙️ backend/                     # FastAPI + Python 3.12
+│   ├── main.py                    # CORS, routing, health checks
+│   ├── api/
+│   │   └── render.py              # REST endpoints (render, preview, AI)
+│   └── services/
+│       ├── cv_service.py          # RenderCV integration
+│       └── ai_service.py          # GPT-powered suggestions
+│
+└── 📦 docker-compose.yml          # Local development setup
+```
+
+---
+
+## 🚀 Live Deployment
+
+| Service | Platform | URL | Status |
+|---------|----------|-----|--------|
+| **Frontend** | Railway | [purecvfrontend-production.up.railway.app](https://purecvfrontend-production.up.railway.app) | 🟢 Live |
+| **Backend** | Railway | [pure-cv-builder-production.up.railway.app](https://pure-cv-builder-production.up.railway.app) | 🟢 Live |
+
+### API Endpoints
+
+```http
+# Health Check
+GET /health
+GET /api/health
+
+# CV Operations
+POST /api/preview     → PNG preview
+POST /api/download    → PDF download
+POST /api/render      → PNG or PDF (by format param)
+POST /api/yaml        → YAML export
+
+# AI Suggestions
+POST /api/ai/suggest  → AI-powered content improvements
+
+# Theme Info
+GET /api/themes       → Available themes list
+```
+
+---
+
+## 🔧 Local Development
+
+### Prerequisites
+- Node.js 18+
+- Python 3.12+
+- Docker (optional)
+
+### Quick Start
 
 ```bash
-pip install "rendercv[full]"
+# Clone the repository
+git clone https://github.com/baigcoder/pure-cv-builder.git
+cd pure-cv-builder
+
+# Start with Docker
+docker-compose up -d
+
+# Or manually:
+
+# Backend
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+
+# Frontend (new terminal)
+cd frontend
+npm install
+npm run dev
 ```
-
-Create a new CV:
-
-```bash
-rendercv new "John Doe"
-```
-
-Render your CV:
-
-```bash
-rendercv render "John_Doe_CV.yaml"
-```
-
----
-
-## 📝 YAML Structure
-
-```yaml
-cv:
-  name: John Doe
-  location: San Francisco, CA
-  email: john.doe@email.com
-  website: https://example.com
-  social_networks:
-    - network: LinkedIn
-      username: johndoe
-    - network: GitHub
-      username: johndoe
-  sections:
-    education:
-      - institution: Stanford University
-        area: Computer Science
-        degree: PhD
-        start_date: 2018-09
-        end_date: 2023-05
-        location: Stanford, CA
-        highlights:
-          - "Thesis: Machine Learning for Computer Vision"
-          - "Advisor: Prof. Fei-Fei Li"
-    experience:
-      - company: Google
-        position: Senior Software Engineer
-        start_date: 2023-06
-        end_date: present
-        location: Mountain View, CA
-        highlights:
-          - Led development of core ML infrastructure
-          - Improved model inference by 40%
-```
-
----
-
-## 🎨 Design Customization
-
-```yaml
-design:
-  theme: classic
-  page:
-    size: us-letter
-    top_margin: 0.7in
-    bottom_margin: 0.7in
-    left_margin: 0.7in
-    right_margin: 0.7in
-  colors:
-    name: rgb(0, 79, 144)
-    section_titles: rgb(0, 79, 144)
-    links: rgb(0, 79, 144)
-  typography:
-    font_family: Source Sans 3
-    line_spacing: 0.6em
-    alignment: justified
-```
-
----
-
-## 🏗️ Architecture
-
-```
-rendercv/
-├── src/              # Core RenderCV Python library
-├── web/
-│   ├── frontend/     # Next.js 15 web application
-│   │   └── src/
-│   │       └── app/
-│   │           ├── page.tsx        # Landing page
-│   │           └── editor/         # CV Editor
-│   └── backend/      # FastAPI REST API
-│       ├── main.py   # API entry point
-│       └── api/      # Route handlers
-├── docs/             # Documentation
-├── examples/         # Sample CVs
-└── tests/            # Test suite
-```
-
----
-
-## 🚀 Deployment
-
-### Frontend (Next.js)
-- **Platform:** Railway
-- **URL:** [purecvfrontend-production.up.railway.app](https://purecvfrontend-production.up.railway.app)
-
-### Backend (FastAPI)
-- **Platform:** Railway
-- **URL:** [pure-cv-builder-production.up.railway.app](https://pure-cv-builder-production.up.railway.app)
-- **Health Check:** `/health`
 
 ### Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL (frontend) |
-| `CORS_ORIGINS` | Allowed origins (backend) |
-| `LOG_LEVEL` | Logging level (backend) |
+| Variable | Service | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_API_URL` | Frontend | Backend API URL |
+| `CORS_ORIGINS` | Backend | Comma-separated allowed origins |
+| `LOG_LEVEL` | Backend | Logging verbosity (INFO, DEBUG) |
+| `OPENAI_API_KEY` | Backend | For AI suggestions (optional) |
 
 ---
 
-## 📚 Documentation
+## 📱 User Workflow
 
-- 📖 [User Guide](https://docs.rendercv.com/user_guide/)
-- 🔧 [VS Code Setup](https://docs.rendercv.com/user_guide/how_to/set_up_vs_code_for_rendercv)
-- 📋 [JSON Schema Reference](https://docs.rendercv.com)
+```mermaid
+graph LR
+    A[🏠 Landing Page] --> B{Choose Template}
+    B --> C[🖊️ Editor Mode]
+    C --> D[Fill Sections]
+    D --> E[👁️ Live Preview]
+    E --> F{Happy?}
+    F -->|Yes| G[📥 Download PDF]
+    F -->|No| D
+    C --> H[🎨 Customize Design]
+    H --> E
+```
+
+**Step-by-Step:**
+1. **Landing Page** → Click "Start Drafting"
+2. **Template Selection** → Choose from 5 professional themes
+3. **Editor** → Fill in sections (Profile, Experience, Education, etc.)
+4. **AI Assist** → Use ✨ buttons for content suggestions
+5. **Preview** → Watch your CV update in real-time
+6. **Optimize** → Check ATS score and apply tips
+7. **Download** → Export as PDF for job applications
 
 ---
 
-## 🤝 Contributing
+## 🎯 Key Differentiators
 
-Contributions are welcome! Please read our contributing guidelines before submitting PRs.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+| Feature | Pure CV | Traditional Builders |
+|---------|---------|---------------------|
+| **Technology** | LaTeX-powered (perfect typography) | HTML/CSS (inconsistent) |
+| **AI Integration** | Built-in GPT suggestions | None or premium-only |
+| **ATS Optimization** | Real-time score calculator | Manual guesswork |
+| **Open Source** | MIT License, fully transparent | Closed source |
+| **Speed** | ~1.5s live preview | Page reload required |
+| **Price** | 100% Free | $10-30/month |
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - Free for personal and commercial use.
 
 ---
 
 <div align="center">
-  
-**[🌐 Try it Now](https://purecvfrontend-production.up.railway.app)** | **[📖 Documentation](https://docs.rendercv.com)** | **[⭐ Star on GitHub](https://github.com/rendercv/rendercv)**
 
-Made with ❤️ for professionals who value their time
+### 🌟 Ready to Build Your Perfect CV?
+
+[![Start Now](https://img.shields.io/badge/🚀_Start_Building_Now-6366F1?style=for-the-badge&logo=rocket&logoColor=white)](https://purecvfrontend-production.up.railway.app)
+
+**Built with ❤️ for professionals who value their time**
+
+*Powered by [RenderCV](https://github.com/rendercv/rendercv) • Deployed on [Railway](https://railway.app)*
 
 </div>
