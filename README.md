@@ -1,80 +1,124 @@
 <div align="center">
-<h1>RenderCV</h1>
+  
+# 📄 RenderCV
 
-_CV/resume generator for academics and engineers_
+### _Professional CV Generator for Academics & Engineers_
 
 [![test](https://github.com/rendercv/rendercv/actions/workflows/test.yaml/badge.svg?branch=main)](https://github.com/rendercv/rendercv/actions/workflows/test.yaml)
 [![coverage](https://coverage-badge.samuelcolvin.workers.dev/rendercv/rendercv.svg)](https://coverage-badge.samuelcolvin.workers.dev/redirect/rendercv/rendercv)
-[![docs](<https://img.shields.io/badge/docs-mkdocs-rgb(0%2C79%2C144)>)](https://docs.rendercv.com)
-[![pypi-version](<https://img.shields.io/pypi/v/rendercv?label=PyPI%20version&color=rgb(0%2C79%2C144)>)](https://pypi.python.org/pypi/rendercv)
-[![pypi-downloads](<https://img.shields.io/pepy/dt/rendercv?label=PyPI%20downloads&color=rgb(0%2C%2079%2C%20144)>)](https://pypistats.org/packages/rendercv)
+[![docs](https://img.shields.io/badge/docs-mkdocs-rgb(0%2C79%2C144))](https://docs.rendercv.com)
+[![pypi-version](https://img.shields.io/pypi/v/rendercv?label=PyPI%20version&color=rgb(0%2C79%2C144))](https://pypi.python.org/pypi/rendercv)
+[![pypi-downloads](https://img.shields.io/pepy/dt/rendercv?label=PyPI%20downloads&color=rgb(0%2C%2079%2C%20144))](https://pypistats.org/packages/rendercv)
+
+---
+
+🌐 **Live Demo:** [purecvfrontend-production.up.railway.app](https://purecvfrontend-production.up.railway.app)
+
+🔧 **API Endpoint:** [pure-cv-builder-production.up.railway.app](https://pure-cv-builder-production.up.railway.app)
 
 </div>
 
-Write your CV or resume as YAML, then run RenderCV,
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🎯 **YAML-Powered** | Write your CV as structured YAML - no more fighting with Word templates |
+| 📊 **Version Control** | Track every change with Git - your CV is just text |
+| 🎨 **5 Professional Themes** | Classic, ModernCV, Academic, Tech, Entry Level |
+| ⚡ **Real-time Preview** | Instant PDF preview as you type |
+| 🤖 **AI-Powered Suggestions** | Smart content recommendations for headlines & summaries |
+| 📈 **ATS Score Calculator** | Optimize your CV for Applicant Tracking Systems |
+| 🌍 **Multi-Language Support** | Localization for any language |
+| 🔧 **Extensive Customization** | Control colors, fonts, margins, and typography |
+
+---
+
+## 🖥️ Web Application
+
+Our modern web editor provides a seamless CV building experience:
+
+### 🎨 Theme Gallery
+Choose from 5 professionally designed themes optimized for different career stages:
+
+| Theme | Best For |
+|-------|----------|
+| **Classic** | Traditional professional roles |
+| **ModernCV** | Modern two-column design |
+| **Academic** | Research & academic careers |
+| **Tech** | Engineering & tech focused |
+| **Entry Level** | Students & new graduates |
+
+### 🛠️ Editor Features
+- **Live Preview** - See changes instantly
+- **Section Navigation** - Easy organization (Profile, Experience, Education, Skills, Projects, Publications, Awards)
+- **Drag & Drop Reordering** - Customize section priority
+- **Photo Upload** - Optional profile photo support
+- **Export to PDF** - One-click download
+
+---
+
+## 📦 CLI Installation
+
+Install RenderCV (Requires Python 3.12+):
 
 ```bash
-rendercv render John_Doe_CV.yaml
+pip install "rendercv[full]"
 ```
 
-and get a PDF with perfect typography. No template wrestling. No broken layouts. Consistent spacing, every time.
+Create a new CV:
 
-With RenderCV, you can:
+```bash
+rendercv new "John Doe"
+```
 
-- Version-control your CV — it's just text.
-- Focus on content — don't wory about the formatting.
-- Get perfect typography — pixel-perfect alignment and spacing, handled for you.
+Render your CV:
 
-A YAML file like this:
+```bash
+rendercv render "John_Doe_CV.yaml"
+```
+
+---
+
+## 📝 YAML Structure
 
 ```yaml
 cv:
   name: John Doe
   location: San Francisco, CA
   email: john.doe@email.com
-  website: https://rendercv.com/
+  website: https://example.com
   social_networks:
     - network: LinkedIn
-      username: rendercv
+      username: johndoe
     - network: GitHub
-      username: rendercv
+      username: johndoe
   sections:
-    Welcome to RenderCV:
-      - RenderCV reads a CV written in a YAML file, and generates a PDF with professional typography.
-      - See the [documentation](https://docs.rendercv.com) for more details.
     education:
-      - institution: Princeton University
+      - institution: Stanford University
         area: Computer Science
         degree: PhD
-        date:
         start_date: 2018-09
         end_date: 2023-05
-        location: Princeton, NJ
-        summary:
+        location: Stanford, CA
         highlights:
-          - "Thesis: Efficient Neural Architecture Search for Resource-Constrained Deployment"
-          - "Advisor: Prof. Sanjeev Arora"
-          - NSF Graduate Research Fellowship, Siebel Scholar (Class of 2022)
-    ...
+          - "Thesis: Machine Learning for Computer Vision"
+          - "Advisor: Prof. Fei-Fei Li"
+    experience:
+      - company: Google
+        position: Senior Software Engineer
+        start_date: 2023-06
+        end_date: present
+        location: Mountain View, CA
+        highlights:
+          - Led development of core ML infrastructure
+          - Improved model inference by 40%
 ```
 
-becomes one of these PDFs. Click on the images to preview.
+---
 
-| [![Classic Theme Example of RenderCV](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/classic.png)](https://github.com/rendercv/rendercv/blob/main/examples/John_Doe_ClassicTheme_CV.pdf)    | [![Engineeringresumes Theme Example of RenderCV](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/engineeringresumes.png)](https://github.com/rendercv/rendercv/blob/main/examples/John_Doe_EngineeringresumesTheme_CV.pdf) | [![Sb2nov Theme Example of RenderCV](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/sb2nov.png)](https://github.com/rendercv/rendercv/blob/main/examples/John_Doe_Sb2novTheme_CV.pdf) |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [![Moderncv Theme Example of RenderCV](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/moderncv.png)](https://github.com/rendercv/rendercv/blob/main/examples/John_Doe_ModerncvTheme_CV.pdf) | [![Engineeringclassic Theme Example of RenderCV](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/engineeringclassic.png)](https://github.com/rendercv/rendercv/blob/main/examples/John_Doe_EngineeringclassicTheme_CV.pdf) | ![Custom themes can be added.](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/customtheme.png)                                                                                        |
-
-
-## JSON Schema
-
-RenderCV's JSON Schema lets you fill out the YAML interactively, with autocompletion and inline documentation.
-
-![JSON Schema of RenderCV](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/json_schema.gif)
-
-
-## Extensive Design Options
-
-You have full control over every detail.
+## 🎨 Design Customization
 
 ```yaml
 design:
@@ -85,75 +129,90 @@ design:
     bottom_margin: 0.7in
     left_margin: 0.7in
     right_margin: 0.7in
-    show_footer: true
-    show_top_note: true
   colors:
-    body: rgb(0, 0, 0)
     name: rgb(0, 79, 144)
-    headline: rgb(0, 79, 144)
-    connections: rgb(0, 79, 144)
     section_titles: rgb(0, 79, 144)
     links: rgb(0, 79, 144)
-    footer: rgb(128, 128, 128)
-    top_note: rgb(128, 128, 128)
   typography:
+    font_family: Source Sans 3
     line_spacing: 0.6em
     alignment: justified
-    date_and_location_column_alignment: right
-    font_family: Source Sans 3
-  # ...and much more
 ```
 
-![Design Options of RenderCV](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/design_options.gif)
+---
 
-> [!TIP]
-> Want to set up a live preview environment like the one shown above? See [how to set up VS Code for RenderCV](https://docs.rendercv.com/user_guide/how_to/set_up_vs_code_for_rendercv).
-
-## Strict Validation
-
-No surprises. If something's wrong, you'll know exactly what and where. If it's valid, you get a perfect PDF.
-
-![Strict Validation Feature of RenderCV](https://raw.githubusercontent.com/rendercv/rendercv/main/docs/assets/images/validation.gif)
-
-
-## Any Language
-
-Fill out the locale field for your language.
-
-```yaml
-locale:
-  language: english
-  last_updated: Last updated in
-  month: month
-  months: months
-  year: year
-  years: years
-  present: present
-  month_abbreviations:
-    - Jan
-    - Feb
-    - Mar
-  ...
-```
-
-## Get Started
-
-Install RenderCV (Requires Python 3.12+):
+## 🏗️ Architecture
 
 ```
-pip install "rendercv[full]"
+rendercv/
+├── src/              # Core RenderCV Python library
+├── web/
+│   ├── frontend/     # Next.js 15 web application
+│   │   └── src/
+│   │       └── app/
+│   │           ├── page.tsx        # Landing page
+│   │           └── editor/         # CV Editor
+│   └── backend/      # FastAPI REST API
+│       ├── main.py   # API entry point
+│       └── api/      # Route handlers
+├── docs/             # Documentation
+├── examples/         # Sample CVs
+└── tests/            # Test suite
 ```
 
-Create a new CV yaml file:
+---
 
-```
-rendercv new "John Doe"
-```
+## 🚀 Deployment
 
-Edit the YAML, then render:
+### Frontend (Next.js)
+- **Platform:** Railway
+- **URL:** [purecvfrontend-production.up.railway.app](https://purecvfrontend-production.up.railway.app)
 
-```
-rendercv render "John_Doe_CV.yaml"
-```
+### Backend (FastAPI)
+- **Platform:** Railway
+- **URL:** [pure-cv-builder-production.up.railway.app](https://pure-cv-builder-production.up.railway.app)
+- **Health Check:** `/health`
 
-For more details, see the [user guide](https://docs.rendercv.com/user_guide/).
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL (frontend) |
+| `CORS_ORIGINS` | Allowed origins (backend) |
+| `LOG_LEVEL` | Logging level (backend) |
+
+---
+
+## 📚 Documentation
+
+- 📖 [User Guide](https://docs.rendercv.com/user_guide/)
+- 🔧 [VS Code Setup](https://docs.rendercv.com/user_guide/how_to/set_up_vs_code_for_rendercv)
+- 📋 [JSON Schema Reference](https://docs.rendercv.com)
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting PRs.
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+  
+**[🌐 Try it Now](https://purecvfrontend-production.up.railway.app)** | **[📖 Documentation](https://docs.rendercv.com)** | **[⭐ Star on GitHub](https://github.com/rendercv/rendercv)**
+
+Made with ❤️ for professionals who value their time
+
+</div>
