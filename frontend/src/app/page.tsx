@@ -37,6 +37,29 @@ export default function Home() {
     },
   ];
 
+  const features = [
+    {
+      icon: "✨",
+      title: "AI-Powered Writing",
+      description: "Smart suggestions for headlines, summaries, and bullet points"
+    },
+    {
+      icon: "📊",
+      title: "ATS Optimizer",
+      description: "Real-time score calculator with actionable improvement tips"
+    },
+    {
+      icon: "⚡",
+      title: "Live Preview",
+      description: "See your CV update instantly as you type"
+    },
+    {
+      icon: "🎨",
+      title: "Custom Design",
+      description: "Personalize colors, fonts, and layouts to match your style"
+    }
+  ];
+
   const [selectedTemplate, setSelectedTemplate] = useState<typeof templates[0] | null>(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
 
@@ -59,7 +82,10 @@ export default function Home() {
 
       <main>
         <section className={styles.hero}>
-          <div className={styles.heroTag}>Pure Precision</div>
+          <div className={styles.heroTag}>
+            <span className={styles.tagIcon}>🚀</span>
+            Free Forever • No Sign-up Required
+          </div>
           <h1 className={styles.heroTitle}>
             The purest way to build your <span>CV</span>.
           </h1>
@@ -71,16 +97,55 @@ export default function Home() {
             <button
               onClick={() => setShowTemplateModal(true)}
               className="btn btn-primary btn-lg"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                padding: '1rem 2.5rem',
+                fontSize: '1.1rem'
+              }}
             >
-              Start Drafting
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Start Building Now
             </button>
-            <a
-              href="https://github.com/rendercv/rendercv"
-              target="_blank"
-              className="btn btn-secondary btn-lg"
-            >
-              Explore Source
-            </a>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className={styles.trustIndicators}>
+            <div className={styles.trustItem}>
+              <span className={styles.trustIcon}>✓</span>
+              <span>LaTeX-Quality PDFs</span>
+            </div>
+            <div className={styles.trustItem}>
+              <span className={styles.trustIcon}>✓</span>
+              <span>ATS Optimized</span>
+            </div>
+            <div className={styles.trustItem}>
+              <span className={styles.trustIcon}>✓</span>
+              <span>100% Free</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section className={styles.features}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Why Professionals Choose PURE</h2>
+            <p className={styles.sectionDesc}>
+              Everything you need to create a standout CV, nothing you don't.
+            </p>
+          </div>
+          <div className={styles.featureGrid}>
+            {features.map((feature, index) => (
+              <div key={index} className={styles.featureCard}>
+                <div className={styles.featureIcon}>{feature.icon}</div>
+                <h3 className={styles.featureTitle}>{feature.title}</h3>
+                <p className={styles.featureDesc}>{feature.description}</p>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -106,10 +171,58 @@ export default function Home() {
                 </div>
                 <div className={styles.templateInfo}>
                   <div className={styles.templateName}>{theme.name}</div>
+                  <div className={styles.templateTags}>
+                    {theme.tags.map(tag => (
+                      <span key={tag} className={styles.templateTag}>{tag}</span>
+                    ))}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section className={styles.howItWorks}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Build Your CV in 3 Steps</h2>
+            <p className={styles.sectionDesc}>
+              From blank page to polished PDF in minutes.
+            </p>
+          </div>
+          <div className={styles.stepsGrid}>
+            <div className={styles.stepCard}>
+              <div className={styles.stepNumber}>1</div>
+              <h3 className={styles.stepTitle}>Choose a Template</h3>
+              <p className={styles.stepDesc}>Pick from 5 professionally designed themes tailored for different careers.</p>
+            </div>
+            <div className={styles.stepCard}>
+              <div className={styles.stepNumber}>2</div>
+              <h3 className={styles.stepTitle}>Fill Your Details</h3>
+              <p className={styles.stepDesc}>Add your experience, education, and skills with AI-powered suggestions.</p>
+            </div>
+            <div className={styles.stepCard}>
+              <div className={styles.stepNumber}>3</div>
+              <h3 className={styles.stepTitle}>Download & Apply</h3>
+              <p className={styles.stepDesc}>Export your pixel-perfect PDF and start applying to your dream jobs.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className={styles.finalCta}>
+          <h2 className={styles.ctaTitle}>Ready to Land Your Dream Job?</h2>
+          <p className={styles.ctaSubtitle}>Join thousands of professionals who trust PURE for their CV.</p>
+          <button
+            onClick={() => setShowTemplateModal(true)}
+            className="btn btn-primary btn-lg"
+            style={{
+              padding: '1rem 3rem',
+              fontSize: '1.1rem'
+            }}
+          >
+            Create Your CV Now — It's Free
+          </button>
         </section>
       </main>
 
@@ -119,7 +232,7 @@ export default function Home() {
           <a href="#" className={styles.footerLink}>Terms</a>
           <a href="#" className={styles.footerLink}>Privacy</a>
         </div>
-        <p>© 2024 PURE. Built for the modern professional.</p>
+        <p>© 2025 PURE. Built for the modern professional.</p>
       </footer>
 
       {/* Template Selection Modal (triggered by Start Drafting) */}
