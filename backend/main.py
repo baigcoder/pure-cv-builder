@@ -71,11 +71,17 @@ cors_origins = os.getenv(
     "https://pure-cv-builder-7oj5.vercel.app"
 )
 allowed_origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
-logger.info(f"CORS allowed origins: {allowed_origins}")
+cors_origin_regex = os.getenv("CORS_ORIGIN_REGEX", r"https://.*\.vercel\.app")
+logger.info(
+    "CORS allowed origins: %s; regex: %s",
+    allowed_origins,
+    cors_origin_regex,
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
