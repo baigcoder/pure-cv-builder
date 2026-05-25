@@ -99,7 +99,7 @@ dev = [
 ]
 docs = [
     'mkdocs-material>=9.7.0',
-    'mkdocs-gen-files>=0.6.0',     # Dynamic page generation for API reference
+    'mkdocs-gen-files>=0.6.1',     # Dynamic page generation for API reference
     'mkdocs-literate-nav>=0.6.2',  # Dynamic navigation for API reference
     'mkdocs-macros-plugin>=1.5.0', # Dynamic content in docs
     'mkdocstrings[python]>=1.0.0', # Build reference docs from docstrings
