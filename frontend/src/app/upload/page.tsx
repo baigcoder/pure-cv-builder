@@ -9,13 +9,12 @@ import { Logo } from "@/components/Brand";
 import { StatusBanner, TemplateCard } from "@/components/AppUI";
 import { THEME_DATA } from "@/lib/themes";
 import { extractPDF } from "@/lib/editorApi";
+import { API_URL } from "@/lib/config";
 import {
   IMPORTED_CV_STORAGE_KEY,
   normalizeCVData,
   type CVData,
 } from "@/lib/cvBuilder";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 type UploadState = "idle" | "processing" | "success" | "error";
 

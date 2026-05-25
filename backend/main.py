@@ -67,9 +67,10 @@ cors_origins = os.getenv(
     "http://localhost:3002,http://127.0.0.1:3002,"
     "http://localhost:3003,http://127.0.0.1:3003,"
     "http://localhost:3004,http://127.0.0.1:3004,"
-    "http://localhost:3005,http://127.0.0.1:3005"
+    "http://localhost:3005,http://127.0.0.1:3005,"
+    "https://pure-cv-builder-7oj5.vercel.app"
 )
-allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
+allowed_origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
 logger.info(f"CORS allowed origins: {allowed_origins}")
 
 app.add_middleware(

@@ -37,10 +37,8 @@ import {
     requestAISuggestion,
     requestAIStatus,
 } from "@/lib/editorApi";
+import { API_URL } from "@/lib/config";
 import { THEME_DATA, getSectionIdsForTheme, getTheme } from "@/lib/themes";
-
-// API Base URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Base sections with icons (will be reordered based on theme)
 const BASE_SECTIONS = {
