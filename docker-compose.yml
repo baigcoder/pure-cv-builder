@@ -6,8 +6,8 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ..
-      dockerfile: web/backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     environment:
