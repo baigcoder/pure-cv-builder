@@ -1,0 +1,219 @@
+.sectionHeader {
+  max-width: 720px;
+  margin: 0 auto 2rem;
+  text-align: left;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
+  width: fit-content;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: var(--radius-full);
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.title {
+  color: var(--primary);
+  font-size: clamp(1.7rem, 4vw, 2.7rem);
+  font-weight: 800;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.description {
+  max-width: 620px;
+  margin: 0.85rem 0 0;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.actionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.actionBarCenter {
+  justify-content: center;
+}
+
+.statusBanner {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.statusBanner strong {
+  display: block;
+  color: var(--primary);
+  margin-bottom: 0.2rem;
+}
+
+.statusInfo {
+  border-color: rgba(99, 102, 241, 0.2);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.statusSuccess {
+  border-color: rgba(13, 148, 136, 0.22);
+  background: rgba(13, 148, 136, 0.08);
+}
+
+.statusWarning {
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.statusError {
+  border-color: rgba(220, 38, 38, 0.24);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 220px;
+  padding: 2rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.emptyState strong {
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.templateCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--white), var(--surface));
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.templateCard:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+}
+
+.templateCardSelected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light), var(--shadow-md);
+}
+
+.templateImageWrap {
+  aspect-ratio: 0.74;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.1), rgba(14, 116, 144, 0.08)),
+    var(--surface);
+}
+
+.templateImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.templateCard:hover .templateImage {
+  transform: scale(1.03);
+}
+
+.templateInfo {
+  padding: 0.9rem;
+  text-align: left;
+}
+
+.templateName {
+  color: var(--primary);
+  font-weight: 750;
+  font-size: 0.92rem;
+}
+
+.templateTags {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.templateTag {
+  padding: 0.22rem 0.55rem;
+  border-radius: var(--radius-full);
+  background: #e8eef5;
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.aiAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.aiAction:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .sectionHeader {
+    text-align: left;
+  }
+
+  .description {
+    margin-left: 0;
+  }
+
+  .actionBar {
+    width: 100%;
+  }
+
+  .actionBar > * {
+    flex: 1 1 auto;
+  }
+}

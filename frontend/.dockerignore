@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js build output
+.next
+out
+dist
+build
+coverage
+tsconfig.tsbuildinfo
+
+# Local env and editor files
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.vscode
+.idea
+
+# Deployment metadata not needed for Docker image builds
+railway.toml
+vercel.json
+nixpacks.toml
