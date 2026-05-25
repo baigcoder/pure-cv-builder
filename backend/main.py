@@ -14,11 +14,24 @@ import time
 import uuid
 from pathlib import Path
 
+
+class RequestIdFilter(logging.Filter):
+    """Attach a default request_id so third-party logs do not break formatting."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if not hasattr(record, "request_id"):
+            record.request_id = "-"
+        return True
+
+
 # Configure logging with structured format
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] %(message)s" if os.getenv("ENVIRONMENT") == "production" else "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
+for handler in logging.getLogger().handlers:
+    handler.addFilter(RequestIdFilter())
+
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, Request, Response
@@ -79,14 +92,24 @@ async def log_requests(request: Request, call_next):
     request.state.request_id = request_id
     
     # Log request
-    logger.info(f"[{request_id}] {request.method} {request.url.path}")
+    logger.info(
+        "%s %s",
+        request.method,
+        request.url.path,
+        extra={"request_id": request_id},
+    )
     
     try:
         response = await call_next(request)
         process_time = time.time() - start_time
         
         # Log response
-        logger.info(f"[{request_id}] Completed {response.status_code} in {process_time:.3f}s")
+        logger.info(
+            "Completed %s in %.3fs",
+            response.status_code,
+            process_time,
+            extra={"request_id": request_id},
+        )
         
         # Add custom headers
         response.headers["X-Request-ID"] = request_id
@@ -94,7 +117,7 @@ async def log_requests(request: Request, call_next):
         
         return response
     except Exception as e:
-        logger.error(f"[{request_id}] Error: {str(e)}")
+        logger.error("Error: %s", str(e), extra={"request_id": request_id})
         raise
 
 
