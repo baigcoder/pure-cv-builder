@@ -2,13 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/ToastProvider";
-import PWARegistration from "@/components/PWARegistration";
 
 export const metadata: Metadata = {
   title: "ApplyForge | ATS Application Workspace",
   description: "Build ATS-ready CVs, import resume PDFs, optimize live content, and draft tailored cover letters in one industrial application workspace.",
   keywords: ["ATS CV builder", "resume optimizer", "cover letter generator", "RenderCV editor", "job application workspace"],
-  manifest: "/manifest.webmanifest",
   applicationName: "ApplyForge",
   openGraph: {
     title: "ApplyForge | ATS Application Workspace",
@@ -46,7 +44,6 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <PWARegistration />
         <ErrorBoundary>
           <ToastProvider>
             {children}
