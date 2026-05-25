@@ -150,6 +150,12 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Avoid noisy 404 logs when browsers request a backend favicon."""
+    return Response(status_code=204)
+
+
 @app.get("/")
 async def root():
     """Health check endpoint."""
