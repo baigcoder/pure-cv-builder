@@ -841,7 +841,7 @@ function EditorContent() {
 
                                     <div className="form-group">
                                         <label className="form-label">Headline / Professional Title</label>
-                                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        <div className={styles.inlineFieldWithAction}>
                                             <input
                                                 type="text" className="form-input" placeholder="e.g. Senior Software Engineer | ML Expert"
                                                 value={cvData.headline} onChange={e => updateField("headline", e.target.value)}
@@ -865,7 +865,7 @@ function EditorContent() {
                                         </span>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div className={styles.twoColumnGrid}>
                                         <div className="form-group">
                                             <label className="form-label">Email</label>
                                             <input
@@ -883,7 +883,7 @@ function EditorContent() {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div className={styles.twoColumnGrid}>
                                         <div className="form-group">
                                             <label className="form-label">Location</label>
                                             <input
@@ -901,7 +901,7 @@ function EditorContent() {
                                         </div>
                                     </div>
 
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div className={styles.twoColumnGrid}>
                                         <div className="form-group">
                                             <label className="form-label">LinkedIn Username</label>
                                             <input
@@ -972,7 +972,7 @@ function EditorContent() {
                                                     value={exp.position || ""} onChange={e => updateEntry("experience", i, { position: e.target.value })}
                                                 />
                                             </div>
-                                            <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div className={styles.twoColumnGrid}>
                                                 <div className="form-group">
                                                     <label className="form-label">Start Date</label>
                                                     <input
@@ -1077,7 +1077,7 @@ function EditorContent() {
                                                     value={edu.institution || ""} onChange={e => updateEntry("education", i, { institution: e.target.value })}
                                                 />
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div className={styles.twoColumnGrid}>
                                                 <div className="form-group">
                                                     <label className="form-label">Degree</label>
                                                     <input className="form-input" placeholder="e.g. BS, MS, PhD"
@@ -1091,7 +1091,7 @@ function EditorContent() {
                                                     />
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                            <div className={styles.threeColumnGrid}>
                                                 <div className="form-group">
                                                     <label className="form-label">Start Date</label>
                                                     <input className="form-input" placeholder="Sep 2018"
@@ -1162,7 +1162,7 @@ function EditorContent() {
                                 <div className="animate-fade">
                                     <h1 className={styles.sectionTitle}>Your Skills.</h1>
                                     {getVisibleEntries("skills").map((skill, i) => (
-                                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', gap: '0.75rem', marginBottom: '0.75rem', alignItems: 'center' }}>
+                                        <div key={i} className={styles.skillRowGrid}>
                                             <input className="form-input" placeholder="Category * (required)"
                                                 value={skill.label || ""} onChange={e => updateEntry("skills", i, { label: e.target.value })}
                                             />
@@ -1214,7 +1214,7 @@ function EditorContent() {
                                                     value={proj.name || ""} onChange={e => updateEntry("projects", i, { name: e.target.value })}
                                                 />
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                                            <div className={styles.threeColumnGrid}>
                                                 <div className="form-group">
                                                     <label className="form-label">Start Date</label>
                                                     <input className="form-input" placeholder="e.g. 2023-01"
@@ -1311,7 +1311,7 @@ function EditorContent() {
                                                     value={pub.authors || ""} onChange={e => updateEntry("publications", i, { authors: e.target.value })}
                                                 />
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div className={styles.twoColumnGrid}>
                                                 <div className="form-group">
                                                     <label className="form-label">Journal/Conference</label>
                                                     <input className="form-input" placeholder="e.g. NeurIPS 2023"
@@ -1325,7 +1325,7 @@ function EditorContent() {
                                                     />
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                            <div className={styles.twoColumnGrid}>
                                                 <div className="form-group">
                                                     <label className="form-label">DOI (optional)</label>
                                                     <input className="form-input" placeholder="10.1234/example"
