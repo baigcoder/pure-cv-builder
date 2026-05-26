@@ -1,5 +1,5 @@
 import { CVData, CoverLetterDraft, DesignSettings } from "@/lib/cvBuilder";
-import { getDownloadSectionOrder } from "@/lib/themes";
+import { getDownloadSectionOrder, getRenderThemeId } from "@/lib/themes";
 
 interface ExportOptions {
   apiUrl: string;
@@ -10,7 +10,7 @@ interface ExportOptions {
 
 const buildRenderPayload = ({ cvData, theme, designSettings }: ExportOptions, format: "pdf" | "png" = "pdf") => ({
   cv_data: cvData,
-  theme,
+  theme: getRenderThemeId(theme),
   format,
   design_settings: designSettings,
   section_order: getDownloadSectionOrder(theme),

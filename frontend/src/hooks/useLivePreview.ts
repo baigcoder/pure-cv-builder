@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CVData, DesignSettings, hasRenderableContent } from "@/lib/cvBuilder";
-import { getDownloadSectionOrder } from "@/lib/themes";
+import { getDownloadSectionOrder, getRenderThemeId } from "@/lib/themes";
 
 interface UseLivePreviewOptions {
   apiUrl: string;
@@ -75,7 +75,7 @@ export const useLivePreview = ({
               ...renderableData,
               name: renderableData.name.replace(/\*\*/g, ""),
             },
-            theme,
+            theme: getRenderThemeId(theme),
             format: "png",
             design_settings: designSettings,
             section_order: getDownloadSectionOrder(theme),

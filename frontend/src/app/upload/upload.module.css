@@ -543,6 +543,29 @@
   margin-bottom: 1.5rem;
 }
 
+.templateRecommendBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 1rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid rgba(13, 148, 136, 0.2);
+  border-radius: var(--radius-full);
+  background: rgba(13, 148, 136, 0.08);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.templateRecommendBtn:hover {
+  border-color: rgba(13, 148, 136, 0.34);
+  background: rgba(13, 148, 136, 0.14);
+}
+
 .templateGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

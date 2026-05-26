@@ -211,6 +211,24 @@ def test_build_yaml_omits_invalid_phone_instead_of_breaking_preview() -> None:
     assert "phone" not in result["cv"]
 
 
+def test_build_yaml_resolves_ats_template_aliases() -> None:
+    jake_result = CVService._build_yaml_structure(
+        {"name": "Alias User"},
+        "jake",
+        {},
+        [],
+    )
+    sheets_result = CVService._build_yaml_structure(
+        {"name": "Alias User"},
+        "sheets",
+        {},
+        [],
+    )
+
+    assert jake_result["design"]["theme"] == "sb2nov"
+    assert sheets_result["design"]["theme"] == "engineeringresumes"
+
+
 def test_yaml_endpoint_returns_later_section_content() -> None:
     client = TestClient(app)
 
@@ -241,6 +259,8 @@ def test_themes_endpoint_returns_all_builtin_theme_metadata() -> None:
     payload = response.json()
     theme_ids = {theme["id"] for theme in payload["themes"]}
     assert {
+        "jake",
+        "sheets",
         "classic",
         "moderncv",
         "sb2nov",
@@ -254,4 +274,62 @@ def test_themes_endpoint_returns_all_builtin_theme_metadata() -> None:
     assert payload["default"] == "classic"
 
     first_theme = payload["themes"][0]
-    assert {"id", "name", "description", "bestFor", "previewImage", "sectionOrderType"}.issubset(first_theme)
+    assert {
+        "id",
+        "name",
+        "description",
+        "bestFor",
+        "previewImage",
+        "sectionOrderType",
+        "renderTheme",
+        "atsScore",
+        "atsRationale",
+        "recommendedFor",
+    }.issubset(first_theme)
+
+    jake_theme = next(theme for theme in payload["themes"] if theme["id"] == "jake")
+    sheets_theme = next(theme for theme in payload["themes"] if theme["id"] == "sheets")
+    assert jake_theme["renderTheme"] == "sb2nov"
+    assert sheets_theme["renderTheme"] == "engineeringresumes"
+
+
+def test_preview_endpoint_accepts_ats_template_alias(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_render_cv(**kwargs):
+        captured.update(kwargs)
+        return b"png-data", "Alias_CV.png"
+
+    monkeypatch.setattr(CVService, "render_cv", fake_render_cv)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/preview",
+        json={
+            "cv_data": {"name": "Alias User"},
+            "theme": "jake",
+            "format": "png",
+            "section_order": ["education", "experience", "projects", "skills"],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert captured["theme"] == "jake"
+
+
+def test_yaml_endpoint_maps_ats_template_alias_to_rendercv_theme() -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/yaml",
+        json={
+            "cv_data": {"name": "Alias User"},
+            "theme": "sheets",
+            "section_order": ["experience", "education", "skills"],
+        },
+    )
+
+    assert response.status_code == 200
+    yaml_payload = yaml.safe_load(response.json()["yaml"])
+    assert yaml_payload["design"]["theme"] == "engineeringresumes"

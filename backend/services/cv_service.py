@@ -24,6 +24,11 @@ _PHONE_VALIDATOR = pydantic.TypeAdapter[pydantic_phone_numbers.PhoneNumber](
 
 class CVService:
     """Service for rendering CVs from structured data."""
+
+    THEME_ALIASES = {
+        "jake": "sb2nov",
+        "sheets": "engineeringresumes",
+    }
     
     THEME_METADATA = {
         "classic": {
@@ -32,6 +37,10 @@ class CVService:
             "bestFor": "Corporate, finance, legal, operations",
             "previewImage": "/theme-classic.png",
             "sectionOrderType": "standard",
+            "renderTheme": "classic",
+            "atsScore": 88,
+            "atsRationale": "Clean conventional structure with readable headings and restrained styling.",
+            "recommendedFor": ["corporate", "finance", "legal", "operations"],
         },
         "moderncv": {
             "name": "Modern Minimal",
@@ -39,27 +48,43 @@ class CVService:
             "bestFor": "Product, design, marketing, startups",
             "previewImage": "/theme-moderncv.png",
             "sectionOrderType": "standard",
+            "renderTheme": "moderncv",
+            "atsScore": 82,
+            "atsRationale": "Readable and structured, best when a role allows subtle visual polish.",
+            "recommendedFor": ["product", "design", "marketing", "startup"],
         },
         "sb2nov": {
-            "name": "Academic Focus",
-            "description": "Research-oriented layout optimized for dense detail.",
-            "bestFor": "Academia, research, graduate applications",
+            "name": "Sb2nov ATS Classic",
+            "description": "Compact ATS-safe single-column format inspired by popular LaTeX resumes.",
+            "bestFor": "Engineering, academia, research, graduate applications",
             "previewImage": "/theme-sb2nov.png",
             "sectionOrderType": "academic",
+            "renderTheme": "sb2nov",
+            "atsScore": 94,
+            "atsRationale": "Full-width rules, simple contact row, standard section labels, and dense text flow.",
+            "recommendedFor": ["academic", "research", "graduate", "software"],
         },
         "engineeringresumes": {
-            "name": "Technical Precision",
-            "description": "Engineering layout with strong scanability.",
+            "name": "Engineering ATS",
+            "description": "Engineering layout with strong scanability and work-first density.",
             "bestFor": "Software, engineering, DevOps, data",
             "previewImage": "/theme-engineeringresumes.png",
             "sectionOrderType": "tech",
+            "renderTheme": "engineeringresumes",
+            "atsScore": 93,
+            "atsRationale": "Plain text, strong section rules, no icons, and compact engineering entries.",
+            "recommendedFor": ["software", "engineering", "devops", "data"],
         },
         "engineeringclassic": {
-            "name": "Entry Level",
+            "name": "Entry Level ATS",
             "description": "Education-first format for early-career candidates.",
             "bestFor": "Students, fresh graduates, career changers",
             "previewImage": "/theme-engineeringclassic.png",
             "sectionOrderType": "entry_level",
+            "renderTheme": "engineeringclassic",
+            "atsScore": 90,
+            "atsRationale": "Education-first order with straightforward section flow for early-career profiles.",
+            "recommendedFor": ["student", "new grad", "career changer", "education"],
         },
         "ember": {
             "name": "Ember",
@@ -67,6 +92,10 @@ class CVService:
             "bestFor": "Consulting, creative leadership, business roles",
             "previewImage": "/theme-ember.png",
             "sectionOrderType": "standard",
+            "renderTheme": "ember",
+            "atsScore": 76,
+            "atsRationale": "Professional but more editorial; use when visual tone matters more than maximum parser simplicity.",
+            "recommendedFor": ["consulting", "creative", "leadership", "business"],
         },
         "harvard": {
             "name": "Harvard",
@@ -74,6 +103,10 @@ class CVService:
             "bestFor": "Academic, policy, research, fellowships",
             "previewImage": "/theme-harvard.png",
             "sectionOrderType": "academic",
+            "renderTheme": "harvard",
+            "atsScore": 86,
+            "atsRationale": "Academic-friendly structure with conservative typography and traditional headings.",
+            "recommendedFor": ["academic", "policy", "research", "fellowship"],
         },
         "ink": {
             "name": "Ink",
@@ -81,6 +114,10 @@ class CVService:
             "bestFor": "Leadership, writing, strategy, creative roles",
             "previewImage": "/theme-ink.png",
             "sectionOrderType": "portfolio",
+            "renderTheme": "ink",
+            "atsScore": 74,
+            "atsRationale": "Readable but intentionally stylized; best for human-led review flows.",
+            "recommendedFor": ["leadership", "writing", "strategy", "creative"],
         },
         "opal": {
             "name": "Opal",
@@ -88,18 +125,50 @@ class CVService:
             "bestFor": "Senior professionals, product, technology",
             "previewImage": "/theme-opal.png",
             "sectionOrderType": "standard",
+            "renderTheme": "opal",
+            "atsScore": 80,
+            "atsRationale": "Polished and readable, with more visual styling than the strict ATS presets.",
+            "recommendedFor": ["senior", "product", "technology", "management"],
+        },
+        "jake": {
+            "name": "Jake ATS",
+            "description": "Dense single-column engineering format modeled for parser-safe applications.",
+            "bestFor": "Software engineers, students, new grads, project-heavy profiles",
+            "previewImage": "/theme-jake.png",
+            "sectionOrderType": "early_tech",
+            "renderTheme": "sb2nov",
+            "atsScore": 98,
+            "atsRationale": "Single-column, rule-separated sections, standard headings, and compact text hierarchy.",
+            "recommendedFor": ["software", "engineering", "student", "new grad", "projects"],
+        },
+        "sheets": {
+            "name": "Sheets Recruiter ATS",
+            "description": "Recruiter-first work history layout with conservative ATS-safe formatting.",
+            "bestFor": "Experienced professionals, recruiters, operations, career pivots",
+            "previewImage": "/theme-sheets.png",
+            "sectionOrderType": "recruiter",
+            "renderTheme": "engineeringresumes",
+            "atsScore": 96,
+            "atsRationale": "Work-first flow, plain typography, standard bullets, and no decorative parser risks.",
+            "recommendedFor": ["experienced", "work history", "recruiter", "operations", "career pivot"],
         },
     }
     AVAILABLE_THEMES = available_themes
+
+    @classmethod
+    def resolve_theme(cls, theme: str) -> str:
+        """Map ApplyForge preset aliases to real RenderCV built-in themes."""
+        return cls.THEME_ALIASES.get(theme, theme)
     
     @classmethod
     def get_themes(cls) -> list[str]:
         """Return list of available themes."""
-        return cls.AVAILABLE_THEMES
+        return [*cls.THEME_ALIASES.keys(), *cls.AVAILABLE_THEMES]
 
     @classmethod
     def get_theme_metadata(cls) -> list[dict]:
         """Return metadata for all available built-in themes."""
+        theme_ids = [*cls.THEME_ALIASES.keys(), *cls.AVAILABLE_THEMES]
         return [
             {
                 "id": theme_id,
@@ -114,7 +183,7 @@ class CVService:
                     },
                 ),
             }
-            for theme_id in cls.AVAILABLE_THEMES
+            for theme_id in theme_ids
         ]
     
     @classmethod
@@ -599,7 +668,7 @@ class CVService:
             cv_section["sections"] = ordered_sections
         
         design = {
-            "theme": theme,
+            "theme": cls.resolve_theme(theme),
         }
 
         design_settings = design_settings or {}

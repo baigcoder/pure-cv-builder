@@ -155,6 +155,8 @@ export default function Home() {
                 name={theme.name}
                 image={theme.image}
                 tags={theme.tags}
+                badge={theme.atsScore >= 94 ? "Best ATS" : `${theme.atsScore}% ATS`}
+                meta={theme.atsRationale}
                 onClick={() => { setSelectedTemplate(theme); setShowTemplateModal(true); }}
               />
             ))}
@@ -244,6 +246,8 @@ export default function Home() {
                         name={theme.name}
                         image={theme.image}
                         tags={theme.tags}
+                        badge={theme.atsScore >= 94 ? "Best ATS" : `${theme.atsScore}% ATS`}
+                        meta={theme.atsRationale}
                         onClick={() => setSelectedTemplate(theme)}
                       />
                     ))}
@@ -269,10 +273,12 @@ export default function Home() {
 
                 <div className={styles.modalBody}>
                   <div className={styles.tagContainer}>
+                    <span className={styles.tag}>{selectedTemplate.atsScore}% ATS estimate</span>
                     {selectedTemplate.tags.map(tag => (
                       <span key={tag} className={styles.tag}>{tag}</span>
                     ))}
                   </div>
+                  <p className={styles.modalSubtitle}>{selectedTemplate.atsRationale}</p>
                   <div className={styles.previewContainer}>
                     <img
                       src={selectedTemplate.image}

@@ -77,11 +77,13 @@ interface TemplateCardProps {
   name: string;
   image: string;
   tags: string[];
+  badge?: string;
+  meta?: string;
   selected?: boolean;
   onClick?: () => void;
 }
 
-export function TemplateCard({ name, image, tags, selected = false, onClick }: TemplateCardProps) {
+export function TemplateCard({ name, image, tags, badge, meta, selected = false, onClick }: TemplateCardProps) {
   return (
     <button
       type="button"
@@ -90,10 +92,12 @@ export function TemplateCard({ name, image, tags, selected = false, onClick }: T
       aria-pressed={selected}
     >
       <span className={styles.templateImageWrap}>
+        {badge && <span className={styles.templateBadge}>{badge}</span>}
         <img src={image} alt={`${name} template preview`} className={styles.templateImage} />
       </span>
       <span className={styles.templateInfo}>
         <span className={styles.templateName}>{name}</span>
+        {meta && <span className={styles.templateMeta}>{meta}</span>}
         <span className={styles.templateTags}>
           {tags.slice(0, 2).map((tag) => (
             <span key={tag} className={styles.templateTag}>{tag}</span>

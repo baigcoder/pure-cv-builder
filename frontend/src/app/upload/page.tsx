@@ -7,7 +7,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, FileCheck2, FileText, Home, Lay
 import styles from "./upload.module.css";
 import { Logo } from "@/components/Brand";
 import { StatusBanner, TemplateCard } from "@/components/AppUI";
-import { THEME_DATA } from "@/lib/themes";
+import { THEME_DATA, recommendTemplate } from "@/lib/themes";
 import { extractPDF } from "@/lib/editorApi";
 import { API_URL } from "@/lib/config";
 import {
@@ -89,6 +89,7 @@ export default function UploadPage() {
           rawTextLength: result.raw_text_length,
           message: result.message,
         });
+        setSelectedTheme(recommendTemplate(normalizedCVData).id);
         setUploadState("success");
       } else {
         throw new Error("Extraction returned no data");
@@ -505,20 +506,35 @@ export default function UploadPage() {
                   Choose the target template
                 </h3>
                 <p className={styles.templateSectionDesc}>
-                  Extracted fields will open in the live editor using this design.
+                  Extracted fields will open in the live editor using this design. ApplyForge recommends the parser-safe ATS match from the detected content.
                 </p>
+                {extractedData && (
+                  <button
+                    type="button"
+                    className={styles.templateRecommendBtn}
+                    onClick={() => setSelectedTheme(recommendTemplate(extractedData.cvData).id)}
+                  >
+                    <ShieldCheck size={16} />
+                    Use best ATS template: {recommendTemplate(extractedData.cvData).name}
+                  </button>
+                )}
 
                 <div className={styles.templateGrid}>
-                  {THEME_DATA.map((theme) => (
-                    <TemplateCard
-                      key={theme.id}
-                      name={theme.name}
-                      image={theme.image}
-                      tags={theme.tags}
-                      selected={selectedTheme === theme.id}
-                      onClick={() => setSelectedTheme(theme.id)}
-                    />
-                  ))}
+                  {THEME_DATA.map((theme) => {
+                    const recommendedTheme = extractedData ? recommendTemplate(extractedData.cvData) : null;
+                    return (
+                      <TemplateCard
+                        key={theme.id}
+                        name={theme.name}
+                        image={theme.image}
+                        tags={theme.tags}
+                        badge={recommendedTheme?.id === theme.id ? "Best ATS match" : `${theme.atsScore}% ATS`}
+                        meta={theme.atsRationale}
+                        selected={selectedTheme === theme.id}
+                        onClick={() => setSelectedTheme(theme.id)}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>

@@ -38,7 +38,7 @@ import {
     requestAIStatus,
 } from "@/lib/editorApi";
 import { API_URL } from "@/lib/config";
-import { THEME_DATA, getSectionIdsForTheme, getTheme } from "@/lib/themes";
+import { THEME_DATA, getSectionIdsForTheme, getTemplateFitScore, getTheme, recommendTemplate } from "@/lib/themes";
 
 // Base sections with icons (will be reordered based on theme)
 const BASE_SECTIONS = {
@@ -562,6 +562,8 @@ function EditorContent() {
     };
 
     const currentThemeData = getTheme(theme);
+    const recommendedTheme = useMemo(() => recommendTemplate(cvData), [cvData]);
+    const templateFit = useMemo(() => getTemplateFitScore(theme, cvData), [theme, cvData]);
     const orderedSectionIds = [...getSectionIdsForTheme(theme), "cover_letter"];
     const getEditorSectionProgress = (sectionId: string): number => {
         if (sectionId === "cover_letter") {
@@ -675,7 +677,15 @@ function EditorContent() {
                         <div className={styles.templateGalleryHeader}>
                             <span className={styles.summaryEyebrow}>Design system</span>
                             <h1>Choose Your Template</h1>
-                            <p>Select a design that best represents your professional identity.</p>
+                            <p>Select a parser-safe format for the role, seniority, and review path.</p>
+                            <button
+                                type="button"
+                                className={styles.templateRecommendBtn}
+                                onClick={() => setTheme(recommendedTheme.id)}
+                            >
+                                <Sparkles size={14} />
+                                Use best ATS template: {recommendedTheme.name}
+                            </button>
                         </div>
 
                         <div className={styles.templateGalleryGrid}>
@@ -685,6 +695,8 @@ function EditorContent() {
                                     name={t.name}
                                     image={t.image}
                                     tags={t.tags}
+                                    badge={recommendedTheme.id === t.id ? "Best ATS match" : `${t.atsScore}% ATS`}
+                                    meta={t.atsRationale}
                                     selected={theme === t.id}
                                     onClick={() => setTheme(t.id)}
                                 />
@@ -754,18 +766,29 @@ function EditorContent() {
                                     .reduce((sum, s) => sum + getSectionWordCount(s), 0);
                                 const ats = calculateATSScore();
                                 const scoreColor = ats.score >= 80 ? 'var(--success)' : ats.score >= 60 ? 'var(--warning)' : 'var(--error)';
+                                const fitColor = templateFit.score >= 92 ? 'var(--success)' : templateFit.score >= 82 ? 'var(--warning)' : 'var(--error)';
                                 return (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                         <div className={styles.atsScore}>
                                             <span className={styles.atsLabel}>ATS Control</span>
-                                            <span style={{ color: scoreColor }} className={styles.atsValue}>
-                                                {ats.score}%
-                                            </span>
+                                            <div className={styles.atsMetricGrid}>
+                                                <span>
+                                                    <small>Content</small>
+                                                    <strong style={{ color: scoreColor }}>{ats.score}%</strong>
+                                                </span>
+                                                <span>
+                                                    <small>Template</small>
+                                                    <strong style={{ color: fitColor }}>{templateFit.score}%</strong>
+                                                </span>
+                                            </div>
                                             {ats.tips.length > 0 && (
                                                 <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '0.5rem', lineHeight: 1.4 }}>
                                                     {ats.tips[0]}
                                                 </p>
                                             )}
+                                            <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '0.4rem', lineHeight: 1.4 }}>
+                                                {templateFit.tip}
+                                            </p>
                                             <button
                                                 className={styles.atsEnhanceBtn}
                                                 onClick={enhanceCVForATS}
@@ -804,6 +827,43 @@ function EditorContent() {
                                         : lastSavedAt
                                             ? "Draft saved"
                                             : "Ready"}
+                        </div>
+                        <div className={styles.mobileAtsPanel}>
+                            {(() => {
+                                const totalWords = Object.keys(BASE_SECTIONS)
+                                    .filter(s => s !== 'design' && s !== 'cover_letter')
+                                    .reduce((sum, s) => sum + getSectionWordCount(s), 0);
+                                const ats = calculateATSScore();
+                                const scoreColor = ats.score >= 80 ? 'var(--success)' : ats.score >= 60 ? 'var(--warning)' : 'var(--error)';
+                                const fitColor = templateFit.score >= 92 ? 'var(--success)' : templateFit.score >= 82 ? 'var(--warning)' : 'var(--error)';
+                                return (
+                                    <div className={styles.atsScore}>
+                                        <span className={styles.atsLabel}>ATS Control</span>
+                                        <div className={styles.atsMetricGrid}>
+                                            <span>
+                                                <small>Content</small>
+                                                <strong style={{ color: scoreColor }}>{ats.score}%</strong>
+                                            </span>
+                                            <span>
+                                                <small>Template</small>
+                                                <strong style={{ color: fitColor }}>{templateFit.score}%</strong>
+                                            </span>
+                                        </div>
+                                        <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '0.55rem', lineHeight: 1.4 }}>
+                                            {ats.tips[0] || templateFit.tip} Approx. {totalWords} words.
+                                        </p>
+                                        <button
+                                            className={styles.atsEnhanceBtn}
+                                            onClick={enhanceCVForATS}
+                                            disabled={isEnhancingCV || isGenerating}
+                                            title="Enhance this live CV for ATS strength using the current role, skills, projects, and market keywords"
+                                        >
+                                            <Sparkles size={14} />
+                                            {isEnhancingCV ? "Hardening..." : "Enhance CV"}
+                                        </button>
+                                    </div>
+                                );
+                            })()}
                         </div>
                         <div className={styles.workflowPanel}>
                             <div>
@@ -1621,6 +1681,15 @@ function EditorContent() {
                                     {/* Template Selection - Grid Layout */}
                                     <div className="form-group">
                                         <label className="form-label" style={{ fontSize: '0.85rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '1rem' }}>Choose Template</label>
+                                        <button
+                                            type="button"
+                                            className={styles.templateRecommendBtn}
+                                            style={{ marginBottom: '1rem' }}
+                                            onClick={() => setTheme(recommendedTheme.id)}
+                                        >
+                                            <Sparkles size={14} />
+                                            Use best ATS template: {recommendedTheme.name}
+                                        </button>
                                         <div style={{
                                             display: 'grid',
                                             gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -1644,6 +1713,20 @@ function EditorContent() {
                                                         background: 'white'
                                                     }}
                                                 >
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        top: '12px',
+                                                        left: '12px',
+                                                        zIndex: 2,
+                                                        background: recommendedTheme.id === t.id ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.92)',
+                                                        color: recommendedTheme.id === t.id ? '#67e8f9' : 'var(--primary)',
+                                                        padding: '4px 10px',
+                                                        borderRadius: '100px',
+                                                        fontSize: '0.62rem',
+                                                        fontWeight: 800,
+                                                        letterSpacing: '0.05em',
+                                                        textTransform: 'uppercase'
+                                                    }}>{recommendedTheme.id === t.id ? 'Best ATS match' : `${t.atsScore}% ATS`}</div>
                                                     <img
                                                         src={t.image}
                                                         alt={t.name}
