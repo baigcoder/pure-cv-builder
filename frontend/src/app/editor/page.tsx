@@ -1234,23 +1234,25 @@ function EditorContent() {
                                             }} style={{ color: 'var(--text-light)' }}>✕</button>
                                         </div>
                                     ))}
-                                    <button className={styles.addBtn} onClick={() => {
-                                        updateEntryList("skills", [...cvData.skills, getEmptyEntry("skills")])
-                                    }}>+ Add Skill Category</button>
-                                    <button
-                                        className={styles.aiBtn}
-                                        style={{ marginLeft: '0.5rem' }}
-                                        disabled={isAISuggesting || !cvData.headline}
-                                        onClick={async () => {
-                                            const currentSkills = cvData.skills.map(s => s.details).join(", ");
-                                            const suggestion = await getAISuggestion(currentSkills, "skills", cvData.headline || "Professional");
-                                            if (suggestion) {
-                                                const newCategory = { label: "Suggested", details: suggestion };
-                                                updateEntryList("skills", [...cvData.skills, newCategory]);
-                                            }
-                                        }}
-                                        title="AI Suggest Skills"
-                                    >✨ Suggest</button>
+                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '1rem' }}>
+                                        <button className={styles.addBtn} style={{ marginTop: 0 }} onClick={() => {
+                                            updateEntryList("skills", [...cvData.skills, getEmptyEntry("skills")])
+                                        }}>+ Add Skill Category</button>
+                                        <button
+                                            className={styles.aiBtn}
+                                            style={{ marginTop: 0 }}
+                                            disabled={isAISuggesting || !cvData.headline}
+                                            onClick={async () => {
+                                                const currentSkills = cvData.skills.map(s => s.details).join(", ");
+                                                const suggestion = await getAISuggestion(currentSkills, "skills", cvData.headline || "Professional");
+                                                if (suggestion) {
+                                                    const newCategory = { label: "Suggested", details: suggestion };
+                                                    updateEntryList("skills", [...cvData.skills, newCategory]);
+                                                }
+                                            }}
+                                            title="AI Suggest Skills"
+                                        >✨ Suggest</button>
+                                    </div>
                                 </div>
                             )}
 

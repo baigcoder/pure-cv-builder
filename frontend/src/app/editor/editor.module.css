@@ -534,8 +534,13 @@
 
 /* AI Button */
 .aiBtn {
-    margin-top: 0.75rem;
-    padding: 0.5rem 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.2rem;
+    height: 2.2rem;
+    padding: 0 0.8rem;
+    margin-top: 0;
     background: linear-gradient(135deg, var(--accent), #8b5cf6);
     color: white;
     border: none;
@@ -600,6 +605,9 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
 }
 
 .addBtn:hover {
@@ -1349,11 +1357,6 @@
     border-color: rgba(255, 255, 255, 0.1);
 }
 
-.atsEnhanceBtn,
-.aiBtn,
-.addBtn {
-    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-}
 
 .navItem {
     color: rgba(255, 255, 255, 0.68);
