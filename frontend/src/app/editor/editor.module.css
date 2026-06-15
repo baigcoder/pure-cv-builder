@@ -169,13 +169,21 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar::-webkit-scrollbar {
+    display: none;
+}
+
+.sidebarNav {
+    flex: 1;
     overflow-y: auto;
-    /* Hide scrollbar for cleaner look */
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
 
-.sidebar::-webkit-scrollbar {
+.sidebarNav::-webkit-scrollbar {
     display: none;
 }
 
@@ -234,15 +242,10 @@
 }
 
 .sidebarFooter {
-    padding: 1.5rem;
-    margin-top: auto;
+    padding: 1rem;
+    flex-shrink: 0;
     border-top: 1px solid var(--border);
     background: var(--white);
-    /* Ensure footer stays above content if needed, though auto-margin handles layout */
-    position: sticky;
-    bottom: 0;
-    padding-bottom: 5rem;
-    /* Extra padding to prevent overlap with floating widgets */
 }
 
 .atsScore {

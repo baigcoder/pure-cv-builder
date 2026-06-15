@@ -82,22 +82,35 @@ export const requestAISuggestion = async (
   type: string,
   context = "",
 ): Promise<string | null> => {
-  const response = await fetch(`${apiUrl}/api/ai/suggest`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, type, context }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-  if (response.status === 503) {
-    throw new Error("AI service is not configured for this deployment.");
+  try {
+    const response = await fetch(`${apiUrl}/api/ai/suggest`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, type, context }),
+      signal: controller.signal,
+    });
+
+    if (response.status === 503) {
+      throw new Error("AI service is not configured for this deployment.");
+    }
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const data = (await response.json()) as { suggestion?: string };
+    return data.suggestion || null;
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("AI suggestion timed out. Please try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  if (!response.ok) {
-    throw new Error(await response.text());
-  }
-
-  const data = (await response.json()) as { suggestion?: string };
-  return data.suggestion || null;
 };
 
 export interface CVEnhancementResult {

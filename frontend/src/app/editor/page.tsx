@@ -718,6 +718,7 @@ function EditorContent() {
                 /* EDIT MODE: Form Editor */
                 <main className={styles.main}>
                     <aside className={styles.sidebar}>
+                        <div className={styles.sidebarNav}>
                         <div className={styles.builderSummary}>
                             <span className={styles.summaryEyebrow}>Template</span>
                             <strong>{currentThemeData.name}</strong>
@@ -757,8 +758,7 @@ function EditorContent() {
                                 </button>
                             );
                         })}
-
-
+                        </div>
                         <div className={styles.sidebarFooter}>
                             {(() => {
                                 const totalWords = Object.keys(BASE_SECTIONS)
@@ -1251,7 +1251,7 @@ function EditorContent() {
                                                 }
                                             }}
                                             title="AI Suggest Skills"
-                                        >✨ Suggest</button>
+                                        >{isAISuggesting ? "..." : "✨ Suggest"}</button>
                                     </div>
                                 </div>
                             )}
