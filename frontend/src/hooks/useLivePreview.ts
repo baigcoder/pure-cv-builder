@@ -105,7 +105,7 @@ export const useLivePreview = ({
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       generatePreview(controller.signal);
-    }, 700);
+    }, 350);
 
     return () => {
       window.clearTimeout(timer);

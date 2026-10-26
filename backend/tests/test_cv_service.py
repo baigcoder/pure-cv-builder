@@ -333,3 +333,83 @@ def test_yaml_endpoint_maps_ats_template_alias_to_rendercv_theme() -> None:
     assert response.status_code == 200
     yaml_payload = yaml.safe_load(response.json()["yaml"])
     assert yaml_payload["design"]["theme"] == "engineeringresumes"
+
+
+def test_design_settings_map_to_rendercv_design_and_section_layout() -> None:
+    from schemas.cv import DesignSettings
+
+    design = DesignSettings(
+        pageSize="a4",
+        marginCm=1.2,
+        fontSizePt=10.5,
+        lineSpacingEm=0.7,
+        sectionSpacingCm=0.4,
+        showFooter=False,
+        sectionOrder=["skills", "summary", "experience"],
+        hiddenSections=["projects", "not-a-section"],
+    ).model_dump()
+    cv = {
+        "name": "Layout User",
+        "summary": "Summary text",
+        "skills": [{"label": "Languages", "details": "Python"}],
+        "experience": [{"company": "Co", "position": "Dev", "start_date": "2020-01"}],
+        "projects": [{"name": "Hidden project"}],
+    }
+
+    result = CVService._build_yaml_structure(cv, "classic", design, ["experience", "skills"])
+
+    assert design["hiddenSections"] == ["projects"]
+    assert list(result["cv"]["sections"]) == ["skills", "Summary", "experience"]
+    assert result["design"]["page"] == {
+        "size": "a4",
+        "top_margin": "1.2cm",
+        "bottom_margin": "1.2cm",
+        "left_margin": "1.2cm",
+        "right_margin": "1.2cm",
+        "show_footer": False,
+    }
+    assert result["design"]["typography"] == {"font_size": {"body": "10.5pt"}, "line_spacing": "0.7em"}
+    assert result["design"]["section_titles"] == {"space_above": "0.4cm"}
+
+
+def test_theme_order_keeps_summary_first_without_custom_order() -> None:
+    cv = {"name": "Order User", "summary": "Summary", "skills": [{"label": "L", "details": "D"}]}
+
+    result = CVService._build_yaml_structure(cv, "classic", {"hiddenSections": []}, ["skills", "summary"])
+
+    assert list(result["cv"]["sections"]) == ["Summary", "skills"]
+
+
+def test_out_of_range_design_values_are_rejected() -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/yaml",
+        json={"cv_data": {"name": "X"}, "design_settings": {"fontSizePt": 40}},
+    )
+
+    assert response.status_code == 422
+    assert "design_settings.fontSizePt" in response.json()["fields"]
+
+
+def test_render_cache_distinguishes_section_order(monkeypatch) -> None:
+    import services.cv_service as cv_service
+    from services.render_engine import render_cache
+
+    render_cache.clear()
+    compiled: list[str] = []
+
+    def fake_compile(source: str, output_format: str):
+        compiled.append(source)
+        return [source.encode("utf-8")]
+
+    monkeypatch.setattr(cv_service, "_compile_typst", fake_compile)
+    cv = {"name": "Cache User", "summary": "S", "skills": [{"label": "L", "details": "D"}]}
+
+    first = CVService.render_preview_pages(cv_data=cv, design_settings={"sectionOrder": ["summary", "skills"]})
+    second = CVService.render_preview_pages(cv_data=cv, design_settings={"sectionOrder": ["skills", "summary"]})
+    repeat = CVService.render_preview_pages(cv_data=cv, design_settings={"sectionOrder": ["skills", "summary"]})
+
+    assert len(compiled) == 2
+    assert first.pages != second.pages
+    assert repeat.cached is True

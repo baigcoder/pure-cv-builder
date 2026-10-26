@@ -1,4 +1,4 @@
-import type { CVData, Entry } from "@/lib/cvBuilder";
+import { entryContentValues, type CVData, type Entry } from "@/lib/cvBuilder";
 
 export type SectionOrderType = "standard" | "academic" | "tech" | "entry_level" | "portfolio" | "early_tech" | "recruiter";
 
@@ -202,7 +202,7 @@ export const getDownloadSectionOrder = (themeId: string): string[] => {
 
 const hasEntryText = (entry: Entry | undefined): boolean => {
   if (!entry) return false;
-  return Object.values(entry).some((value) => {
+  return entryContentValues(entry).some((value) => {
     if (Array.isArray(value)) return value.some((item) => String(item || "").trim());
     return String(value || "").trim();
   });

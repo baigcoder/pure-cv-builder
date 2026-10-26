@@ -698,19 +698,24 @@ class CVService:
             "invited_talks": "invited_talks",
         }
 
+        design_settings = design_settings or {}
+
+        for hidden_id in design_settings.get("hiddenSections") or []:
+            available_sections.pop(section_key_map.get(hidden_id, hidden_id), None)
+
+        # A CV's own section order wins over the theme's order. Only a custom
+        # order may move the summary; theme orders always keep it first.
+        custom_order = design_settings.get("sectionOrder") or None
+        ordered_section_ids = custom_order or section_order or []
+
         ordered_sections = {}
-        if "Summary" in available_sections:
+        summary_listed = custom_order is not None and "summary" in custom_order
+        if "Summary" in available_sections and not summary_listed:
             ordered_sections["Summary"] = available_sections["Summary"]
 
-        ordered_section_ids = section_order or []
-        ordered_rendercv_keys = [
-            section_key_map.get(section_id, section_id)
-            for section_id in ordered_section_ids
-        ]
-
-        for index, section_id in enumerate(ordered_section_ids):
+        for section_id in ordered_section_ids:
             rendercv_key = section_key_map.get(section_id, section_id)
-            if rendercv_key == "Summary":
+            if rendercv_key == "Summary" and not summary_listed:
                 continue
             if rendercv_key in available_sections and rendercv_key not in ordered_sections:
                 ordered_sections[rendercv_key] = available_sections[rendercv_key]
@@ -727,7 +732,6 @@ class CVService:
             "theme": cls.resolve_theme(theme),
         }
 
-        design_settings = design_settings or {}
         primary_color = clean_string(design_settings.get("primaryColor"))
         if primary_color:
             design["colors"] = {
@@ -738,11 +742,30 @@ class CVService:
                 "links": primary_color,
             }
 
+        typography: dict = {}
         font_family = clean_string(design_settings.get("fontFamily"))
         if font_family:
-            design["typography"] = {
-                "font_family": font_family,
-            }
+            typography["font_family"] = font_family
+        if design_settings.get("fontSizePt"):
+            typography["font_size"] = {"body": f"{float(design_settings['fontSizePt']):g}pt"}
+        if design_settings.get("lineSpacingEm"):
+            typography["line_spacing"] = f"{float(design_settings['lineSpacingEm']):g}em"
+        if typography:
+            design["typography"] = typography
+
+        page: dict = {}
+        if design_settings.get("pageSize"):
+            page["size"] = design_settings["pageSize"]
+        if design_settings.get("marginCm"):
+            margin = f"{float(design_settings['marginCm']):g}cm"
+            page.update(top_margin=margin, bottom_margin=margin, left_margin=margin, right_margin=margin)
+        if design_settings.get("showFooter") is not None:
+            page["show_footer"] = bool(design_settings["showFooter"])
+        if page:
+            design["page"] = page
+
+        if design_settings.get("sectionSpacingCm"):
+            design["section_titles"] = {"space_above": f"{float(design_settings['sectionSpacingCm']):g}cm"}
         
         # Build final structure
         return {

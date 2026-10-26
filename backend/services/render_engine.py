@@ -68,7 +68,9 @@ class RenderCache:
 
     @staticmethod
     def key_for(*parts: Any) -> str:
-        payload = json.dumps(parts, sort_keys=True, ensure_ascii=False, default=str)
+        # Key order is significant: RenderCV prints sections in dict order, so
+        # two inputs that differ only in section order must not share a key.
+        payload = json.dumps(parts, sort_keys=False, ensure_ascii=False, default=str)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
     def get(self, key: str) -> Any | None:

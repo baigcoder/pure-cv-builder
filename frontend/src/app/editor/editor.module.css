@@ -1782,3 +1782,46 @@
         width: 42vw;
     }
 }
+
+/* Undo / redo */
+.undoGroup {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+.undoBtn {
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+}
+
+.undoBtn + .undoBtn {
+    border-left: 1px solid var(--border);
+}
+
+.undoBtn:hover:not(:disabled) {
+    background: var(--white);
+    color: var(--accent);
+}
+
+.undoBtn:disabled {
+    color: var(--text-light);
+    cursor: default;
+}
+
+.designPanel {
+    margin-top: 1.5rem;
+    padding: 1.25rem 1.5rem 0.5rem;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+}

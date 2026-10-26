@@ -92,7 +92,9 @@ def test_render_cache_is_lru_bounded() -> None:
     assert cache.get("b") is None
     assert cache.get("a") == 1
     assert cache.get("c") == 3
-    assert RenderCache.key_for({"x": 1, "y": 2}) == RenderCache.key_for({"y": 2, "x": 1})
+    # Section order changes the rendered PDF, so it must change the key.
+    assert RenderCache.key_for({"skills": 1, "experience": 2}) != RenderCache.key_for({"experience": 2, "skills": 1})
+    assert RenderCache.key_for({"a": [1, 2]}) == RenderCache.key_for({"a": [1, 2]})
 
 
 def test_openapi_exposes_shared_cv_schema() -> None:

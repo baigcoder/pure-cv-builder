@@ -1,10 +1,10 @@
 import {
   CoverLetterDraft,
   DEFAULT_COVER_LETTER_DRAFT,
-  DEFAULT_DESIGN_SETTINGS,
   DesignSettings,
   hasRenderableContent,
   normalizeCVData,
+  normalizeDesignSettings,
   toRenderableCVData,
 } from "@/lib/cvBuilder";
 import type { ResumeContent } from "@/lib/resumesApi";
@@ -29,7 +29,7 @@ export const readLocalDraft = (): ResumeContent | null => {
     return {
       cvData,
       theme: parsed.theme || "classic",
-      designSettings: { ...DEFAULT_DESIGN_SETTINGS, ...parsed.designSettings },
+      designSettings: normalizeDesignSettings(parsed.designSettings),
       coverLetter: { ...DEFAULT_COVER_LETTER_DRAFT, ...parsed.coverLetter },
     };
   } catch {

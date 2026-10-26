@@ -660,12 +660,31 @@ export interface components {
             /** Word Count */
             word_count: number;
         };
-        /** DesignSettings */
+        /**
+         * DesignSettings
+         * @description Per-CV design choices. ``None`` means "use the theme's default".
+         */
         DesignSettings: {
             /** Fontfamily */
             fontFamily?: string | null;
+            /** Fontsizept */
+            fontSizePt?: number | null;
+            /** Hiddensections */
+            hiddenSections?: ("summary" | "experience" | "education" | "skills" | "projects" | "publications" | "honors" | "patents" | "talks")[];
+            /** Linespacingem */
+            lineSpacingEm?: number | null;
+            /** Margincm */
+            marginCm?: number | null;
+            /** Pagesize */
+            pageSize?: ("a4" | "us-letter") | null;
             /** Primarycolor */
             primaryColor?: string | null;
+            /** Sectionorder */
+            sectionOrder?: ("summary" | "experience" | "education" | "skills" | "projects" | "publications" | "honors" | "patents" | "talks")[] | null;
+            /** Sectionspacingcm */
+            sectionSpacingCm?: number | null;
+            /** Showfooter */
+            showFooter?: boolean | null;
         };
         /** EducationEntry */
         EducationEntry: {

@@ -425,6 +425,7 @@
         "type": "object"
       },
       "DesignSettings": {
+        "description": "Per-CV design choices. ``None`` means \"use the theme's default\".",
         "properties": {
           "fontFamily": {
             "anyOf": [
@@ -437,6 +438,79 @@
             ],
             "title": "Fontfamily"
           },
+          "fontSizePt": {
+            "anyOf": [
+              {
+                "maximum": 14.0,
+                "minimum": 8.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fontsizept"
+          },
+          "hiddenSections": {
+            "items": {
+              "enum": [
+                "summary",
+                "experience",
+                "education",
+                "skills",
+                "projects",
+                "publications",
+                "honors",
+                "patents",
+                "talks"
+              ],
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Hiddensections",
+            "type": "array"
+          },
+          "lineSpacingEm": {
+            "anyOf": [
+              {
+                "maximum": 1.5,
+                "minimum": 0.3,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linespacingem"
+          },
+          "marginCm": {
+            "anyOf": [
+              {
+                "maximum": 3.0,
+                "minimum": 0.5,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Margincm"
+          },
+          "pageSize": {
+            "anyOf": [
+              {
+                "enum": [
+                  "a4",
+                  "us-letter"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pagesize"
+          },
           "primaryColor": {
             "anyOf": [
               {
@@ -447,6 +521,56 @@
               }
             ],
             "title": "Primarycolor"
+          },
+          "sectionOrder": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "summary",
+                    "experience",
+                    "education",
+                    "skills",
+                    "projects",
+                    "publications",
+                    "honors",
+                    "patents",
+                    "talks"
+                  ],
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sectionorder"
+          },
+          "sectionSpacingCm": {
+            "anyOf": [
+              {
+                "maximum": 1.5,
+                "minimum": 0.1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sectionspacingcm"
+          },
+          "showFooter": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Showfooter"
           }
         },
         "title": "DesignSettings",

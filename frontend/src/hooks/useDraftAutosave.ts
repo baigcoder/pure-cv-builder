@@ -11,6 +11,7 @@ import {
   IMPORTED_CV_STORAGE_KEY,
   SyncStatus,
   normalizeCVData,
+  normalizeDesignSettings,
 } from "@/lib/cvBuilder";
 
 export const DRAFT_STORAGE_KEY = "purecv:draft:v1";
@@ -108,10 +109,7 @@ export const useDraftAutosave = ({
         const parsed = JSON.parse(rawDraft) as Partial<DraftState>;
         setCVData(normalizeCVData(parsed.cvData));
         setTheme(initialTheme || parsed.theme || "classic");
-        setDesignSettings({
-          ...DEFAULT_DESIGN_SETTINGS,
-          ...(parsed.designSettings || {}),
-        });
+        setDesignSettings(normalizeDesignSettings(parsed.designSettings));
         setCoverLetter({
           ...DEFAULT_COVER_LETTER_DRAFT,
           ...(parsed.coverLetter || {}),

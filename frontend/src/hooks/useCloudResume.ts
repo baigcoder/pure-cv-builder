@@ -5,9 +5,9 @@ import {
   CoverLetterDraft,
   CVData,
   DEFAULT_COVER_LETTER_DRAFT,
-  DEFAULT_DESIGN_SETTINGS,
   DesignSettings,
   normalizeCVData,
+  normalizeDesignSettings,
 } from "@/lib/cvBuilder";
 import { ApiError } from "@/lib/api/client";
 import { resumesApi, toApiContent, type ResumeDetail, type TokenGetter } from "@/lib/resumesApi";
@@ -81,7 +81,7 @@ export const useCloudResume = ({
   const applyServerResume = useCallback(
     (resume: ResumeDetail) => {
       const nextCV = normalizeCVData(resume.cv_data);
-      const nextDesign = { ...DEFAULT_DESIGN_SETTINGS, ...resume.design_settings } as DesignSettings;
+      const nextDesign = normalizeDesignSettings(resume.design_settings);
       const nextLetter = { ...DEFAULT_COVER_LETTER_DRAFT, ...resume.cover_letter } as CoverLetterDraft;
       setCVData(nextCV);
       setTheme(resume.theme);
@@ -165,7 +165,11 @@ export const useCloudResume = ({
 
   useEffect(() => {
     if (!enabled || !isLoaded || pausedRef.current) return;
-    if (snapshotOf(latestRef.current) === savedSnapshotRef.current) return;
+    if (snapshotOf(latestRef.current) === savedSnapshotRef.current) {
+      // Edits were undone back to the saved content before they were sent.
+      setStatus((current) => (current === "saving" && !savingRef.current ? "saved" : current));
+      return;
+    }
     setStatus((current) => (current === "offline" ? current : "saving"));
     const timer = window.setTimeout(() => void save(), SAVE_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
@@ -189,6 +193,27 @@ export const useCloudResume = ({
     return () => window.removeEventListener("beforeunload", handler);
   }, [enabled]);
 
+  /**
+   * Resolve a conflict in favour of this tab: adopt the server's latest
+   * revision, then save the local content over it. The other change is
+   * snapshotted first so it can be restored from version history.
+   */
+  const keepMine = useCallback(async () => {
+    if (!resumeId) return;
+    setStatus("saving");
+    try {
+      await resumesApi.saveVersion(getAccessToken, resumeId, "Overwritten from another tab");
+      const latest = await resumesApi.get(getAccessToken, resumeId);
+      revisionRef.current = latest.revision;
+      // Force a save even if the content happens to match the old snapshot.
+      savedSnapshotRef.current = "";
+      pausedRef.current = false;
+      await save();
+    } catch (error) {
+      setStatus(error instanceof ApiError && error.status === 409 ? "conflict" : "error");
+    }
+  }, [getAccessToken, resumeId, save]);
+
   /** Wait for any in-flight save, then save pending edits. */
   const flush = useCallback(async () => {
     for (let waited = 0; savingRef.current && waited < 10000; waited += 100) {
@@ -207,6 +232,7 @@ export const useCloudResume = ({
     lastSavedAt,
     latestVersion,
     flush,
+    keepMine,
     reload: load,
     applyServerResume,
   };
