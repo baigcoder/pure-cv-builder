@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "gen:api": "openapi-typescript src/lib/api/openapi.json -o src/lib/api/schema.d.ts"
+    "gen:api": "openapi-typescript src/lib/api/openapi.json -o src/lib/api/schema.d.ts --default-non-nullable false"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
     "lucide-react": "^1.14.0",
     "next": "16.1.1",
     "react": "19.2.3",

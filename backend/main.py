@@ -39,13 +39,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.router import api_router
 from core.errors import register_error_handlers
 from core.limiter import DEFAULT_LIMIT, limiter
+from db.migrate import upgrade_to_head
+from db.session import engine
 from services.render_engine import shutdown_render_engine
 
-API_VERSION = "1.1.0"
+API_VERSION = "1.2.0"
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    if settings.db_auto_migrate:
+        upgrade_to_head(engine)
     yield
     shutdown_render_engine()
 
@@ -133,4 +137,9 @@ async def root():
 @app.get("/api/health")
 @limiter.limit(DEFAULT_LIMIT)
 async def api_health_check(request: Request):
-    return {"status": "healthy", "version": API_VERSION, "environment": settings.environment}
+    return {
+        "status": "healthy",
+        "version": API_VERSION,
+        "environment": settings.environment,
+        "accounts_enabled": settings.auth_configured,
+    }

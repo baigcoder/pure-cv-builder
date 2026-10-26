@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState, ReactNode } from "react";
 
 // Toast types
 type ToastType = "success" | "error" | "info" | "warning";
@@ -32,7 +32,7 @@ interface ToastProviderProps {
 export function ToastProvider({ children }: ToastProviderProps) {
     const [toasts, setToasts] = useState<Toast[]>([]);
 
-    const showToast = (message: string, type: ToastType = "info") => {
+    const showToast = useCallback((message: string, type: ToastType = "info") => {
         const id = Math.random().toString(36).substr(2, 9);
         setToasts((prev) => [...prev, { id, message, type }]);
 
@@ -40,7 +40,9 @@ export function ToastProvider({ children }: ToastProviderProps) {
         setTimeout(() => {
             setToasts((prev) => prev.filter((t) => t.id !== id));
         }, 4000);
-    };
+    }, []);
+
+    const contextValue = useMemo(() => ({ showToast }), [showToast]);
 
     const dismissToast = (id: string) => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -86,7 +88,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
     };
 
     return (
-        <ToastContext.Provider value={{ showToast }}>
+        <ToastContext.Provider value={contextValue}>
             {children}
 
             {/* Toast Container */}

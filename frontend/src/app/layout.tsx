@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/ToastProvider";
+import { AuthProvider } from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
   title: "ApplyForge | ATS Application Workspace",
@@ -46,7 +47,9 @@ export default function RootLayout({
       <body>
         <ErrorBoundary>
           <ToastProvider>
-            {children}
+            <AuthProvider>
+              {children}
+            </AuthProvider>
           </ToastProvider>
         </ErrorBoundary>
       </body>

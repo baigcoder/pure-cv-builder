@@ -59,6 +59,39 @@ Every non-2xx response is `{"detail", "code", "request_id", "fields?"}`. `fields
 editor field keys (e.g. `phone`, `experience.0`) to messages. Internal errors never
 include renderer output or CV content; look them up in logs by `request_id`.
 
+## Accounts and Saved CVs
+
+Sign-in uses **Supabase Auth** (email + password). CVs are stored in **Supabase Postgres**
+through the FastAPI backend, which validates every CV against the shared schema and owns
+versioning. Without Supabase config the app still works in local-draft mode.
+
+- The frontend signs in with `@supabase/supabase-js` and sends the access token as
+  `Authorization: Bearer` to `/api/resumes*`.
+- The backend verifies tokens via the project's JWKS (asymmetric keys), the legacy
+  `SUPABASE_JWT_SECRET`, or by asking Supabase Auth (`SUPABASE_ANON_KEY`, cached 60s).
+- Tables `resumes` and `resume_versions` have row-level security enabled with no policies,
+  so Supabase's public REST API can't read them; only the backend's database role can.
+- Saves use optimistic locking (`revision`); a stale save returns `409 revision_conflict`
+  and the editor asks the user to reload instead of overwriting.
+- Versions: one on create/import, an autosave snapshot at most every
+  `VERSION_SNAPSHOT_MINUTES` while editing, named versions on demand, and a snapshot of
+  unsaved work before any restore. Only autosave snapshots are pruned.
+- The first time a user signs in with no saved CVs, their browser draft is imported.
+
+Routes: `/login`, `/auth/reset`, `/dashboard`, `/editor?id=<resume id>`. The `/editor`
+route without `id` is the original local-draft editor.
+
+### Supabase setup
+
+1. Supabase dashboard → Authentication → URL Configuration: set the Site URL to the
+   frontend URL and add `<frontend>/dashboard` and `<frontend>/auth/reset` as redirect URLs.
+2. Frontend env: `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+3. Backend env: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `DATABASE_URL` (Connect →
+   Transaction pooler). Migrations run automatically on startup (`DB_AUTO_MIGRATE`).
+4. Never configure the `service_role` key anywhere; nothing needs it.
+
+For a local stack, `npx supabase start` (Docker) uses `supabase/config.toml`.
+
 ## Main User Flows
 
 ### 1. Blank CV to PDF
@@ -101,6 +134,8 @@ Do not rename those keys unless a migration is added.
 | Variable | Required | Description |
 | --- | --- | --- |
 | `NEXT_PUBLIC_API_URL` | No | Backend base URL. Defaults to `http://localhost:8000`. |
+| `NEXT_PUBLIC_SUPABASE_URL` | For accounts | Supabase project URL. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | For accounts | Supabase anon/publishable key (browser-safe). |
 
 ### Backend
 
@@ -119,6 +154,14 @@ Do not rename those keys unless a migration is added.
 | `RENDER_TIMEOUT_SECONDS` | No | Per-render timeout (default 60). |
 | `RENDER_CACHE_SIZE` | No | Cached render results (default 64, 0 disables). |
 | `PREVIEW_MAX_PAGES` | No | Pages returned by `/api/preview/pages` (default 4). |
+| `DATABASE_URL` | For accounts | Postgres URL (Supabase pooler). Defaults to local SQLite `applyforge.db`. |
+| `DB_AUTO_MIGRATE` | No | Run Alembic migrations on startup (default `true`). |
+| `SUPABASE_URL` | For accounts | Supabase project URL; enables `/api/me` and `/api/resumes`. |
+| `SUPABASE_ANON_KEY` | For accounts | Lets the backend confirm HS256 tokens with Supabase Auth. |
+| `SUPABASE_JWT_SECRET` | No | Legacy JWT secret to verify HS256 tokens locally instead. |
+| `MAX_RESUMES_PER_USER` | No | Default 50. |
+| `VERSION_SNAPSHOT_MINUTES` / `MAX_AUTO_VERSIONS` | No | Autosave snapshot interval (10) and cap (50). |
+| `RATE_LIMIT_SAVE` | No | Limit for autosave `PATCH` requests (default `120/minute`). |
 
 AI features still provide local fallbacks where possible when no provider key is configured.
 

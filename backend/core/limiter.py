@@ -17,3 +17,4 @@ PREVIEW_LIMIT = settings.rate_limit_preview
 RENDER_LIMIT = settings.rate_limit_render
 AI_LIMIT = settings.rate_limit_ai
 DEFAULT_LIMIT = settings.rate_limit_default
+SAVE_LIMIT = settings.rate_limit_save

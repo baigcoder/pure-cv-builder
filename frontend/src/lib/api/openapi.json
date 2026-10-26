@@ -638,6 +638,24 @@
         "title": "HonorEntry",
         "type": "object"
       },
+      "MeResponse": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "MeResponse",
+        "type": "object"
+      },
       "PatentEntry": {
         "description": "Rendered as a numbered item.",
         "properties": {
@@ -883,6 +901,309 @@
         "title": "RenderRequest",
         "type": "object"
       },
+      "ResumeCreate": {
+        "properties": {
+          "cover_letter": {
+            "$ref": "#/components/schemas/SavedCoverLetter"
+          },
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "design_settings": {
+            "$ref": "#/components/schemas/DesignSettings"
+          },
+          "source": {
+            "default": "create",
+            "enum": [
+              "create",
+              "import"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "theme": {
+            "default": "classic",
+            "maxLength": 64,
+            "title": "Theme",
+            "type": "string"
+          },
+          "title": {
+            "default": "Untitled CV",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "title": "ResumeCreate",
+        "type": "object"
+      },
+      "ResumeDetail": {
+        "properties": {
+          "cover_letter": {
+            "$ref": "#/components/schemas/SavedCoverLetter"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "design_settings": {
+            "$ref": "#/components/schemas/DesignSettings"
+          },
+          "headline": {
+            "default": "",
+            "title": "Headline",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "latest_version": {
+            "default": 0,
+            "title": "Latest Version",
+            "type": "integer"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "theme",
+          "revision",
+          "created_at",
+          "updated_at",
+          "cv_data",
+          "design_settings",
+          "cover_letter"
+        ],
+        "title": "ResumeDetail",
+        "type": "object"
+      },
+      "ResumeListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ResumeSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "limit"
+        ],
+        "title": "ResumeListResponse",
+        "type": "object"
+      },
+      "ResumeSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "headline": {
+            "default": "",
+            "title": "Headline",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "latest_version": {
+            "default": 0,
+            "title": "Latest Version",
+            "type": "integer"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "theme",
+          "revision",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ResumeSummary",
+        "type": "object"
+      },
+      "ResumeUpdate": {
+        "description": "Partial update. ``revision`` must match the stored revision.",
+        "properties": {
+          "cover_letter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SavedCoverLetter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cv_data": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CVData"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "design_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revision": {
+            "minimum": 1.0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "theme": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Theme"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "required": [
+          "revision"
+        ],
+        "title": "ResumeUpdate",
+        "type": "object"
+      },
+      "SavedCoverLetter": {
+        "description": "The editor's cover letter draft, stored with the resume.",
+        "properties": {
+          "company": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Company",
+            "type": "string"
+          },
+          "hiringManager": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Hiringmanager",
+            "type": "string"
+          },
+          "jobDescription": {
+            "default": "",
+            "maxLength": 12000,
+            "title": "Jobdescription",
+            "type": "string"
+          },
+          "letter": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Letter",
+            "type": "string"
+          },
+          "source": {
+            "default": "",
+            "enum": [
+              "",
+              "ai",
+              "template"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "targetRole": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Targetrole",
+            "type": "string"
+          },
+          "tone": {
+            "default": "professional",
+            "maxLength": 40,
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "title": "SavedCoverLetter",
+        "type": "object"
+      },
       "SkillEntry": {
         "properties": {
           "details": {
@@ -1072,6 +1393,134 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "VersionCreate": {
+        "properties": {
+          "label": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "VersionCreate",
+        "type": "object"
+      },
+      "VersionDetail": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "design_settings": {
+            "$ref": "#/components/schemas/DesignSettings"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "create",
+              "auto",
+              "manual",
+              "restore",
+              "import"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "source",
+          "label",
+          "title",
+          "theme",
+          "created_at",
+          "cv_data",
+          "design_settings"
+        ],
+        "title": "VersionDetail",
+        "type": "object"
+      },
+      "VersionListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VersionSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "VersionListResponse",
+        "type": "object"
+      },
+      "VersionSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "create",
+              "auto",
+              "manual",
+              "restore",
+              "import"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "source",
+          "label",
+          "title",
+          "theme",
+          "created_at"
+        ],
+        "title": "VersionSummary",
+        "type": "object"
+      },
       "YAMLResponse": {
         "properties": {
           "yaml": {
@@ -1085,12 +1534,18 @@
         "title": "YAMLResponse",
         "type": "object"
       }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "scheme": "bearer",
+        "type": "http"
+      }
     }
   },
   "info": {
     "description": "Generate professional CVs and cover letters from structured data",
     "title": "ApplyForge API",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1386,6 +1841,33 @@
         "summary": "Api Health Check"
       }
     },
+    "/api/me": {
+      "get": {
+        "description": "The signed-in user, as identified by their Supabase access token.",
+        "operationId": "get_me_api_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Me",
+        "tags": [
+          "resumes"
+        ]
+      }
+    },
     "/api/preview": {
       "post": {
         "description": "PNG of the first page. Prefer /preview/pages for multi-page CVs.",
@@ -1495,6 +1977,483 @@
         "summary": "Render Cv",
         "tags": [
           "render"
+        ]
+      }
+    },
+    "/api/resumes": {
+      "get": {
+        "description": "The user's CVs, most recently edited first.",
+        "operationId": "list_resumes_api_resumes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Resumes",
+        "tags": [
+          "resumes"
+        ]
+      },
+      "post": {
+        "description": "Create a CV (or import a local draft with ``source: \"import\"``).",
+        "operationId": "create_resume_api_resumes_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Resume",
+        "tags": [
+          "resumes"
+        ]
+      }
+    },
+    "/api/resumes/{resume_id}": {
+      "delete": {
+        "operationId": "delete_resume_api_resumes__resume_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Resume",
+        "tags": [
+          "resumes"
+        ]
+      },
+      "get": {
+        "operationId": "get_resume_api_resumes__resume_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Resume",
+        "tags": [
+          "resumes"
+        ]
+      },
+      "patch": {
+        "description": "Save changes. Returns 409 ``revision_conflict`` if ``revision`` is stale.",
+        "operationId": "update_resume_api_resumes__resume_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResumeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Resume",
+        "tags": [
+          "resumes"
+        ]
+      }
+    },
+    "/api/resumes/{resume_id}/duplicate": {
+      "post": {
+        "operationId": "duplicate_resume_api_resumes__resume_id__duplicate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Duplicate Resume",
+        "tags": [
+          "resumes"
+        ]
+      }
+    },
+    "/api/resumes/{resume_id}/versions": {
+      "get": {
+        "description": "Version history, newest first (content omitted).",
+        "operationId": "list_versions_api_resumes__resume_id__versions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Versions",
+        "tags": [
+          "resumes"
+        ]
+      },
+      "post": {
+        "description": "Snapshot the current content as a labelled version.",
+        "operationId": "save_version_api_resumes__resume_id__versions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VersionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Version",
+        "tags": [
+          "resumes"
+        ]
+      }
+    },
+    "/api/resumes/{resume_id}/versions/{version}": {
+      "get": {
+        "operationId": "get_version_api_resumes__resume_id__versions__version__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VersionDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Version",
+        "tags": [
+          "resumes"
+        ]
+      }
+    },
+    "/api/resumes/{resume_id}/versions/{version}/restore": {
+      "post": {
+        "description": "Make an old version the current content (the previous head is kept).",
+        "operationId": "restore_version_api_resumes__resume_id__versions__version__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "version",
+            "required": true,
+            "schema": {
+              "title": "Version",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumeDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Restore Version",
+        "tags": [
+          "resumes"
         ]
       }
     },

@@ -1,13 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Copy, Download, Eye, FileCode2, Mail, MapPin, Pencil, RotateCcw, Sparkles } from "lucide-react";
+import { CloudUpload, Copy, Download, Eye, FileCode2, History, LayoutGrid, Mail, MapPin, Pencil, RotateCcw, Sparkles } from "lucide-react";
 import styles from "./editor.module.css";
 import { Logo, Icons } from "@/components/Brand";
 import { TemplateCard } from "@/components/AppUI";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
+import { useCloudResume, type CloudSyncStatus } from "@/hooks/useCloudResume";
+import { AccountMenu } from "@/components/AccountMenu";
+import { useAuth } from "@/components/AuthProvider";
+import { VersionHistoryPanel } from "@/components/VersionHistoryPanel";
+import { resumesApi, toApiContent } from "@/lib/resumesApi";
+import { draftTitle, markDraftImported } from "@/lib/localDraft";
 import { useLivePreview } from "@/hooks/useLivePreview";
 import {
     CoverLetterDraft,
@@ -212,6 +218,9 @@ const buildAutoCoverLetterContext = (cvData: CVData, targetRole: string): string
 
 function EditorContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
+    const resumeId = searchParams.get("id");
+    const auth = useAuth();
     const themeOverride = searchParams.get("theme") || "";
     const sectionOverride = searchParams.get("section") || "";
     const initialTheme = themeOverride || "classic";
@@ -248,7 +257,7 @@ function EditorContent() {
         [cvData]
     );
 
-    const { isRestored, draftStatus, lastSavedAt, resetDraft } = useDraftAutosave({
+    const draft = useDraftAutosave({
         cvData,
         theme,
         designSettings,
@@ -258,7 +267,53 @@ function EditorContent() {
         setDesignSettings,
         setCoverLetter,
         initialTheme: themeOverride,
+        enabled: !resumeId,
     });
+    const cloud = useCloudResume({
+        resumeId,
+        getAccessToken: auth.getAccessToken,
+        cvData,
+        theme,
+        designSettings,
+        coverLetter,
+        setCVData,
+        setTheme,
+        setDesignSettings,
+        setCoverLetter,
+    });
+    const { draftStatus, resetDraft } = draft;
+    const isRestored = resumeId ? cloud.isLoaded : draft.isRestored;
+    const lastSavedAt = resumeId ? cloud.lastSavedAt : draft.lastSavedAt;
+    const [historyOpen, setHistoryOpen] = useState(searchParams.get("history") === "1");
+    const [isSavingToAccount, setIsSavingToAccount] = useState(false);
+
+    // Saved resumes need a session; send signed-out visitors to sign in first.
+    useEffect(() => {
+        if (resumeId && auth.enabled && !auth.loading && !auth.user) {
+            router.replace(`/login?next=${encodeURIComponent(`/editor?id=${resumeId}`)}`);
+        }
+    }, [auth.enabled, auth.loading, auth.user, resumeId, router]);
+
+    const saveDraftToAccount = async () => {
+        if (!auth.user) {
+            router.push("/login?next=/dashboard");
+            return;
+        }
+        setIsSavingToAccount(true);
+        try {
+            const content = { cvData, theme, designSettings, coverLetter };
+            const created = await resumesApi.create(auth.getAccessToken, {
+                title: draftTitle(content),
+                source: "import",
+                ...toApiContent(content),
+            });
+            markDraftImported(auth.user.id);
+            router.push(`/editor?id=${created.id}`);
+        } catch (error) {
+            setExportError(error instanceof Error ? error.message : "Couldn't save to your account.");
+            setIsSavingToAccount(false);
+        }
+    };
 
     const {
         previewPages,
@@ -275,6 +330,14 @@ function EditorContent() {
     });
 
     const syncStatus = isGenerating ? "syncing" : draftStatus;
+    const CLOUD_STATUS_LABELS: Record<CloudSyncStatus, string> = {
+        loading: "Loading CV...",
+        saving: "Saving...",
+        saved: "All changes saved",
+        offline: "Offline, retrying...",
+        conflict: "Changed in another tab",
+        error: "Save failed",
+    };
     const isAIUnavailable = aiAvailable === false;
 
     useEffect(() => {
@@ -632,10 +695,60 @@ function EditorContent() {
 
     return (
         <div className={styles.editorLayout}>
+            {resumeId && cloud.loadError && (
+                <div className={styles.cloudErrorOverlay} role="alert">
+                    <div className={styles.cloudErrorCard}>
+                        <strong>We couldn&apos;t open this CV</strong>
+                        <p>{cloud.loadError}</p>
+                        <div className={styles.cloudErrorActions}>
+                            <button type="button" className="btn btn-secondary" onClick={() => void cloud.reload()}>Try again</button>
+                            <Link href="/dashboard" className="btn btn-primary">Back to My CVs</Link>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {resumeId && auth.user && (
+                <VersionHistoryPanel
+                    open={historyOpen}
+                    resumeId={resumeId}
+                    getAccessToken={auth.getAccessToken}
+                    flush={cloud.flush}
+                    latestVersion={cloud.latestVersion}
+                    onRestored={cloud.applyServerResume}
+                    onClose={() => setHistoryOpen(false)}
+                />
+            )}
             <header className={styles.header}>
                 <div className={styles.logoArea}>
-                    <Logo width={28} height={28} />
-                    <span style={{ letterSpacing: '0.03em', fontWeight: 800 }}>ApplyForge</span>
+                    <Link href={resumeId ? "/dashboard" : "/"} aria-label="ApplyForge home" style={{ display: 'flex' }}>
+                        <Logo width={28} height={28} />
+                    </Link>
+                    {resumeId ? (
+                        <div className={styles.docTitleWrap}>
+                            <input
+                                className={styles.docTitleInput}
+                                value={cloud.title}
+                                onChange={(event) => cloud.setTitle(event.target.value)}
+                                onBlur={() => { if (!cloud.title.trim()) cloud.setTitle("Untitled CV"); }}
+                                maxLength={120}
+                                aria-label="CV title"
+                                disabled={!cloud.isLoaded}
+                            />
+                            <span
+                                className={`${styles.cloudStatus} ${styles[`cloudStatus_${cloud.status}`] ?? ""}`}
+                                role="status"
+                            >
+                                {CLOUD_STATUS_LABELS[cloud.status]}
+                                {cloud.status === "conflict" && (
+                                    <button type="button" className={styles.cloudReload} onClick={() => void cloud.reload()}>
+                                        Reload
+                                    </button>
+                                )}
+                            </span>
+                        </div>
+                    ) : (
+                        <span style={{ letterSpacing: '0.03em', fontWeight: 800 }}>ApplyForge</span>
+                    )}
                 </div>
                 <div className={styles.headerActions}>
                     <button
@@ -655,15 +768,45 @@ function EditorContent() {
                             </>
                         )}
                     </button>
-                    <button onClick={startNewDraft} className="btn btn-secondary" title="Start a new CV">
-                        <RotateCcw size={16} />
-                        New
-                    </button>
+                    {resumeId ? (
+                        <button onClick={() => setHistoryOpen(true)} className="btn btn-secondary" title="Version history">
+                            <History size={16} />
+                            History
+                        </button>
+                    ) : (
+                        <>
+                            <button onClick={startNewDraft} className="btn btn-secondary" title="Start a new CV">
+                                <RotateCcw size={16} />
+                                New
+                            </button>
+                            {auth.enabled && auth.user && (
+                                <button
+                                    onClick={saveDraftToAccount}
+                                    className="btn btn-secondary"
+                                    disabled={isSavingToAccount}
+                                    title="Save this browser draft to your account"
+                                >
+                                    <CloudUpload size={16} />
+                                    {isSavingToAccount ? "Saving..." : "Save to account"}
+                                </button>
+                            )}
+                        </>
+                    )}
                     <button onClick={downloadYAML} className="btn btn-secondary" disabled={isLoading}>
                         <FileCode2 size={16} />
                         YAML
                     </button>
-                    <Link href="/" className="btn btn-secondary">Exit</Link>
+                    {resumeId ? (
+                        <Link href="/dashboard" className="btn btn-secondary">
+                            <LayoutGrid size={16} />
+                            My CVs
+                        </Link>
+                    ) : (
+                        <>
+                            <AccountMenu />
+                            <Link href="/" className="btn btn-secondary">Exit</Link>
+                        </>
+                    )}
                     <button onClick={downloadPDF} className="btn btn-primary" disabled={isLoading}>
                         <Download size={16} />
                         {isLoading ? "Exporting..." : "PDF"}
@@ -821,6 +964,8 @@ function EditorContent() {
                             <div className={`${styles.statusDot} ${syncStatus === 'syncing' ? styles.statusDotPulse : ""}`} />
                             {syncStatus === 'syncing'
                                 ? "Rendering preview..."
+                                : resumeId
+                                    ? CLOUD_STATUS_LABELS[cloud.status]
                                 : syncStatus === 'saving'
                                     ? "Saving draft..."
                                     : syncStatus === 'error'

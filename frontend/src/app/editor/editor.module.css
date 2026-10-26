@@ -1657,3 +1657,128 @@
         border-radius: 10px;
     }
 }
+
+/* Saved-resume (cloud) mode */
+.docTitleWrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.15;
+}
+
+.docTitleInput {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--primary);
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    padding: 0.15rem 0.35rem;
+    margin-left: -0.35rem;
+    width: clamp(140px, 24vw, 320px);
+    text-overflow: ellipsis;
+}
+
+.docTitleInput:hover:not(:disabled) {
+    border-color: var(--border);
+}
+
+.docTitleInput:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--white);
+}
+
+.cloudStatus {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-light);
+}
+
+.cloudStatus::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.cloudStatus_saved {
+    color: var(--success);
+}
+
+.cloudStatus_saving,
+.cloudStatus_loading {
+    color: var(--text-muted);
+}
+
+.cloudStatus_offline {
+    color: var(--warning);
+}
+
+.cloudStatus_conflict,
+.cloudStatus_error {
+    color: var(--error);
+}
+
+.cloudReload {
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.7rem;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.cloudErrorOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    background: rgba(244, 246, 248, 0.86);
+    backdrop-filter: blur(4px);
+}
+
+.cloudErrorCard {
+    width: min(420px, 100%);
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-premium);
+    padding: 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.cloudErrorCard strong {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.2rem;
+    color: var(--primary);
+}
+
+.cloudErrorCard p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.cloudErrorActions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 720px) {
+    .docTitleInput {
+        width: 42vw;
+    }
+}

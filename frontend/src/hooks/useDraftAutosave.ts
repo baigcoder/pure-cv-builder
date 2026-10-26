@@ -34,6 +34,8 @@ interface UseDraftAutosaveOptions {
   setDesignSettings: (settings: DesignSettings) => void;
   setCoverLetter: (data: CoverLetterDraft) => void;
   initialTheme: string;
+  /** False when the editor is bound to a saved resume (cloud mode). */
+  enabled?: boolean;
 }
 
 export const useDraftAutosave = ({
@@ -46,12 +48,14 @@ export const useDraftAutosave = ({
   setDesignSettings,
   setCoverLetter,
   initialTheme,
+  enabled = true,
 }: UseDraftAutosaveOptions) => {
   const [isRestored, setIsRestored] = useState(false);
   const [draftStatus, setDraftStatus] = useState<SyncStatus>("saved");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     try {
       // Check for imported PDF data first (from /upload page)
       const importedRaw =
@@ -119,7 +123,7 @@ export const useDraftAutosave = ({
     } finally {
       setIsRestored(true);
     }
-  }, [initialTheme, setCoverLetter, setCVData, setDesignSettings, setTheme]);
+  }, [enabled, initialTheme, setCoverLetter, setCVData, setDesignSettings, setTheme]);
 
   const draftKey = useMemo(
     () => JSON.stringify({ cvData, theme, designSettings, coverLetter }),

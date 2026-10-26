@@ -10,7 +10,11 @@ import { StatusBanner, TemplateCard } from "@/components/AppUI";
 import { THEME_DATA, recommendTemplate } from "@/lib/themes";
 import { extractPDF } from "@/lib/editorApi";
 import { API_URL } from "@/lib/config";
+import { useAuth } from "@/components/AuthProvider";
+import { resumesApi, toApiContent } from "@/lib/resumesApi";
 import {
+  DEFAULT_COVER_LETTER_DRAFT,
+  DEFAULT_DESIGN_SETTINGS,
   IMPORTED_CV_STORAGE_KEY,
   normalizeCVData,
   type CVData,
@@ -38,6 +42,8 @@ interface ExtractedData {
 
 export default function UploadPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const [isOpening, setIsOpening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
   const [isDragging, setIsDragging] = useState(false);
@@ -135,8 +141,32 @@ export default function UploadPage() {
     }
   }, [processFile]);
 
-  const handleUseTemplate = () => {
+  const handleUseTemplate = async () => {
     if (!extractedData) return;
+
+    // Signed in: save the import as a new CV in the account and open it.
+    if (auth.user) {
+      setIsOpening(true);
+      try {
+        const name = extractedData.cvData.name.trim();
+        const created = await resumesApi.create(auth.getAccessToken, {
+          title: name ? `${name} CV` : fileName.replace(/\.pdf$/i, "") || "Imported CV",
+          source: "import",
+          ...toApiContent({
+            cvData: extractedData.cvData,
+            theme: selectedTheme,
+            designSettings: DEFAULT_DESIGN_SETTINGS,
+            coverLetter: DEFAULT_COVER_LETTER_DRAFT,
+          }),
+        });
+        router.push(`/editor?id=${created.id}`);
+        return;
+      } catch (err) {
+        // Fall back to the browser-draft handoff below so the import isn't lost.
+        console.warn("Saving the import to the account failed:", err);
+        setIsOpening(false);
+      }
+    }
 
     const importPayload = JSON.stringify({
       cvData: extractedData.cvData,
@@ -544,9 +574,9 @@ export default function UploadPage() {
               <button onClick={resetUpload} className={styles.ctaBtnSecondary}>
                 <ArrowLeft size={18} /> Upload Different PDF
               </button>
-              <button onClick={handleUseTemplate} className={styles.ctaBtnPrimary}>
+              <button onClick={handleUseTemplate} className={styles.ctaBtnPrimary} disabled={isOpening}>
                 <PenLine size={18} />
-                Open ApplyForge Editor
+                {isOpening ? "Saving to your account..." : auth.user ? "Save & open in editor" : "Open ApplyForge Editor"}
               </button>
             </div>
           </div>
