@@ -178,6 +178,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/job/match": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Job Match
+         * @description Keyword coverage of the CV against a job post (offline, deterministic).
+         */
+        post: operations["job_match_api_job_match_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/job/tailor-bullets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tailor Bullets
+         * @description Reworded bullets for the job (AI), or per-bullet keyword guidance.
+         */
+        post: operations["tailor_bullets_api_job_tailor_bullets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -539,6 +579,40 @@ export interface components {
             /** File */
             file: string;
         };
+        /** BulletHint */
+        BulletHint: {
+            /** Bullet Index */
+            bullet_index: number;
+            /** Entry Index */
+            entry_index: number;
+            /** Keywords */
+            keywords: string[];
+            /** Original */
+            original: string;
+            /**
+             * Section
+             * @enum {string}
+             */
+            section: "experience" | "projects";
+        };
+        /** BulletSuggestion */
+        BulletSuggestion: {
+            /** Bullet Index */
+            bullet_index: number;
+            /** Entry Index */
+            entry_index: number;
+            /** Keywords Added */
+            keywords_added?: string[];
+            /** Original */
+            original: string;
+            /**
+             * Section
+             * @enum {string}
+             */
+            section: "experience" | "projects";
+            /** Suggestion */
+            suggestion: string;
+        };
         /** CVData */
         CVData: {
             /** Education */
@@ -802,6 +876,58 @@ export interface components {
             bullet?: string;
             /** Id */
             id?: string | null;
+        };
+        /** JobMatchRequest */
+        JobMatchRequest: {
+            cv_data: components["schemas"]["CVData"];
+            /** Job Description */
+            job_description: string;
+            /**
+             * Target Role
+             * @default
+             */
+            target_role?: string;
+        };
+        /** JobMatchResponse */
+        JobMatchResponse: {
+            /** Matched */
+            matched: components["schemas"]["KeywordMatch"][];
+            /** Missing */
+            missing: components["schemas"]["KeywordMatch"][];
+            /** Score */
+            score: number;
+            /** Summary */
+            summary: string;
+            /** Target Title */
+            target_title: string;
+            /** Title Match */
+            title_match: boolean;
+            /** Years Required */
+            years_required?: number | null;
+        };
+        /** KeywordMatch */
+        KeywordMatch: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "language" | "framework" | "data" | "cloud" | "devops" | "ai" | "practice" | "soft" | "tool";
+            /** Found In */
+            found_in?: ("summary" | "headline" | "skills" | "experience" | "projects" | "education" | "other")[];
+            /**
+             * Importance
+             * @enum {string}
+             */
+            importance: "required" | "core" | "preferred";
+            /** Keyword */
+            keyword: string;
+            /** Mentions */
+            mentions: number;
+            /**
+             * Suggestion
+             * @default
+             */
+            suggestion?: string;
         };
         /** MeResponse */
         MeResponse: {
@@ -1112,6 +1238,36 @@ export interface components {
              * @default
              */
             label?: string;
+        };
+        /** TailorBulletsRequest */
+        TailorBulletsRequest: {
+            cv_data: components["schemas"]["CVData"];
+            /** Job Description */
+            job_description: string;
+            /** Keywords */
+            keywords?: string[];
+            /**
+             * Max Bullets
+             * @default 8
+             */
+            max_bullets?: number;
+        };
+        /** TailorBulletsResponse */
+        TailorBulletsResponse: {
+            /** Hints */
+            hints?: components["schemas"]["BulletHint"][];
+            /**
+             * Message
+             * @default
+             */
+            message?: string;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "ai" | "guidance";
+            /** Suggestions */
+            suggestions?: components["schemas"]["BulletSuggestion"][];
         };
         /**
          * TalkEntry
@@ -1490,6 +1646,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    job_match_api_job_match_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobMatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobMatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tailor_bullets_api_job_tailor_bullets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TailorBulletsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailorBulletsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

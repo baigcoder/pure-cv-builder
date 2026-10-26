@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CloudUpload, Download, Eye, FileCode2, History, LayoutGrid, Mail, Pencil, Redo2, RotateCcw, Sparkles, Undo2 } from "lucide-react";
+import { CloudUpload, Download, Eye, FileCode2, History, LayoutGrid, Mail, Pencil, Redo2, RotateCcw, Sparkles, Target, Undo2 } from "lucide-react";
 import styles from "./editor.module.css";
 import { Logo, Icons } from "@/components/Brand";
 import { TemplateCard } from "@/components/AppUI";
@@ -24,6 +24,7 @@ import {
 import { resolveSectionOrder } from "@/components/editor/DesignControls";
 import { ProfileSection } from "@/components/editor/ProfileSection";
 import { CoverLetterSection } from "@/components/editor/CoverLetterSection";
+import { JobMatchSection } from "@/components/editor/JobMatchSection";
 import { DesignSection } from "@/components/editor/DesignSection";
 import { inferTargetRole } from "@/lib/coverLetterContext";
 import { resumesApi, toApiContent } from "@/lib/resumesApi";
@@ -65,6 +66,7 @@ const BASE_SECTIONS = {
     patents: { id: "patents", name: "Patents", icon: <Icons.patents /> },
     talks: { id: "talks", name: "Talks", icon: <Icons.talks /> },
     design: { id: "design", name: "Design", icon: <Icons.design /> },
+    job_match: { id: "job_match", name: "Job Match", icon: <Target size={18} /> },
     cover_letter: { id: "cover_letter", name: "Cover Letter", icon: <Mail size={18} /> },
 };
 
@@ -75,6 +77,7 @@ const getEditorSectionIds = (themeId: string, design: DesignSettings): string[] 
     "profile",
     ...resolveSectionOrder(themeId, design).filter(sectionId => sectionId !== "summary"),
     "design",
+    "job_match",
     "cover_letter",
 ];
 
@@ -338,7 +341,9 @@ function EditorContent() {
     const recommendedTheme = useMemo(() => recommendTemplate(cvData), [cvData]);
     const templateFit = useMemo(() => getTemplateFitScore(theme, cvData), [theme, cvData]);
     const orderedSectionIds = getEditorSectionIds(theme, designSettings);
+    const hasTargetJob = coverLetter.jobDescription.trim().length >= 40;
     const getEditorSectionProgress = (sectionId: string): number => {
+        if (sectionId === "job_match") return hasTargetJob ? 100 : 0;
         if (sectionId === "cover_letter") {
             if (coverLetter.letter.trim()) return 100;
             if (coverLetter.targetRole.trim() || coverLetter.company.trim() || coverLetter.jobDescription.trim()) return 50;
@@ -351,6 +356,7 @@ function EditorContent() {
         return getSectionWordCount(sectionId);
     };
     const completedSectionIds = orderedSectionIds.filter(sectionId => {
+        if (sectionId === "job_match") return hasTargetJob;
         if (sectionId === "cover_letter") {
             return Boolean(coverLetter.targetRole.trim() || coverLetter.company.trim() || coverLetter.letter.trim());
         }
@@ -361,7 +367,8 @@ function EditorContent() {
         return REPEATABLE_SECTIONS.includes(sectionId as RepeatableSection)
             && renderableData[sectionId as RepeatableSection].length > 0;
     });
-    const orderedContentSections = orderedSectionIds.filter(sectionId => sectionId !== "profile" && sectionId !== "design" && sectionId !== "cover_letter");
+    const NON_CONTENT_SECTIONS = ["profile", "design", "job_match", "cover_letter"];
+    const orderedContentSections = orderedSectionIds.filter(sectionId => !NON_CONTENT_SECTIONS.includes(sectionId));
     const activeSectionIndex = orderedContentSections.indexOf(activeSection);
     const missingBeforeActive = activeSectionIndex > -1
         ? orderedContentSections
@@ -370,7 +377,7 @@ function EditorContent() {
             .filter(sectionId => renderableData[sectionId as RepeatableSection].length === 0)
         : [];
     const nextRecommendedSection = orderedSectionIds.find(sectionId => {
-        if (sectionId === "design") return false;
+        if (sectionId === "design" || sectionId === "job_match") return false;
         if (sectionId === "cover_letter") return !coverLetter.letter.trim();
         if (sectionId === "profile") return calculateSectionProgress("profile") < 60;
         return REPEATABLE_SECTIONS.includes(sectionId as RepeatableSection)
@@ -768,6 +775,15 @@ function EditorContent() {
                                 />
                             )}
 
+                            {activeSection === "job_match" && (
+                                <JobMatchSection
+                                    cvData={cvData}
+                                    setCVData={setCVData}
+                                    coverLetter={coverLetter}
+                                    setCoverLetter={setCoverLetter}
+                                    onOpenSection={setActiveSection}
+                                />
+                            )}
                             {activeSection === "cover_letter" && (
                                 <CoverLetterSection
                                     cvData={cvData}

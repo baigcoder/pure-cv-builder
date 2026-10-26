@@ -217,6 +217,94 @@
         "title": "Body_extract_pdf_api_extract_pdf_post",
         "type": "object"
       },
+      "BulletHint": {
+        "properties": {
+          "bullet_index": {
+            "minimum": 0.0,
+            "title": "Bullet Index",
+            "type": "integer"
+          },
+          "entry_index": {
+            "minimum": 0.0,
+            "title": "Entry Index",
+            "type": "integer"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keywords",
+            "type": "array"
+          },
+          "original": {
+            "title": "Original",
+            "type": "string"
+          },
+          "section": {
+            "enum": [
+              "experience",
+              "projects"
+            ],
+            "title": "Section",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "entry_index",
+          "bullet_index",
+          "original",
+          "keywords"
+        ],
+        "title": "BulletHint",
+        "type": "object"
+      },
+      "BulletSuggestion": {
+        "properties": {
+          "bullet_index": {
+            "minimum": 0.0,
+            "title": "Bullet Index",
+            "type": "integer"
+          },
+          "entry_index": {
+            "minimum": 0.0,
+            "title": "Entry Index",
+            "type": "integer"
+          },
+          "keywords_added": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Keywords Added",
+            "type": "array"
+          },
+          "original": {
+            "title": "Original",
+            "type": "string"
+          },
+          "section": {
+            "enum": [
+              "experience",
+              "projects"
+            ],
+            "title": "Section",
+            "type": "string"
+          },
+          "suggestion": {
+            "title": "Suggestion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "section",
+          "entry_index",
+          "bullet_index",
+          "original",
+          "suggestion"
+        ],
+        "title": "BulletSuggestion",
+        "type": "object"
+      },
       "CVData": {
         "properties": {
           "education": {
@@ -760,6 +848,153 @@
           }
         },
         "title": "HonorEntry",
+        "type": "object"
+      },
+      "JobMatchRequest": {
+        "properties": {
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "job_description": {
+            "maxLength": 12000,
+            "minLength": 1,
+            "title": "Job Description",
+            "type": "string"
+          },
+          "target_role": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Target Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cv_data",
+          "job_description"
+        ],
+        "title": "JobMatchRequest",
+        "type": "object"
+      },
+      "JobMatchResponse": {
+        "properties": {
+          "matched": {
+            "items": {
+              "$ref": "#/components/schemas/KeywordMatch"
+            },
+            "title": "Matched",
+            "type": "array"
+          },
+          "missing": {
+            "items": {
+              "$ref": "#/components/schemas/KeywordMatch"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "score": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "integer"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "target_title": {
+            "title": "Target Title",
+            "type": "string"
+          },
+          "title_match": {
+            "title": "Title Match",
+            "type": "boolean"
+          },
+          "years_required": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Years Required"
+          }
+        },
+        "required": [
+          "score",
+          "summary",
+          "matched",
+          "missing",
+          "title_match",
+          "target_title"
+        ],
+        "title": "JobMatchResponse",
+        "type": "object"
+      },
+      "KeywordMatch": {
+        "properties": {
+          "category": {
+            "enum": [
+              "language",
+              "framework",
+              "data",
+              "cloud",
+              "devops",
+              "ai",
+              "practice",
+              "soft",
+              "tool"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "found_in": {
+            "items": {
+              "enum": [
+                "summary",
+                "headline",
+                "skills",
+                "experience",
+                "projects",
+                "education",
+                "other"
+              ],
+              "type": "string"
+            },
+            "title": "Found In",
+            "type": "array"
+          },
+          "importance": {
+            "enum": [
+              "required",
+              "core",
+              "preferred"
+            ],
+            "title": "Importance",
+            "type": "string"
+          },
+          "keyword": {
+            "title": "Keyword",
+            "type": "string"
+          },
+          "mentions": {
+            "title": "Mentions",
+            "type": "integer"
+          },
+          "suggestion": {
+            "default": "",
+            "title": "Suggestion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyword",
+          "category",
+          "importance",
+          "mentions"
+        ],
+        "title": "KeywordMatch",
         "type": "object"
       },
       "MeResponse": {
@@ -1353,6 +1588,76 @@
           }
         },
         "title": "SkillEntry",
+        "type": "object"
+      },
+      "TailorBulletsRequest": {
+        "properties": {
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "job_description": {
+            "maxLength": 12000,
+            "minLength": 40,
+            "title": "Job Description",
+            "type": "string"
+          },
+          "keywords": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Keywords",
+            "type": "array"
+          },
+          "max_bullets": {
+            "default": 8,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Max Bullets",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cv_data",
+          "job_description"
+        ],
+        "title": "TailorBulletsRequest",
+        "type": "object"
+      },
+      "TailorBulletsResponse": {
+        "properties": {
+          "hints": {
+            "items": {
+              "$ref": "#/components/schemas/BulletHint"
+            },
+            "title": "Hints",
+            "type": "array"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "ai",
+              "guidance"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/BulletSuggestion"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "TailorBulletsResponse",
         "type": "object"
       },
       "TalkEntry": {
@@ -1963,6 +2268,90 @@
           }
         },
         "summary": "Api Health Check"
+      }
+    },
+    "/api/job/match": {
+      "post": {
+        "description": "Keyword coverage of the CV against a job post (offline, deterministic).",
+        "operationId": "job_match_api_job_match_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobMatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobMatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Job Match",
+        "tags": [
+          "job"
+        ]
+      }
+    },
+    "/api/job/tailor-bullets": {
+      "post": {
+        "description": "Reworded bullets for the job (AI), or per-bullet keyword guidance.",
+        "operationId": "tailor_bullets_api_job_tailor_bullets_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TailorBulletsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TailorBulletsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tailor Bullets",
+        "tags": [
+          "job"
+        ]
       }
     },
     "/api/me": {
