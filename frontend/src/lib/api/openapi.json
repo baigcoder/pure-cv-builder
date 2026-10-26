@@ -1,0 +1,1583 @@
+{
+  "components": {
+    "schemas": {
+      "AIEnhanceCVRequest": {
+        "properties": {
+          "current_score": {
+            "default": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Current Score",
+            "type": "integer"
+          },
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "job_description": {
+            "default": "",
+            "maxLength": 12000,
+            "title": "Job Description",
+            "type": "string"
+          },
+          "target_role": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Target Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cv_data"
+        ],
+        "title": "AIEnhanceCVRequest",
+        "type": "object"
+      },
+      "AIEnhanceCVResponse": {
+        "properties": {
+          "changes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "market_keywords": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Market Keywords",
+            "type": "array"
+          },
+          "source": {
+            "enum": [
+              "ai",
+              "fallback"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cv_data",
+          "source"
+        ],
+        "title": "AIEnhanceCVResponse",
+        "type": "object"
+      },
+      "AIStatusResponse": {
+        "properties": {
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "fallback_available": {
+            "title": "Fallback Available",
+            "type": "boolean"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "supported_tasks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Supported Tasks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "configured",
+          "provider",
+          "base_url",
+          "model",
+          "supported_tasks",
+          "fallback_available"
+        ],
+        "title": "AIStatusResponse",
+        "type": "object"
+      },
+      "AISuggestRequest": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": "",
+            "title": "Context"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Text",
+            "type": "string"
+          },
+          "type": {
+            "default": "summary",
+            "enum": [
+              "summary",
+              "headline",
+              "bullet",
+              "education",
+              "project_summary",
+              "project_highlight",
+              "skills",
+              "generate",
+              "honor"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "AISuggestRequest",
+        "type": "object"
+      },
+      "AISuggestResponse": {
+        "properties": {
+          "source": {
+            "default": "ai",
+            "enum": [
+              "ai",
+              "fallback"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "suggestion": {
+            "title": "Suggestion",
+            "type": "string"
+          },
+          "suggestions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestions"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          },
+          "word_count": {
+            "default": 0,
+            "title": "Word Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "suggestion"
+        ],
+        "title": "AISuggestResponse",
+        "type": "object"
+      },
+      "Body_extract_pdf_api_extract_pdf_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_extract_pdf_api_extract_pdf_post",
+        "type": "object"
+      },
+      "CVData": {
+        "properties": {
+          "education": {
+            "items": {
+              "$ref": "#/components/schemas/EducationEntry"
+            },
+            "title": "Education",
+            "type": "array"
+          },
+          "email": {
+            "default": "",
+            "title": "Email",
+            "type": "string"
+          },
+          "experience": {
+            "items": {
+              "$ref": "#/components/schemas/ExperienceEntry"
+            },
+            "title": "Experience",
+            "type": "array"
+          },
+          "github": {
+            "default": "",
+            "title": "Github",
+            "type": "string"
+          },
+          "headline": {
+            "default": "",
+            "title": "Headline",
+            "type": "string"
+          },
+          "honors": {
+            "items": {
+              "$ref": "#/components/schemas/HonorEntry"
+            },
+            "title": "Honors",
+            "type": "array"
+          },
+          "linkedin": {
+            "default": "",
+            "title": "Linkedin",
+            "type": "string"
+          },
+          "location": {
+            "default": "",
+            "title": "Location",
+            "type": "string"
+          },
+          "name": {
+            "default": "Your Name",
+            "title": "Name",
+            "type": "string"
+          },
+          "patents": {
+            "items": {
+              "$ref": "#/components/schemas/PatentEntry"
+            },
+            "title": "Patents",
+            "type": "array"
+          },
+          "phone": {
+            "default": "",
+            "title": "Phone",
+            "type": "string"
+          },
+          "photo": {
+            "default": "",
+            "title": "Photo",
+            "type": "string"
+          },
+          "projects": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectEntry"
+            },
+            "title": "Projects",
+            "type": "array"
+          },
+          "publications": {
+            "items": {
+              "$ref": "#/components/schemas/PublicationEntry"
+            },
+            "title": "Publications",
+            "type": "array"
+          },
+          "skills": {
+            "items": {
+              "$ref": "#/components/schemas/SkillEntry"
+            },
+            "title": "Skills",
+            "type": "array"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          },
+          "talks": {
+            "items": {
+              "$ref": "#/components/schemas/TalkEntry"
+            },
+            "title": "Talks",
+            "type": "array"
+          },
+          "website": {
+            "default": "",
+            "title": "Website",
+            "type": "string"
+          }
+        },
+        "title": "CVData",
+        "type": "object"
+      },
+      "CoverLetterData": {
+        "description": "Cover letter target details and the editable letter text.",
+        "properties": {
+          "company": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Company",
+            "type": "string"
+          },
+          "hiring_manager": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Hiring Manager",
+            "type": "string"
+          },
+          "job_description": {
+            "maxLength": 12000,
+            "minLength": 40,
+            "title": "Job Description",
+            "type": "string"
+          },
+          "letter": {
+            "default": "",
+            "maxLength": 8000,
+            "title": "Letter",
+            "type": "string"
+          },
+          "target_role": {
+            "maxLength": 120,
+            "minLength": 2,
+            "title": "Target Role",
+            "type": "string"
+          },
+          "tone": {
+            "default": "professional",
+            "maxLength": 40,
+            "title": "Tone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_role",
+          "job_description"
+        ],
+        "title": "CoverLetterData",
+        "type": "object"
+      },
+      "CoverLetterRequest": {
+        "properties": {
+          "ai_only": {
+            "default": false,
+            "title": "Ai Only",
+            "type": "boolean"
+          },
+          "cover_letter": {
+            "$ref": "#/components/schemas/CoverLetterData"
+          },
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          }
+        },
+        "required": [
+          "cv_data",
+          "cover_letter"
+        ],
+        "title": "CoverLetterRequest",
+        "type": "object"
+      },
+      "CoverLetterResponse": {
+        "properties": {
+          "letter": {
+            "title": "Letter",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "ai",
+              "template"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "word_count": {
+            "title": "Word Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "letter",
+          "source",
+          "word_count"
+        ],
+        "title": "CoverLetterResponse",
+        "type": "object"
+      },
+      "DesignSettings": {
+        "properties": {
+          "fontFamily": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fontfamily"
+          },
+          "primaryColor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primarycolor"
+          }
+        },
+        "title": "DesignSettings",
+        "type": "object"
+      },
+      "EducationEntry": {
+        "properties": {
+          "area": {
+            "default": "",
+            "title": "Area",
+            "type": "string"
+          },
+          "date": {
+            "default": "",
+            "title": "Date",
+            "type": "string"
+          },
+          "degree": {
+            "default": "",
+            "title": "Degree",
+            "type": "string"
+          },
+          "end_date": {
+            "default": "",
+            "title": "End Date",
+            "type": "string"
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Highlights",
+            "type": "array"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "institution": {
+            "default": "",
+            "title": "Institution",
+            "type": "string"
+          },
+          "location": {
+            "default": "",
+            "title": "Location",
+            "type": "string"
+          },
+          "start_date": {
+            "default": "",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "title": "EducationEntry",
+        "type": "object"
+      },
+      "ExperienceEntry": {
+        "properties": {
+          "company": {
+            "default": "",
+            "title": "Company",
+            "type": "string"
+          },
+          "date": {
+            "default": "",
+            "title": "Date",
+            "type": "string"
+          },
+          "end_date": {
+            "default": "present",
+            "title": "End Date",
+            "type": "string"
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Highlights",
+            "type": "array"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "location": {
+            "default": "",
+            "title": "Location",
+            "type": "string"
+          },
+          "position": {
+            "default": "",
+            "title": "Position",
+            "type": "string"
+          },
+          "start_date": {
+            "default": "",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "title": "ExperienceEntry",
+        "type": "object"
+      },
+      "ExtractPDFResponse": {
+        "properties": {
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "raw_text_length": {
+            "title": "Raw Text Length",
+            "type": "integer"
+          },
+          "success": {
+            "title": "Success",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "cv_data",
+          "raw_text_length",
+          "message"
+        ],
+        "title": "ExtractPDFResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HonorEntry": {
+        "description": "Rendered as a bullet.",
+        "properties": {
+          "bullet": {
+            "default": "",
+            "title": "Bullet",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          }
+        },
+        "title": "HonorEntry",
+        "type": "object"
+      },
+      "PatentEntry": {
+        "description": "Rendered as a numbered item.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "number": {
+            "default": "",
+            "title": "Number",
+            "type": "string"
+          }
+        },
+        "title": "PatentEntry",
+        "type": "object"
+      },
+      "PreviewPagesResponse": {
+        "description": "Every rendered page as a PNG data URL, in page order.",
+        "properties": {
+          "cached": {
+            "default": false,
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "page_count": {
+            "description": "Total pages in the PDF, which may exceed len(pages).",
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "pages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "truncated": {
+            "default": false,
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pages",
+          "page_count"
+        ],
+        "title": "PreviewPagesResponse",
+        "type": "object"
+      },
+      "ProjectEntry": {
+        "properties": {
+          "date": {
+            "default": "",
+            "title": "Date",
+            "type": "string"
+          },
+          "end_date": {
+            "default": "",
+            "title": "End Date",
+            "type": "string"
+          },
+          "highlights": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Highlights",
+            "type": "array"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "location": {
+            "default": "",
+            "title": "Location",
+            "type": "string"
+          },
+          "name": {
+            "default": "",
+            "title": "Name",
+            "type": "string"
+          },
+          "start_date": {
+            "default": "",
+            "title": "Start Date",
+            "type": "string"
+          },
+          "summary": {
+            "default": "",
+            "title": "Summary",
+            "type": "string"
+          },
+          "url": {
+            "default": "",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "title": "ProjectEntry",
+        "type": "object"
+      },
+      "PublicationEntry": {
+        "properties": {
+          "authors": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ],
+            "default": "",
+            "title": "Authors"
+          },
+          "date": {
+            "default": "",
+            "title": "Date",
+            "type": "string"
+          },
+          "doi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doi"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "journal": {
+            "default": "",
+            "title": "Journal",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "title": {
+            "default": "",
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "PublicationEntry",
+        "type": "object"
+      },
+      "RenderRequest": {
+        "properties": {
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "design_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "format": {
+            "default": "png",
+            "enum": [
+              "png",
+              "pdf"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "section_order": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Order"
+          },
+          "theme": {
+            "default": "classic",
+            "title": "Theme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cv_data"
+        ],
+        "title": "RenderRequest",
+        "type": "object"
+      },
+      "SkillEntry": {
+        "properties": {
+          "details": {
+            "default": "",
+            "title": "Details",
+            "type": "string"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "label": {
+            "default": "",
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "title": "SkillEntry",
+        "type": "object"
+      },
+      "TalkEntry": {
+        "description": "Rendered as a reverse-numbered item.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "reversed_number": {
+            "default": "",
+            "title": "Reversed Number",
+            "type": "string"
+          }
+        },
+        "title": "TalkEntry",
+        "type": "object"
+      },
+      "ThemeMetadata": {
+        "properties": {
+          "atsRationale": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atsrationale"
+          },
+          "atsScore": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Atsscore"
+          },
+          "bestFor": {
+            "title": "Bestfor",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "previewImage": {
+            "title": "Previewimage",
+            "type": "string"
+          },
+          "recommendedFor": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommendedfor",
+            "type": "array"
+          },
+          "renderTheme": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rendertheme"
+          },
+          "sectionOrderType": {
+            "title": "Sectionordertype",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "bestFor",
+          "previewImage",
+          "sectionOrderType"
+        ],
+        "title": "ThemeMetadata",
+        "type": "object"
+      },
+      "ThemesResponse": {
+        "properties": {
+          "default": {
+            "title": "Default",
+            "type": "string"
+          },
+          "themes": {
+            "items": {
+              "$ref": "#/components/schemas/ThemeMetadata"
+            },
+            "title": "Themes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "themes",
+          "default"
+        ],
+        "title": "ThemesResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "YAMLResponse": {
+        "properties": {
+          "yaml": {
+            "title": "Yaml",
+            "type": "string"
+          }
+        },
+        "required": [
+          "yaml"
+        ],
+        "title": "YAMLResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Generate professional CVs and cover letters from structured data",
+    "title": "ApplyForge API",
+    "version": "1.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Root"
+      }
+    },
+    "/api/ai/enhance-cv": {
+      "post": {
+        "description": "Improve the live CV for ATS strength and target-role fit.",
+        "operationId": "ai_enhance_cv_api_ai_enhance_cv_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AIEnhanceCVRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIEnhanceCVResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ai Enhance Cv",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/ai/status": {
+      "get": {
+        "description": "AI provider and fallback capability metadata.",
+        "operationId": "ai_status_api_ai_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AIStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ai Status",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/ai/suggest": {
+      "post": {
+        "description": "Suggest improved text for one CV field (summary, bullet, skills, ...).",
+        "operationId": "ai_suggest_api_ai_suggest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AISuggestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISuggestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ai Suggest",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/cover-letter/download": {
+      "post": {
+        "description": "Download the edited cover letter as an ATS-friendly PDF.",
+        "operationId": "download_cover_letter_api_cover_letter_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoverLetterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Cover Letter",
+        "tags": [
+          "cover-letter"
+        ]
+      }
+    },
+    "/api/cover-letter/generate": {
+      "post": {
+        "description": "Generate a tailored cover letter from CV data and a job description.",
+        "operationId": "generate_cover_letter_api_cover_letter_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoverLetterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverLetterResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Cover Letter",
+        "tags": [
+          "cover-letter"
+        ]
+      }
+    },
+    "/api/download": {
+      "post": {
+        "description": "Download the CV as a PDF.",
+        "operationId": "download_cv_api_download_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Cv",
+        "tags": [
+          "render"
+        ]
+      }
+    },
+    "/api/extract-pdf": {
+      "post": {
+        "description": "Extract structured CV data from an uploaded resume PDF (offline heuristics, no AI key).",
+        "operationId": "extract_pdf_api_extract_pdf_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_extract_pdf_api_extract_pdf_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractPDFResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Extract Pdf",
+        "tags": [
+          "import"
+        ]
+      }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "api_health_check_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Api Health Check"
+      }
+    },
+    "/api/preview": {
+      "post": {
+        "description": "PNG of the first page. Prefer /preview/pages for multi-page CVs.",
+        "operationId": "preview_cv_api_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Cv",
+        "tags": [
+          "render"
+        ]
+      }
+    },
+    "/api/preview/pages": {
+      "post": {
+        "description": "Every page of the CV as PNG data URLs.",
+        "operationId": "preview_pages_api_preview_pages_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewPagesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Pages",
+        "tags": [
+          "render"
+        ]
+      }
+    },
+    "/api/render": {
+      "post": {
+        "description": "Render the CV as a PNG of page one or as a PDF.",
+        "operationId": "render_cv_api_render_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Render Cv",
+        "tags": [
+          "render"
+        ]
+      }
+    },
+    "/api/themes": {
+      "get": {
+        "description": "List available CV themes and ApplyForge presets.",
+        "operationId": "get_themes_api_themes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThemesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Themes",
+        "tags": [
+          "render"
+        ]
+      }
+    },
+    "/api/yaml": {
+      "post": {
+        "description": "Return the RenderCV YAML that would be used to render this CV.",
+        "operationId": "generate_yaml_api_yaml_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/YAMLResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Generate Yaml",
+        "tags": [
+          "render"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Liveness probe for Railway.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check"
+      }
+    }
+  }
+}

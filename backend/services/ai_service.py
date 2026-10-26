@@ -6,6 +6,7 @@ and offline deployments.
 """
 
 import json
+import logging
 import os
 import re
 from copy import deepcopy
@@ -13,13 +14,12 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 from openai import OpenAI
+from pydantic import ValidationError
 
-try:
-    from dotenv import load_dotenv
+from core.config import get_settings  # noqa: F401  (loads .env before reading provider vars)
+from schemas.cv import CVData
 
-    load_dotenv()
-except ImportError:
-    pass
+logger = logging.getLogger(__name__)
 
 
 AITask = Literal[
@@ -320,9 +320,15 @@ class AIService:
                 temperature=0.35,
             )
             parsed = parse_json_object(generated)
+            validated_cv = None
             if parsed and isinstance(parsed.get("cv_data"), dict):
+                try:
+                    validated_cv = CVData.model_validate(parsed["cv_data"]).model_dump()
+                except ValidationError:
+                    logger.warning("AI enhancement returned CV data that does not match the schema")
+            if parsed and validated_cv is not None:
                 return {
-                    "cv_data": parsed["cv_data"],
+                    "cv_data": validated_cv,
                     "source": "ai",
                     "changes": [str(item) for item in parsed.get("changes", []) if str(item).strip()][:8],
                     "warnings": [],
@@ -581,7 +587,7 @@ Return one JSON object only with this exact shape:
             )
             return chat_completion.choices[0].message.content or ""
         except Exception as error:
-            print(f"OpenAI-compatible provider error: {error}")
+            logger.warning("AI provider call failed: %s", error.__class__.__name__)
             return ""
 
     @staticmethod

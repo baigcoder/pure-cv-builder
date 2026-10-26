@@ -261,7 +261,8 @@ function EditorContent() {
     });
 
     const {
-        previewUrl,
+        previewPages,
+        pageCount,
         isGenerating,
         fieldErrors,
         previewError,
@@ -347,9 +348,9 @@ function EditorContent() {
             setCVData(enhancedData);
             setActiveSection("profile");
             setAtsEnhanceNotice(
-                `${result.source === "ai" ? "AI" : "Local"} ATS enhancement applied: ${beforeScore}% -> ${afterScore}%. ${result.changes[0] || "Updated live CV content."}`,
+                `${result.source === "ai" ? "AI" : "Local"} ATS enhancement applied: ${beforeScore}% -> ${afterScore}%. ${result.changes?.[0] || "Updated live CV content."}`,
             );
-            if (result.warnings.length > 0) {
+            if ((result.warnings ?? []).length > 0) {
                 setAiAvailable(false);
             }
         } catch (error) {
@@ -1861,8 +1862,12 @@ function EditorContent() {
                                     <span className={styles.summaryEyebrow}>Live PDF preview</span>
                                     <strong>{printedSectionNames.length ? printedSectionNames.join(" / ") : "No printable sections yet"}</strong>
                                 </div>
-                                <span>{currentThemeData.name}</span>
+                                <span>
+                                    {currentThemeData.name}
+                                    {pageCount > 0 && ` · ${pageCount} ${pageCount === 1 ? "page" : "pages"}`}
+                                </span>
                             </div>
+                        <div className={styles.pageStack}>
                         <div className={styles.canvas}>
                             {isGenerating && (
                                 <div style={{
@@ -1888,13 +1893,14 @@ function EditorContent() {
                                 </div>
                             )}
 
-                            {isGenerating && !previewUrl && (
+                            {isGenerating && previewPages.length === 0 && (
                                 <div className="skeleton" style={{ width: '100%', height: '100%' }}></div>
                             )}
 
-                            {previewUrl ? (
+                            {previewPages.length > 0 ? (
                                 <div className={isGenerating ? "" : "animate-fade"} style={{ width: '100%', height: '100%', opacity: isGenerating ? 0.6 : 1, transition: 'opacity 0.3s ease' }}>
-                                    <img src={previewUrl} alt="Preview" className={styles.previewImage} />
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- data URL from the render API */}
+                                    <img src={previewPages[0]} alt="CV preview, page 1" className={styles.previewImage} />
                                 </div>
                             ) : (
                                 !isGenerating && (
@@ -1908,6 +1914,18 @@ function EditorContent() {
                                     </div>
                                 )
                             )}
+                        </div>
+                        {previewPages.slice(1).map((page, index) => (
+                            <div key={index + 2} className={styles.canvas} style={{ opacity: isGenerating ? 0.6 : 1 }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element -- data URL from the render API */}
+                                <img src={page} alt={`CV preview, page ${index + 2}`} className={styles.previewImage} />
+                            </div>
+                        ))}
+                        {pageCount > previewPages.length && (
+                            <p className={styles.pageOverflowNote}>
+                                Showing {previewPages.length} of {pageCount} pages. Download the PDF to see the rest.
+                            </p>
+                        )}
                         </div>
                         </div>
                     </div>

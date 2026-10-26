@@ -468,12 +468,27 @@
     justify-content: center;
     padding: clamp(1rem, 3vw, 3rem);
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .previewShell {
     width: 100%;
     max-width: 650px;
+    margin: auto 0;
+}
+
+.pageStack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.pageOverflowNote {
+    margin: 0;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
 }
 
 .previewToolbar {

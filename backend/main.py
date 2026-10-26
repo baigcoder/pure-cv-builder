@@ -1,18 +1,18 @@
 """
-FastAPI Backend for RenderCV Web Application.
+FastAPI backend for ApplyForge (RenderCV web application).
 
-Provides REST API endpoints for:
-- Generating CV previews (PNG images)
-- Downloading CVs as PDF
-- Listing available themes
+Routes live in ``api/routes``; request/response models in ``schemas``;
+settings, rate limiting, and error handling in ``core``.
 """
 
-import os
-import sys
 import logging
 import time
 import uuid
-from pathlib import Path
+from contextlib import asynccontextmanager
+
+from core.config import get_settings
+
+settings = get_settings()
 
 
 class RequestIdFilter(logging.Filter):
@@ -24,10 +24,9 @@ class RequestIdFilter(logging.Filter):
         return True
 
 
-# Configure logging with structured format
 logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO"),
-    format="%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] %(message)s" if os.getenv("ENVIRONMENT") == "production" else "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=settings.log_level,
+    format="%(asctime)s - %(name)s - %(levelname)s - [%(request_id)s] %(message)s",
 )
 for handler in logging.getLogger().handlers:
     handler.addFilter(RequestIdFilter())
@@ -36,124 +35,87 @@ logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 
-from api.render import router as render_router
+from api.router import api_router
+from core.errors import register_error_handlers
+from core.limiter import DEFAULT_LIMIT, limiter
+from services.render_engine import shutdown_render_engine
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+API_VERSION = "1.1.0"
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    yield
+    shutdown_render_engine()
+
 
 app = FastAPI(
-    title="RenderCV Web API",
-    description="Generate professional CVs from structured data",
-    version="1.0.0"
+    title="ApplyForge API",
+    description="Generate professional CVs and cover letters from structured data",
+    version=API_VERSION,
+    lifespan=lifespan,
 )
-
-# Add rate limiter to app state
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+register_error_handlers(app)
 
 
-# ── CORS middleware (must be registered BEFORE custom @app.middleware decorators) ──
-# In Starlette, add_middleware uses LIFO ordering, and @app.middleware("http")
-# decorators are always inner. Registering CORS here makes it the outermost
-# layer so it correctly handles OPTIONS preflight requests.
-cors_origins = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000,"
-    "http://localhost:3001,http://127.0.0.1:3001,"
-    "http://localhost:3002,http://127.0.0.1:3002,"
-    "http://localhost:3003,http://127.0.0.1:3003,"
-    "http://localhost:3004,http://127.0.0.1:3004,"
-    "http://localhost:3005,http://127.0.0.1:3005,"
-    "https://pure-cv-builder-7oj5.vercel.app"
-)
-allowed_origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
-cors_origin_regex = os.getenv("CORS_ORIGIN_REGEX", r"https://.*\.vercel\.app")
-logger.info(
-    "CORS allowed origins: %s; regex: %s",
-    allowed_origins,
-    cors_origin_regex,
-)
-
+# CORS is registered before the @app.middleware decorators so it is the
+# outermost layer and answers OPTIONS preflight requests itself.
+logger.info("CORS allowed origins: %s; regex: %s", settings.cors_origins, settings.cors_origin_regex)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_origin_regex=cors_origin_regex,
-    allow_credentials=True,
+    allow_origins=settings.cors_origins,
+    allow_origin_regex=settings.cors_origin_regex,
+    # No cookie/session auth exists yet. Keep credentials off so the broad
+    # preview-origin regex cannot be used for credentialed cross-site calls.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Request-ID", "X-Process-Time", "Content-Disposition"],
 )
 
 
-# ── Request logging middleware ──
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    """Log all incoming requests with timing."""
-    request_id = str(uuid.uuid4())[:8]
-    start_time = time.time()
-    
-    # Add request_id to state for logging
+    """Assign a request id and log each request with its timing."""
+    request_id = request.headers.get("X-Request-ID", "")[:32] or uuid.uuid4().hex[:12]
     request.state.request_id = request_id
-    
-    # Log request
+    start_time = time.perf_counter()
+
+    response = await call_next(request)
+
+    process_time = time.perf_counter() - start_time
     logger.info(
-        "%s %s",
+        "%s %s -> %s in %.3fs",
         request.method,
         request.url.path,
+        response.status_code,
+        process_time,
         extra={"request_id": request_id},
     )
-    
-    try:
-        response = await call_next(request)
-        process_time = time.time() - start_time
-        
-        # Log response
-        logger.info(
-            "Completed %s in %.3fs",
-            response.status_code,
-            process_time,
-            extra={"request_id": request_id},
-        )
-        
-        # Add custom headers
-        response.headers["X-Request-ID"] = request_id
-        response.headers["X-Process-Time"] = str(process_time)
-        
-        return response
-    except Exception as e:
-        logger.error("Error: %s", str(e), extra={"request_id": request_id})
-        raise
-
-
-# ── Security headers middleware ──
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    """Add security headers to all responses."""
-    response = await call_next(request)
-    
-    # Security headers
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    
-    # Only add strict transport security in production
-    if os.getenv("ENVIRONMENT") == "production":
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Process-Time"] = f"{process_time:.4f}"
     return response
 
 
-# ── Routes ──
-app.include_router(render_router, prefix="/api")
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    if settings.is_production:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
+app.include_router(api_router, prefix="/api")
 
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint for Railway."""
+    """Liveness probe for Railway."""
     return {"status": "healthy"}
 
 
@@ -165,16 +127,10 @@ async def favicon():
 
 @app.get("/")
 async def root():
-    """Health check endpoint."""
-    return {"status": "ok", "message": "RenderCV Web API is running"}
+    return {"status": "ok", "message": "ApplyForge API is running"}
 
 
 @app.get("/api/health")
-@limiter.limit("60/minute")
+@limiter.limit(DEFAULT_LIMIT)
 async def api_health_check(request: Request):
-    """Detailed health check for API."""
-    return {
-        "status": "healthy",
-        "version": "1.0.0",
-        "environment": os.getenv("ENVIRONMENT", "development")
-    }
+    return {"status": "healthy", "version": API_VERSION, "environment": settings.environment}
