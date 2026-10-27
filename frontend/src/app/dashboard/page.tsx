@@ -3,25 +3,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, FilePlus2, FileUp, History, Trash2, UploadCloud } from "lucide-react";
+import { FilePlus2, FileUp, Search, UploadCloud } from "lucide-react";
 import styles from "@/components/AccountPages.module.css";
 import { Logo } from "@/components/Brand";
 import { AccountMenu } from "@/components/AccountMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/components/ToastProvider";
 import { DEFAULT_COVER_LETTER_DRAFT, DEFAULT_CV_DATA, DEFAULT_DESIGN_SETTINGS } from "@/lib/cvBuilder";
 import { draftTitle, markDraftImported, readLocalDraft, wasDraftImported } from "@/lib/localDraft";
 import { resumesApi, toApiContent, type ResumeSummary } from "@/lib/resumesApi";
 import type { ResumeContent } from "@/lib/resumesApi";
-import { getTheme } from "@/lib/themes";
-
-const formatUpdated = (iso: string): string => {
-  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (minutes < 1) return "Edited just now";
-  if (minutes < 60) return `Edited ${minutes} min ago`;
-  if (minutes < 60 * 24) return `Edited ${Math.round(minutes / 60)} h ago`;
-  return `Edited ${new Date(iso).toLocaleDateString(undefined, { dateStyle: "medium" })}`;
-};
+import { ResumeCard } from "@/components/dashboard/ResumeCard";
 
 export default function DashboardPage() {
   const { enabled, loading: authLoading, user, getAccessToken } = useAuth();
@@ -34,6 +27,8 @@ export default function DashboardPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [localDraft, setLocalDraft] = useState<ResumeContent | null>(null);
   const autoImportTried = useRef(false);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"updated" | "created" | "title">("updated");
 
   useEffect(() => {
     if (!authLoading && enabled && !user) router.replace("/login?next=/dashboard");
@@ -138,6 +133,17 @@ export default function DashboardPage() {
   };
 
   const atLimit = (resumes?.length ?? 0) >= limit;
+  const normalizedQuery = query.trim().toLowerCase();
+  const visibleResumes = (resumes ?? [])
+    .filter((resume) =>
+      !normalizedQuery ||
+      [resume.title, resume.name, resume.headline, resume.theme].some((value) => (value ?? "").toLowerCase().includes(normalizedQuery)),
+    )
+    .sort((a, b) => {
+      if (sort === "title") return a.title.localeCompare(b.title);
+      const field = sort === "created" ? "created_at" : "updated_at";
+      return new Date(b[field]).getTime() - new Date(a[field]).getTime();
+    });
 
   return (
     <div className={styles.page}>
@@ -147,6 +153,7 @@ export default function DashboardPage() {
           ApplyForge
         </Link>
         <div className={styles.topbarActions}>
+          <ThemeToggle />
           <AccountMenu showDashboardLink={false} />
         </div>
       </header>
@@ -230,6 +237,29 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {(resumes?.length ?? 0) > 1 && (
+            <div className={styles.toolbar}>
+              <label className={styles.searchBox}>
+                <Search size={15} aria-hidden="true" />
+                <input
+                  type="search"
+                  placeholder="Search by title, name or template"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  aria-label="Search CVs"
+                />
+              </label>
+              <label className={styles.sortBox}>
+                <span>Sort</span>
+                <select className="form-input" value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} aria-label="Sort CVs">
+                  <option value="updated">Last edited</option>
+                  <option value="created">Newest</option>
+                  <option value="title">Title A–Z</option>
+                </select>
+              </label>
+            </div>
+          )}
+
           <div className={styles.grid}>
             {resumes === null ? (
               [0, 1, 2].map((key) => <div key={key} className={`skeleton ${styles.skeletonCard}`} />)
@@ -245,49 +275,24 @@ export default function DashboardPage() {
                   {atLimit ? `Limit of ${limit} CVs reached` : "Start a new CV"}
                   {resumes.length === 0 && <span className={styles.emptyNote}>Or import a PDF resume above.</span>}
                 </button>
-                {resumes.map((resume) => {
-                  const theme = getTheme(resume.theme);
-                  return (
-                    <article key={resume.id} className={styles.card}>
-                      <Link href={`/editor?id=${resume.id}`} className={styles.cardThumb} aria-label={`Open ${resume.title}`}>
-                        {/* eslint-disable-next-line @next/next/no-img-element -- static theme thumbnail */}
-                        <img src={theme.image} alt="" />
-                      </Link>
-                      <Link href={`/editor?id=${resume.id}`} className={styles.cardBody}>
-                        <span className={styles.cardTitle}>{resume.title}</span>
-                        <span className={styles.cardSub}>
-                          {[resume.name, resume.headline].filter(Boolean).join(" · ") || "No profile details yet"}
-                        </span>
-                        <span className={styles.cardMeta}>
-                          {formatUpdated(resume.updated_at)} · {theme.name}
-                        </span>
-                      </Link>
-                      <div className={styles.cardActions}>
-                        <Link href={`/editor?id=${resume.id}&history=1`} className={styles.iconAction}>
-                          <History size={14} /> {resume.latest_version ?? 0} versions
-                        </Link>
-                        <button
-                          type="button"
-                          className={styles.iconAction}
-                          onClick={() => void duplicate(resume)}
-                          disabled={busyId !== null || atLimit}
-                          aria-label={`Duplicate ${resume.title}`}
-                        >
-                          <Copy size={14} /> Duplicate
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.iconAction} ${styles.iconActionDanger}`}
-                          onClick={() => void remove(resume)}
-                          disabled={busyId !== null}
-                          aria-label={`Delete ${resume.title}`}
-                        >
-                          <Trash2 size={14} /> Delete
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+                {visibleResumes.map((resume) => (
+                  <ResumeCard
+                    key={resume.id}
+                    resume={resume}
+                    getAccessToken={getAccessToken}
+                    disabled={busyId !== null}
+                    canDuplicate={!atLimit}
+                    onDuplicate={(item) => void duplicate(item)}
+                    onDelete={(item) => void remove(item)}
+                    onRenamed={(saved) =>
+                      setResumes((current) => (current ?? []).map((item) => (item.id === saved.id ? { ...item, ...saved } : item)))
+                    }
+                    onError={(message) => showToast(message, "error")}
+                  />
+                ))}
+                {resumes.length > 0 && visibleResumes.length === 0 && (
+                  <p className={styles.noResults}>No CVs match “{query}”.</p>
+                )}
               </>
             )}
           </div>

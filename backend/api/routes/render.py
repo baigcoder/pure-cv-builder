@@ -1,14 +1,19 @@
 """CV rendering, preview, and YAML export routes."""
 
+import asyncio
 import base64
 
 from fastapi import APIRouter, Request
 from fastapi.responses import Response
 
 from core.limiter import DEFAULT_LIMIT, PREVIEW_LIMIT, RENDER_LIMIT, limiter
+from core.errors import AppError
 from schemas.render import (
     PreviewPagesResponse,
     RenderRequest,
+    Thumbnail,
+    ThumbnailsRequest,
+    ThumbnailsResponse,
     ThemesResponse,
     YAMLResponse,
 )
@@ -77,6 +82,33 @@ async def preview_pages(request: Request, render_request: RenderRequest) -> Prev
         truncated=result.page_count > len(result.pages),
         cached=result.cached,
     )
+
+
+@router.post("/preview/thumbnails")
+@limiter.limit(PREVIEW_LIMIT)
+async def preview_thumbnails(request: Request, payload: ThumbnailsRequest) -> ThumbnailsResponse:
+    """Page one of the CV in several themes at low resolution, for galleries.
+
+    One failing theme doesn't fail the request; its entry carries an error.
+    """
+    cv_data = payload.cv_data.model_dump()
+    design = payload.design_settings.model_dump() if payload.design_settings else None
+
+    async def render_one(theme: str, section_order: list[str] | None) -> Thumbnail:
+        try:
+            image = await run_render(
+                CVService.render_thumbnail,
+                cv_data=cv_data,
+                theme=theme,
+                design_settings=design,
+                section_order=section_order,
+            )
+        except AppError as error:
+            return Thumbnail(theme=theme, error=error.detail)
+        return Thumbnail(theme=theme, image=f"data:image/png;base64,{base64.b64encode(image).decode('ascii')}")
+
+    thumbnails = await asyncio.gather(*(render_one(item.theme, item.section_order) for item in payload.items))
+    return ThumbnailsResponse(thumbnails=list(thumbnails))
 
 
 @router.post("/download", response_class=Response)

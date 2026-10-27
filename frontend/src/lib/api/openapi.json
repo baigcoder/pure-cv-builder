@@ -1798,6 +1798,117 @@
         "title": "ThemesResponse",
         "type": "object"
       },
+      "Thumbnail": {
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "PNG data URL of page one.",
+            "title": "Image"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme"
+        ],
+        "title": "Thumbnail",
+        "type": "object"
+      },
+      "ThumbnailItem": {
+        "properties": {
+          "section_order": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Order"
+          },
+          "theme": {
+            "title": "Theme",
+            "type": "string"
+          }
+        },
+        "required": [
+          "theme"
+        ],
+        "title": "ThumbnailItem",
+        "type": "object"
+      },
+      "ThumbnailsRequest": {
+        "properties": {
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "design_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ThumbnailItem"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "cv_data",
+          "items"
+        ],
+        "title": "ThumbnailsRequest",
+        "type": "object"
+      },
+      "ThumbnailsResponse": {
+        "properties": {
+          "thumbnails": {
+            "items": {
+              "$ref": "#/components/schemas/Thumbnail"
+            },
+            "title": "Thumbnails",
+            "type": "array"
+          }
+        },
+        "required": [
+          "thumbnails"
+        ],
+        "title": "ThumbnailsResponse",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -2509,6 +2620,48 @@
         ]
       }
     },
+    "/api/preview/thumbnails": {
+      "post": {
+        "description": "Page one of the CV in several themes at low resolution, for galleries.\n\nOne failing theme doesn't fail the request; its entry carries an error.",
+        "operationId": "preview_thumbnails_api_preview_thumbnails_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThumbnailsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThumbnailsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Thumbnails",
+        "tags": [
+          "render"
+        ]
+      }
+    },
     "/api/render": {
       "post": {
         "description": "Render the CV as a PNG of page one or as a PDF.",
@@ -2799,6 +2952,64 @@
           }
         ],
         "summary": "Duplicate Resume",
+        "tags": [
+          "resumes"
+        ]
+      }
+    },
+    "/api/resumes/{resume_id}/thumbnail": {
+      "get": {
+        "description": "Page one of a saved CV at thumbnail size (empty image for a blank CV).\n\n``section_order`` is the template's default order as a comma-separated\nlist; a custom order saved on the CV still takes precedence.",
+        "operationId": "resume_thumbnail_api_resumes__resume_id__thumbnail_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "resume_id",
+            "required": true,
+            "schema": {
+              "title": "Resume Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "section_order",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Section Order",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Thumbnail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resume Thumbnail",
         "tags": [
           "resumes"
         ]

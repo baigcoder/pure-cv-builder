@@ -298,6 +298,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/preview/thumbnails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Thumbnails
+         * @description Page one of the CV in several themes at low resolution, for galleries.
+         *
+         *     One failing theme doesn't fail the request; its entry carries an error.
+         */
+        post: operations["preview_thumbnails_api_preview_thumbnails_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/render": {
         parameters: {
             query?: never;
@@ -375,6 +397,29 @@ export interface paths {
         put?: never;
         /** Duplicate Resume */
         post: operations["duplicate_resume_api_resumes__resume_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/resumes/{resume_id}/thumbnail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resume Thumbnail
+         * @description Page one of a saved CV at thumbnail size (empty image for a blank CV).
+         *
+         *     ``section_order`` is the template's default order as a comma-separated
+         *     list; a custom order saved on the CV still takes precedence.
+         */
+        get: operations["resume_thumbnail_api_resumes__resume_id__thumbnail_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1340,6 +1385,37 @@ export interface components {
             /** Themes */
             themes: components["schemas"]["ThemeMetadata"][];
         };
+        /** Thumbnail */
+        Thumbnail: {
+            /** Error */
+            error?: string | null;
+            /**
+             * Image
+             * @description PNG data URL of page one.
+             */
+            image?: string | null;
+            /** Theme */
+            theme: string;
+        };
+        /** ThumbnailItem */
+        ThumbnailItem: {
+            /** Section Order */
+            section_order?: string[] | null;
+            /** Theme */
+            theme: string;
+        };
+        /** ThumbnailsRequest */
+        ThumbnailsRequest: {
+            cv_data: components["schemas"]["CVData"];
+            design_settings?: components["schemas"]["DesignSettings"] | null;
+            /** Items */
+            items: components["schemas"]["ThumbnailItem"][];
+        };
+        /** ThumbnailsResponse */
+        ThumbnailsResponse: {
+            /** Thumbnails */
+            thumbnails: components["schemas"]["Thumbnail"][];
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1859,6 +1935,39 @@ export interface operations {
             };
         };
     };
+    preview_thumbnails_api_preview_thumbnails_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ThumbnailsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThumbnailsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     render_cv_api_render_post: {
         parameters: {
             query?: never;
@@ -2056,6 +2165,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ResumeDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_thumbnail_api_resumes__resume_id__thumbnail_get: {
+        parameters: {
+            query?: {
+                section_order?: string;
+            };
+            header?: never;
+            path: {
+                resume_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Thumbnail"];
                 };
             };
             /** @description Validation Error */

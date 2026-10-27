@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import styles from "@/components/AccountPages.module.css";
 import { Logo } from "@/components/Brand";
 import { useAuth } from "@/components/AuthProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type Mode = "signin" | "signup" | "reset";
 
@@ -84,6 +85,7 @@ function LoginContent() {
           ApplyForge
         </Link>
         <div className={styles.topbarActions}>
+          <ThemeToggle />
           <Link href="/editor" className="btn btn-secondary">
             Continue without account
           </Link>

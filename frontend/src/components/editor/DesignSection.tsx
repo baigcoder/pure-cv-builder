@@ -33,6 +33,8 @@ const FONT_OPTIONS = [
 ];
 
 interface DesignSectionProps {
+    /** Live renders of the user's CV per template id; falls back to samples. */
+    thumbnails: Record<string, string>;
     theme: string;
     onThemeChange: (theme: string) => void;
     recommendedTheme: ThemeMeta;
@@ -42,7 +44,7 @@ interface DesignSectionProps {
 }
 
 /** Template choice, colour and font, section layout, and page/typography controls. */
-export function DesignSection({ theme, onThemeChange: setTheme, recommendedTheme, cvData, designSettings, setDesignSettings }: DesignSectionProps) {
+export function DesignSection({ thumbnails, theme, onThemeChange: setTheme, recommendedTheme, cvData, designSettings, setDesignSettings }: DesignSectionProps) {
     return (
         <div className="animate-fade">
             <h1 className={styles.sectionTitle}>Customize Design.</h1>
@@ -79,7 +81,7 @@ export function DesignSection({ theme, onThemeChange: setTheme, recommendedTheme
                                 boxShadow: theme === t.id ? '0 8px 24px rgba(99, 102, 241, 0.25)' : 'var(--shadow-md)',
                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                                 transform: theme === t.id ? 'scale(1.02)' : 'scale(1)',
-                                background: 'white'
+                                background: 'var(--paper)'
                             }}
                         >
                             <div style={{
@@ -97,7 +99,7 @@ export function DesignSection({ theme, onThemeChange: setTheme, recommendedTheme
                                 textTransform: 'uppercase'
                             }}>{recommendedTheme.id === t.id ? 'Best ATS match' : `${t.atsScore}% ATS`}</div>
                             <img
-                                src={t.image}
+                                src={thumbnails[t.id] ?? t.image}
                                 alt={t.name}
                                 style={{
                                     width: '100%',
@@ -146,7 +148,7 @@ export function DesignSection({ theme, onThemeChange: setTheme, recommendedTheme
                 gridTemplateColumns: '1fr 1fr',
                 gap: '2rem',
                 padding: '1.5rem',
-                background: 'rgba(248, 250, 252, 0.8)',
+                background: 'var(--surface)',
                 backdropFilter: 'blur(8px)',
                 borderRadius: '16px',
                 border: '1px solid var(--border)'
@@ -206,7 +208,7 @@ export function DesignSection({ theme, onThemeChange: setTheme, recommendedTheme
             <div style={{
                 marginTop: '2rem',
                 padding: '2rem',
-                background: 'white',
+                background: 'var(--panel)',
                 borderRadius: '16px',
                 border: '1px solid var(--border)',
                 boxShadow: 'var(--shadow-lg)'

@@ -12,6 +12,7 @@ export type VersionSummary = Schemas["VersionSummary"];
 export type VersionDetail = Schemas["VersionDetail"];
 export type ResumeCreate = Schemas["ResumeCreate"];
 export type ResumeUpdate = Schemas["ResumeUpdate"];
+export type ResumeThumbnail = Schemas["Thumbnail"];
 
 export type TokenGetter = () => Promise<string | null>;
 
@@ -74,6 +75,17 @@ export const resumesApi = {
 
   remove: (getToken: TokenGetter, id: string) =>
     request<void>(getToken, `/resumes/${id}`, { method: "DELETE" }, "Couldn't delete the CV."),
+
+  thumbnail: (getToken: TokenGetter, id: string, sectionOrder: string[], signal?: AbortSignal) =>
+    request<ResumeThumbnail>(
+      getToken,
+      `/resumes/${id}/thumbnail?section_order=${encodeURIComponent(sectionOrder.join(","))}`,
+      { signal },
+      "Couldn't render a preview.",
+    ),
+
+  rename: (getToken: TokenGetter, id: string, revision: number, title: string) =>
+    request<ResumeDetail>(getToken, `/resumes/${id}`, { method: "PATCH", json: { revision, title } }, "Couldn't rename the CV."),
 
   duplicate: (getToken: TokenGetter, id: string) =>
     request<ResumeDetail>(getToken, `/resumes/${id}/duplicate`, { method: "POST" }, "Couldn't duplicate the CV."),

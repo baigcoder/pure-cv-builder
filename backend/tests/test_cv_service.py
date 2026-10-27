@@ -399,7 +399,7 @@ def test_render_cache_distinguishes_section_order(monkeypatch) -> None:
     render_cache.clear()
     compiled: list[str] = []
 
-    def fake_compile(source: str, output_format: str):
+    def fake_compile(source: str, output_format: str, ppi=None):
         compiled.append(source)
         return [source.encode("utf-8")]
 

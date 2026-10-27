@@ -164,7 +164,7 @@
   padding: 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  background: rgba(255, 255, 255, 0.78);
+  background: var(--glass-bg);
   box-shadow: var(--shadow-lg);
 }
 
@@ -182,7 +182,7 @@
   object-position: top;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: white;
+  background: var(--panel);
   box-shadow: var(--shadow-sm);
 }
 
@@ -360,7 +360,7 @@
 }
 
 .modalContent {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--glass-bg);
   border-radius: var(--radius-xl);
   max-width: 1000px;
   width: 100%;
@@ -451,7 +451,7 @@
   max-width: 650px;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-xl);
-  background: white;
+  background: var(--panel);
   padding: 1.5rem;
   border: 1px solid var(--border);
   margin-bottom: 2rem;
@@ -506,7 +506,7 @@
 
 .tag:hover {
   background: var(--accent);
-  color: var(--white);
+  color: var(--on-dark);
 }
 
 @keyframes modalEntry {
@@ -748,7 +748,7 @@
 .header {
   height: 72px;
   border-bottom: 1px solid var(--border);
-  background: rgba(248, 250, 252, 0.9);
+  background: var(--glass-bg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -796,7 +796,7 @@
   grid-template-columns: minmax(0, 1fr);
   padding: 1rem;
   border-radius: var(--radius-xl);
-  background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(238,242,247,0.92));
+  background: linear-gradient(180deg, var(--glass-bg), var(--glass-bg));
 }
 
 .previewRail {
@@ -810,7 +810,7 @@
 
 .workflowCard strong,
 .workflowCard p {
-  color: var(--white);
+  color: var(--on-dark);
 }
 
 .workflowCard span {
@@ -841,7 +841,7 @@
 .stepCard {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: rgba(255,255,255,0.86);
+  background: var(--glass-bg);
   box-shadow: var(--shadow-md);
   text-align: left;
 }
@@ -869,7 +869,7 @@
 
 .ctaTitle,
 .finalCta .ctaSubtitle {
-  color: var(--white);
+  color: var(--on-dark);
 }
 
 .footer {
@@ -879,7 +879,7 @@
 }
 
 .footerLink {
-  color: var(--white);
+  color: var(--on-dark);
 }
 
 @media (max-width: 980px) {

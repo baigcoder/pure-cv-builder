@@ -112,3 +112,26 @@ def test_committed_openapi_schema_is_current() -> None:
     assert DEFAULT_OUTPUT.read_text(encoding="utf-8") == build_schema(), (
         "Run: python scripts/export_openapi.py && (cd ../frontend && npm run gen:api)"
     )
+
+
+def test_thumbnails_render_each_theme_and_isolate_failures(monkeypatch) -> None:
+    from core.errors import RenderValidationError
+
+    def fake_thumbnail(**kwargs):
+        if kwargs["theme"] == "broken":
+            raise RenderValidationError("Bad value for this theme.")
+        return f"png-{kwargs['theme']}".encode()
+
+    monkeypatch.setattr(CVService, "render_thumbnail", fake_thumbnail)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/preview/thumbnails",
+        json={"cv_data": {"name": "Thumb"}, "items": [{"theme": "classic"}, {"theme": "broken"}, {"theme": "jake"}]},
+    )
+
+    assert response.status_code == 200
+    thumbnails = response.json()["thumbnails"]
+    assert [item["theme"] for item in thumbnails] == ["classic", "broken", "jake"]
+    assert thumbnails[0]["image"].startswith("data:image/png;base64,")
+    assert thumbnails[1] == {"theme": "broken", "image": None, "error": "Bad value for this theme."}

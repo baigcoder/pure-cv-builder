@@ -42,6 +42,9 @@ _RENDERCV_TO_EDITOR_SECTION = {
 
 _compiler_local = threading.local()
 
+# Gallery thumbnails: enough to recognise a layout, ~10x smaller than previews.
+THUMBNAIL_PPI = 48
+
 
 @dataclass(frozen=True)
 class PreviewPages:
@@ -62,10 +65,10 @@ def _get_compiler() -> typst.Compiler:
     return compiler
 
 
-def _compile_typst(typst_source: str, output_format: str) -> bytes | list[bytes]:
+def _compile_typst(typst_source: str, output_format: str, ppi: float | None = None) -> bytes | list[bytes]:
     """Compile Typst source to PDF bytes or a list of PNG page bytes."""
     try:
-        output = _get_compiler().compile(input=typst_source.encode("utf-8"), format=output_format)
+        output = _get_compiler().compile(input=typst_source.encode("utf-8"), format=output_format, ppi=ppi)
     except typst.TypstError as error:
         logger.error("Typst compilation failed: %s", error.message)
         raise RenderFailedError("The CV could not be rendered with this theme. Try another theme or font.") from error
@@ -303,19 +306,33 @@ class CVService:
         return PreviewPages(pages=pages[:max_pages], page_count=len(pages), cached=cached)
 
     @classmethod
-    def _compile_cached(cls, full_data: dict, output_format: str) -> tuple[Any, bool]:
+    def render_thumbnail(
+        cls,
+        cv_data: dict,
+        theme: str = "classic",
+        design_settings: dict | None = None,
+        section_order: list[str] | None = None,
+        ppi: float = THUMBNAIL_PPI,
+    ) -> bytes:
+        """First page as a small PNG, for template galleries."""
+        full_data = cls._build_yaml_structure(cv_data, theme, design_settings, section_order)
+        pages, _ = cls._compile_cached(full_data, "png", ppi=ppi)
+        return pages[0]
+
+    @classmethod
+    def _compile_cached(cls, full_data: dict, output_format: str, ppi: float | None = None) -> tuple[Any, bool]:
         """Compile RenderCV data, reusing a previous result for identical input.
 
         Today's date is part of the key because RenderCV resolves "present"
         and the last-updated note against the current date.
         """
-        key = render_cache.key_for(full_data, output_format, datetime.date.today().isoformat())
+        key = render_cache.key_for(full_data, output_format, ppi, datetime.date.today().isoformat())
         cached = render_cache.get(key)
         if cached is not None:
             return cached, True
 
         typst_source = cls._typst_source(full_data)
-        result = _compile_typst(typst_source, output_format)
+        result = _compile_typst(typst_source, output_format, ppi)
         render_cache.set(key, result)
         return result, False
 

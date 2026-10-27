@@ -43,3 +43,24 @@ class ThemeMetadata(BaseModel):
 class ThemesResponse(BaseModel):
     themes: list[ThemeMetadata]
     default: str
+
+
+class ThumbnailItem(BaseModel):
+    theme: str
+    section_order: Optional[list[str]] = None
+
+
+class ThumbnailsRequest(BaseModel):
+    cv_data: CVData
+    design_settings: Optional[DesignSettings] = None
+    items: list[ThumbnailItem] = Field(min_length=1, max_length=20)
+
+
+class Thumbnail(BaseModel):
+    theme: str
+    image: Optional[str] = Field(default=None, description="PNG data URL of page one.")
+    error: Optional[str] = None
+
+
+class ThumbnailsResponse(BaseModel):
+    thumbnails: list[Thumbnail]

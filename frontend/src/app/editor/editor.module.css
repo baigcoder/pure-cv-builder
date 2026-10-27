@@ -284,7 +284,7 @@
     padding: 0.55rem 0.45rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.72);
+    background: var(--glass-bg);
 }
 
 .atsMetricGrid small,
@@ -317,7 +317,7 @@
     border: 0;
     border-radius: var(--radius);
     background: linear-gradient(135deg, var(--accent), #8b5cf6);
-    color: var(--white);
+    color: var(--on-dark);
     font-size: 0.78rem;
     font-weight: 800;
     cursor: pointer;
@@ -509,7 +509,7 @@
 }
 
 .canvas {
-    background: var(--white);
+    background: var(--paper);
     width: 100%;
     max-width: 650px;
     aspect-ratio: 0.707;
@@ -739,7 +739,7 @@
     align-items: center;
     justify-content: center;
     font-size: 0.65rem;
-    color: var(--white);
+    color: var(--on-dark);
     background: var(--border);
 }
 
@@ -882,7 +882,7 @@
     padding: 1.4rem;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: #fff;
+    background: var(--panel);
     box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
 }
 
@@ -1320,12 +1320,12 @@
 .editorLayout {
     background:
         radial-gradient(circle at 0 0, rgba(15, 118, 110, 0.12), transparent 30rem),
-        linear-gradient(180deg, #f8fafc, #eef2f7);
+        linear-gradient(180deg, var(--surface), var(--bg));
 }
 
 .header {
     height: 64px;
-    background: rgba(248, 250, 252, 0.94);
+    background: var(--glass-bg);
     border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
 }
@@ -1353,7 +1353,7 @@
 .builderSummary strong,
 .builderSummary p,
 .atsValue {
-    color: var(--white);
+    color: var(--on-dark);
 }
 
 .builderSummary small,
@@ -1383,7 +1383,7 @@
 .navItem:hover,
 .navItemActive {
     background: rgba(255, 255, 255, 0.08);
-    color: var(--white);
+    color: var(--on-dark);
 }
 
 .navItemActive {
@@ -1392,7 +1392,7 @@
 
 .formArea {
     background:
-        linear-gradient(rgba(255,255,255,0.56), rgba(255,255,255,0.56)),
+        linear-gradient(var(--glass-bg), var(--glass-bg)),
         var(--bg);
 }
 
@@ -1404,7 +1404,7 @@
 .coverLetterDocumentPanel {
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--glass-bg);
     box-shadow: var(--shadow-md);
 }
 
@@ -1420,7 +1420,7 @@
 .previewArea {
     background:
         linear-gradient(135deg, rgba(17, 24, 39, 0.08), rgba(15, 118, 110, 0.08)),
-        #d9e1ea;
+        var(--canvas-bg);
 }
 
 .canvas {
@@ -1436,7 +1436,7 @@
 .coverLetterHeroContent p,
 .coverLetterScore,
 .coverLetterScore strong {
-    color: var(--white);
+    color: var(--on-dark);
 }
 
 .coverLetterKicker {
@@ -1743,7 +1743,7 @@
     display: grid;
     place-items: center;
     padding: 1rem;
-    background: rgba(244, 246, 248, 0.86);
+    background: var(--glass-bg);
     backdrop-filter: blur(4px);
 }
 
@@ -1788,7 +1788,7 @@
     display: inline-flex;
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    background: rgba(255, 255, 255, 0.82);
+    background: var(--glass-bg);
     box-shadow: var(--shadow-sm);
     overflow: hidden;
 }
@@ -1821,7 +1821,111 @@
 .designPanel {
     margin-top: 1.5rem;
     padding: 1.25rem 1.5rem 0.5rem;
-    background: rgba(248, 250, 252, 0.8);
+    background: var(--glass-bg);
     border: 1px solid var(--border);
     border-radius: 16px;
+}
+
+/* Command palette trigger */
+.paletteTrigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 36px;
+    padding: 0 0.5rem 0 0.75rem;
+    min-width: 220px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text-light);
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+
+.paletteTrigger span {
+    flex: 1;
+    text-align: left;
+}
+
+.paletteTrigger kbd {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--panel);
+    font-family: inherit;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.paletteTrigger:hover {
+    border-color: var(--border-strong);
+    color: var(--text-muted);
+}
+
+@media (max-width: 1100px) {
+    .paletteTrigger {
+        min-width: 0;
+    }
+
+    .paletteTrigger span,
+    .paletteTrigger kbd {
+        display: none;
+    }
+}
+
+/* Phones: fewer header buttons (YAML and Exit stay in the command palette). */
+@media (max-width: 760px) {
+    .hideOnMobile {
+        display: none !important;
+    }
+
+    .headerActions {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .headerActions > :global(.btn) {
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+        font-size: 0.78rem;
+    }
+}
+
+/* Phones: section nav becomes one swipeable row so the form isn't pushed down. */
+@media (max-width: 760px) {
+    .sidebarNav {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.35rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 0.5rem 0.75rem;
+        scroll-snap-type: x proximity;
+    }
+
+    .sidebarNav > * {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+    }
+
+    .sidebarNav .builderSummary {
+        display: none;
+    }
+}
+
+/* Narrower screens: secondary header buttons become icon-only (tooltips and
+   aria-labels keep them identifiable); the PDF button keeps its text. */
+@media (max-width: 1680px) {
+    .headerActions :global(.btn-label) {
+        display: none;
+    }
+
+    .headerActions :global(.btn.btn-secondary) {
+        padding-left: 0.7rem;
+        padding-right: 0.7rem;
+    }
 }

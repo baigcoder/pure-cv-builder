@@ -202,8 +202,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.75rem;
-  background: var(--primary);
-  color: var(--white);
+  background: var(--brand-solid);
+  color: var(--on-dark);
   border-radius: var(--radius);
   font-weight: 600;
   font-size: 0.9rem;
@@ -597,7 +597,7 @@
 .templateOptionImg {
   aspect-ratio: 0.72;
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--surface);
 }
 
 .templateOptionImg img {
@@ -653,8 +653,8 @@
 
 .ctaBtnPrimary {
   composes: ctaBtn;
-  background: var(--primary);
-  color: var(--white);
+  background: var(--brand-solid);
+  color: var(--on-dark);
 }
 
 .ctaBtnPrimary:hover {
@@ -785,7 +785,7 @@
 /* Focused upload experience refresh */
 .uploadPage {
   background:
-    linear-gradient(180deg, rgba(248, 250, 252, 0.94), rgba(255, 255, 255, 0.98) 45%, rgba(241, 245, 249, 0.72)),
+    linear-gradient(180deg, var(--glass-bg), var(--glass-bg) 45%, var(--glass-bg)),
     repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.025) 0 1px, transparent 1px 84px),
     repeating-linear-gradient(180deg, rgba(15, 23, 42, 0.025) 0 1px, transparent 1px 84px);
 }
@@ -794,7 +794,7 @@
   position: sticky;
   top: 0;
   padding: 0.9rem 2rem;
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--glass-bg);
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
 }
 
@@ -819,7 +819,7 @@
 .processingCard,
 .errorCard,
 .successCard {
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--glass-bg);
   border: 1px solid rgba(203, 213, 225, 0.82);
   box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
 }
@@ -881,7 +881,7 @@
 }
 
 .heroPrimary {
-  background: var(--primary);
+  background: var(--brand-solid);
   color: white;
 }
 
@@ -893,7 +893,7 @@
 }
 
 .heroSecondary {
-  background: white;
+  background: var(--panel);
   color: var(--primary);
   border: 1px solid var(--border);
 }
@@ -942,7 +942,7 @@
   align-items: center;
   padding: 0.8rem;
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--surface);
   border: 1px solid #e2e8f0;
 }
 
@@ -1024,7 +1024,7 @@
 
 .browseBtn {
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--primary), #334155);
+  background: var(--btn-primary-bg);
 }
 
 .dropZoneFormats {
@@ -1050,7 +1050,7 @@
   padding: 0.78rem;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--surface);
 }
 
 .workflowIcon {
@@ -1060,7 +1060,7 @@
   place-items: center;
   flex: 0 0 36px;
   border-radius: 10px;
-  background: white;
+  background: var(--panel);
   color: var(--accent);
   box-shadow: var(--shadow-sm);
 }
@@ -1092,7 +1092,7 @@
   object-position: top;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: #f8fafc;
+  background: var(--surface);
 }
 
 .infoCards {
@@ -1103,7 +1103,7 @@
   align-items: flex-start;
   text-align: left;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--glass-bg);
 }
 
 .infoCardIcon {
@@ -1131,7 +1131,7 @@
 
 .extractedField {
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--surface);
 }
 
 .templateSection {
@@ -1142,7 +1142,7 @@
   position: sticky;
   bottom: 0;
   z-index: 4;
-  background: rgba(248, 250, 252, 0.94);
+  background: var(--glass-bg);
   backdrop-filter: blur(10px);
 }
 
@@ -1260,7 +1260,7 @@
 
 .header {
   border-bottom: 1px solid var(--border);
-  background: rgba(248, 250, 252, 0.92);
+  background: var(--glass-bg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1280,13 +1280,13 @@
 .errorCard,
 .successCard {
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--glass-bg);
   box-shadow: var(--shadow-md);
 }
 
 .heroCopy {
   background:
-    linear-gradient(135deg, rgba(255,255,255,0.9), rgba(238,242,247,0.86)),
+    linear-gradient(135deg, var(--glass-bg), var(--glass-bg)),
     linear-gradient(90deg, rgba(17, 24, 39, 0.04) 1px, transparent 1px);
 }
 
@@ -1302,7 +1302,7 @@
 .heroPrimary,
 .browseBtn,
 .ctaBtnPrimary {
-  background: linear-gradient(135deg, var(--primary), #263244);
+  background: var(--btn-primary-bg);
   box-shadow: var(--shadow-md);
 }
 
@@ -1345,7 +1345,7 @@
 .successHeader,
 .ctaSection {
   border-color: var(--border);
-  background: rgba(248, 250, 252, 0.92);
+  background: var(--glass-bg);
 }
 
 @media (max-width: 768px) {

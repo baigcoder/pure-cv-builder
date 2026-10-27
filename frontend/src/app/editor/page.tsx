@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CloudUpload, Download, Eye, FileCode2, History, LayoutGrid, Mail, Pencil, Redo2, RotateCcw, Sparkles, Target, Undo2 } from "lucide-react";
+import { CloudUpload, Command as CommandIcon, Download, Eye, FileCode2, History, Home, LayoutGrid, LayoutTemplate, Mail, Moon, Pencil, Redo2, RotateCcw, Search, Sparkles, Target, Undo2 } from "lucide-react";
 import styles from "./editor.module.css";
 import { Logo, Icons } from "@/components/Brand";
 import { TemplateCard } from "@/components/AppUI";
 import { useDraftAutosave } from "@/hooks/useDraftAutosave";
 import { useCVDocument } from "@/hooks/useCVDocument";
+import { useTemplateThumbnails } from "@/hooks/useTemplateThumbnails";
+import { CommandPalette, useCommandPaletteShortcut, type Command } from "@/components/CommandPalette";
+import { ThemeToggle, useThemePreference } from "@/components/ThemeToggle";
 import { useCloudResume, type CloudSyncStatus } from "@/hooks/useCloudResume";
 import { AccountMenu } from "@/components/AccountMenu";
 import { useAuth } from "@/components/AuthProvider";
@@ -25,6 +28,8 @@ import { resolveSectionOrder } from "@/components/editor/DesignControls";
 import { ProfileSection } from "@/components/editor/ProfileSection";
 import { CoverLetterSection } from "@/components/editor/CoverLetterSection";
 import { JobMatchSection } from "@/components/editor/JobMatchSection";
+import { OnboardingPanel, useOnboardingDismissed } from "@/components/editor/OnboardingPanel";
+import { createSampleCV } from "@/lib/sampleCV";
 import { DesignSection } from "@/components/editor/DesignSection";
 import { inferTargetRole } from "@/lib/coverLetterContext";
 import { resumesApi, toApiContent } from "@/lib/resumesApi";
@@ -41,6 +46,7 @@ import {
     calculateATSScore as calculateATSScoreForData,
     calculateSectionProgress as calculateSectionProgressForData,
     getSectionWordCount as getSectionWordCountForData,
+    hasRenderableContent,
     normalizeCVData,
     toRenderableCVData,
 } from "@/lib/cvBuilder";
@@ -162,6 +168,9 @@ function EditorContent() {
     const isRestored = resumeId ? cloud.isLoaded : draft.isRestored;
     const lastSavedAt = resumeId ? cloud.lastSavedAt : draft.lastSavedAt;
     const [historyOpen, setHistoryOpen] = useState(searchParams.get("history") === "1");
+    const [paletteOpen, setPaletteOpen] = useState(false);
+    const onboarding = useOnboardingDismissed();
+    useCommandPaletteShortcut(setPaletteOpen);
     const [isSavingToAccount, setIsSavingToAccount] = useState(false);
 
     // Saved resumes need a session; send signed-out visitors to sign in first.
@@ -204,6 +213,13 @@ function EditorContent() {
         theme,
         designSettings,
         enabled: isRestored,
+    });
+
+    // Live thumbnails of this CV in every template, while a gallery is open.
+    const { thumbnails: templateThumbnails } = useTemplateThumbnails({
+        cvData,
+        designSettings,
+        enabled: isRestored && (editorMode === "preview" || activeSection === "design"),
     });
 
     const syncStatus = isGenerating ? "syncing" : draftStatus;
@@ -389,8 +405,79 @@ function EditorContent() {
         .filter(sectionId => renderableData[sectionId as RepeatableSection].length > 0)
         .map(getSectionName);
 
+    const themePreference = useThemePreference();
+    const loadSampleCV = () => {
+        setCVData(createSampleCV());
+        setActiveSection("profile");
+        setEditorMode("edit");
+        onboarding.dismiss();
+    };
+    const showOnboarding = isRestored && !onboarding.dismissed && activeSection === "profile" && !hasRenderableContent(renderableData);
+    const goToSection = (sectionId: string) => {
+        setEditorMode("edit");
+        setActiveSection(sectionId);
+    };
+    const paletteCommands: Command[] = [
+        ...orderedSectionIds.map((sectionId): Command => {
+            const section = BASE_SECTIONS[sectionId as keyof typeof BASE_SECTIONS];
+            return {
+                id: `section-${sectionId}`,
+                label: `Go to ${section.name}`,
+                group: "Sections",
+                icon: section.icon,
+                keywords: sectionId.replace("_", " "),
+                run: () => goToSection(sectionId),
+            };
+        }),
+        { id: "download-pdf", label: "Download PDF", group: "Actions", icon: <Download size={16} />, run: () => void downloadPDF() },
+        // Only offered on an empty CV so it can't overwrite real content.
+        ...(hasRenderableContent(renderableData)
+            ? []
+            : [{ id: "sample", label: "Load the sample CV", group: "Actions", icon: <Sparkles size={16} />, keywords: "example demo try", run: loadSampleCV }]),
+        { id: "home", label: "Go to home page", group: "Actions", icon: <LayoutGrid size={16} />, keywords: "exit landing", run: () => router.push("/") },
+        { id: "export-yaml", label: "Export RenderCV YAML", group: "Actions", icon: <FileCode2 size={16} />, run: () => void downloadYAML() },
+        {
+            id: "theme-mode",
+            label: `Switch appearance (now: ${themePreference.preference})`,
+            group: "Actions",
+            icon: <Moon size={16} />,
+            keywords: "dark mode light theme",
+            run: themePreference.cycle,
+        },
+        { id: "undo", label: "Undo", group: "Actions", icon: <Undo2 size={16} />, shortcut: "Ctrl Z", run: undo },
+        { id: "redo", label: "Redo", group: "Actions", icon: <Redo2 size={16} />, shortcut: "Ctrl Shift Z", run: redo },
+        {
+            id: "gallery",
+            label: editorMode === "preview" ? "Back to editing" : "Browse templates with my CV",
+            group: "Actions",
+            icon: <LayoutTemplate size={16} />,
+            keywords: "gallery themes",
+            run: () => setEditorMode(editorMode === "preview" ? "edit" : "preview"),
+        },
+        ...(resumeId
+            ? [
+                { id: "history", label: "Version history", group: "Actions", icon: <History size={16} />, keywords: "restore save version", run: () => setHistoryOpen(true) },
+                { id: "my-cvs", label: "Go to My CVs", group: "Actions", icon: <LayoutGrid size={16} />, keywords: "dashboard", run: () => router.push("/dashboard") },
+            ]
+            : [
+                { id: "new", label: "Start a new CV", group: "Actions", icon: <RotateCcw size={16} />, keywords: "reset clear", run: startNewDraft },
+                ...(auth.user
+                    ? [{ id: "save-account", label: "Save this draft to my account", group: "Actions", icon: <CloudUpload size={16} />, run: () => void saveDraftToAccount() }]
+                    : []),
+            ]),
+        ...THEME_DATA.map((t): Command => ({
+            id: `theme-${t.id}`,
+            label: `Use template: ${t.name}${t.id === theme ? " (current)" : ""}`,
+            group: "Templates",
+            icon: <LayoutTemplate size={16} />,
+            keywords: `${t.tags.join(" ")} ${t.atsScore}% ats`,
+            run: () => setTheme(t.id),
+        })),
+    ];
+
     return (
         <div className={styles.editorLayout}>
+            {paletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setPaletteOpen(false)} />}
             {resumeId && cloud.loadError && (
                 <div className={styles.cloudErrorOverlay} role="alert">
                     <div className={styles.cloudErrorCard}>
@@ -452,6 +539,12 @@ function EditorContent() {
                     )}
                 </div>
                 <div className={styles.headerActions}>
+                    <button type="button" className={styles.paletteTrigger} onClick={() => setPaletteOpen(true)} aria-label="Open command palette (Ctrl+K)">
+                        <Search size={15} />
+                        <span>Search or jump to...</span>
+                        <kbd><CommandIcon size={11} />K</kbd>
+                    </button>
+                    <ThemeToggle />
                     <div className={styles.undoGroup} role="group" aria-label="Undo and redo">
                         <button type="button" className={styles.undoBtn} onClick={undo} disabled={!canUndo} title="Undo (Ctrl+Z)" aria-label="Undo">
                             <Undo2 size={16} />
@@ -464,29 +557,31 @@ function EditorContent() {
                         onClick={() => setEditorMode(editorMode === 'preview' ? 'edit' : 'preview')}
                         className="btn btn-secondary"
                         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        aria-label={editorMode === 'preview' ? "Edit CV" : "Templates"}
+                        title={editorMode === 'preview' ? "Edit CV" : "Browse templates"}
                     >
                         {editorMode === 'preview' ? (
                             <>
                                 <Pencil size={16} />
-                                Edit CV
+                                <span className="btn-label">Edit CV</span>
                             </>
                         ) : (
                             <>
                                 <Eye size={16} />
-                                Templates
+                                <span className="btn-label">Templates</span>
                             </>
                         )}
                     </button>
                     {resumeId ? (
-                        <button onClick={() => setHistoryOpen(true)} className="btn btn-secondary" title="Version history">
+                        <button onClick={() => setHistoryOpen(true)} className="btn btn-secondary" title="Version history" aria-label="Version history">
                             <History size={16} />
-                            History
+                            <span className="btn-label">History</span>
                         </button>
                     ) : (
                         <>
-                            <button onClick={startNewDraft} className="btn btn-secondary" title="Start a new CV">
+                            <button onClick={startNewDraft} className="btn btn-secondary" title="Start a new CV" aria-label="Start a new CV">
                                 <RotateCcw size={16} />
-                                New
+                                <span className="btn-label">New</span>
                             </button>
                             {auth.enabled && auth.user && (
                                 <button
@@ -494,26 +589,30 @@ function EditorContent() {
                                     className="btn btn-secondary"
                                     disabled={isSavingToAccount}
                                     title="Save this browser draft to your account"
+                                    aria-label="Save to account"
                                 >
                                     <CloudUpload size={16} />
-                                    {isSavingToAccount ? "Saving..." : "Save to account"}
+                                    <span className="btn-label">{isSavingToAccount ? "Saving..." : "Save to account"}</span>
                                 </button>
                             )}
                         </>
                     )}
-                    <button onClick={downloadYAML} className="btn btn-secondary" disabled={isLoading}>
+                    <button onClick={downloadYAML} className={`btn btn-secondary ${styles.hideOnMobile}`} disabled={isLoading} title="Export RenderCV YAML" aria-label="Export YAML">
                         <FileCode2 size={16} />
-                        YAML
+                        <span className="btn-label">YAML</span>
                     </button>
                     {resumeId ? (
-                        <Link href="/dashboard" className="btn btn-secondary">
+                        <Link href="/dashboard" className="btn btn-secondary" title="My CVs" aria-label="My CVs">
                             <LayoutGrid size={16} />
-                            My CVs
+                            <span className="btn-label">My CVs</span>
                         </Link>
                     ) : (
                         <>
                             <AccountMenu />
-                            <Link href="/" className="btn btn-secondary">Exit</Link>
+                            <Link href="/" className={`btn btn-secondary ${styles.hideOnMobile}`} title="Back to home" aria-label="Exit to home">
+                                <Home size={16} />
+                                <span className="btn-label">Exit</span>
+                            </Link>
                         </>
                     )}
                     <button onClick={downloadPDF} className="btn btn-primary" disabled={isLoading}>
@@ -546,7 +645,7 @@ function EditorContent() {
                                 <TemplateCard
                                     key={t.id}
                                     name={t.name}
-                                    image={t.image}
+                                    image={templateThumbnails[t.id] ?? t.image}
                                     tags={t.tags}
                                     badge={recommendedTheme.id === t.id ? "Best ATS match" : `${t.atsScore}% ATS`}
                                     meta={t.atsRationale}
@@ -741,6 +840,16 @@ function EditorContent() {
                             )}
                         </div>
                         <div className={styles.sectionContent}>
+                            {showOnboarding && (
+                                <OnboardingPanel
+                                    onStartBlank={() => {
+                                        onboarding.dismiss();
+                                        document.querySelector<HTMLInputElement>('input[placeholder="John Doe"]')?.focus();
+                                    }}
+                                    onLoadSample={loadSampleCV}
+                                    onDismiss={onboarding.dismiss}
+                                />
+                            )}
                             {activeSection === "profile" && (
                                 <ProfileSection
                                     cvData={cvData}
@@ -796,6 +905,7 @@ function EditorContent() {
 
                             {activeSection === "design" && (
                                 <DesignSection
+                                    thumbnails={templateThumbnails}
                                     theme={theme}
                                     onThemeChange={setTheme}
                                     recommendedTheme={recommendedTheme}

@@ -11,6 +11,7 @@ import { THEME_DATA, recommendTemplate } from "@/lib/themes";
 import { extractPDF } from "@/lib/editorApi";
 import { API_URL } from "@/lib/config";
 import { useAuth } from "@/components/AuthProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { resumesApi, toApiContent } from "@/lib/resumesApi";
 import {
   DEFAULT_COVER_LETTER_DRAFT,
@@ -240,6 +241,7 @@ export default function UploadPage() {
           <span>ApplyForge</span>
         </Link>
         <div className={styles.headerActions}>
+          <ThemeToggle />
           <Link href="/editor" className="btn btn-secondary">
             <PenLine size={16} />
             Manual Editor

@@ -7,6 +7,7 @@ import styles from "./page.module.css";
 import { Logo } from "@/components/Brand";
 import { ActionBar, SectionHeader, TemplateCard } from "@/components/AppUI";
 import { AccountMenu } from "@/components/AccountMenu";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { THEME_DATA } from "@/lib/themes";
 
 export default function Home() {
@@ -48,6 +49,7 @@ export default function Home() {
             <span className={styles.logoWord}>ApplyForge</span>
           </div>
           <div className={styles.headerActions}>
+            <ThemeToggle />
             <AccountMenu />
             <Link href="/upload" className="btn btn-secondary">
               Upload PDF

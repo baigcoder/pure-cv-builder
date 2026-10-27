@@ -11,7 +11,7 @@ import {
     UserRound,
 } from "lucide-react";
 
-export const Logo = ({ width = 24, height = 24, logoColor = "#111827", iconColor = "#F8FAFC" }) => (
+export const Logo = ({ width = 24, height = 24, logoColor = "var(--brand-solid)", iconColor = "#F8FAFC" }) => (
     <svg width={width} height={height} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect width="24" height="24" rx="6" fill={logoColor} />
         <path d="M6.75 18L12 6L17.25 18" stroke={iconColor} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />

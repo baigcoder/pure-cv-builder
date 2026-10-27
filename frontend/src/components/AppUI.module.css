@@ -55,7 +55,7 @@
   padding: 0.9rem 1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--glass-bg);
   color: var(--text-muted);
   font-size: 0.85rem;
   line-height: 1.5;
@@ -206,7 +206,7 @@
 .templateTag {
   padding: 0.22rem 0.55rem;
   border-radius: var(--radius-full);
-  background: #e8eef5;
+  background: var(--surface-strong);
   color: var(--text-muted);
   font-size: 0.68rem;
   font-weight: 700;

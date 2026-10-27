@@ -303,3 +303,28 @@ def test_hs256_tokens_verified_by_auth_server_when_no_secret(monkeypatch) -> Non
     with pytest.raises(core_auth.AuthError):
         core_auth.verify_access_token(make_token(exp=int(time.time()) - 5), settings)
     assert len(calls) == 1  # expired tokens are rejected without a network call
+
+
+def test_resume_thumbnail(client, user_headers, monkeypatch) -> None:
+    from services.cv_service import CVService
+
+    calls: list[dict] = []
+
+    def fake_thumbnail(**kwargs):
+        calls.append(kwargs)
+        return b"png"
+
+    monkeypatch.setattr(CVService, "render_thumbnail", fake_thumbnail)
+    created = create(client, user_headers, theme="harvard")
+    blank = create(client, user_headers, cv_data={"name": ""})
+
+    response = client.get(f"/api/resumes/{created['id']}/thumbnail?section_order=education,experience", headers=user_headers)
+    empty = client.get(f"/api/resumes/{blank['id']}/thumbnail", headers=user_headers)
+    other = client.get(f"/api/resumes/{created['id']}/thumbnail", headers=auth(make_token()))
+
+    assert response.status_code == 200
+    assert response.json() == {"theme": "harvard", "image": "data:image/png;base64,cG5n", "error": None}
+    assert calls[0]["section_order"] == ["education", "experience"]
+    assert empty.json()["image"] is None
+    assert len(calls) == 1
+    assert other.status_code == 404
