@@ -26,6 +26,7 @@ from rendercv.schema.rendercv_model_builder import build_rendercv_dictionary_and
 from core.config import get_settings
 from core.errors import RenderFailedError, RenderValidationError
 from services.render_engine import render_cache
+from services.theme_presets import THEME_PRESETS, merge
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,11 @@ _RENDERCV_TO_EDITOR_SECTION = {
 }
 
 _compiler_local = threading.local()
+
+# RenderCV parses YAML with one module-level ruamel parser, which is not
+# thread-safe: concurrent renders corrupt its state. Validation is fast, so
+# serialise only that step; Typst compilation still runs in parallel.
+_rendercv_parse_lock = threading.Lock()
 
 # Gallery thumbnails: enough to recognise a layout, ~10x smaller than previews.
 THUMBNAIL_PPI = 48
@@ -239,18 +245,29 @@ class CVService:
     @classmethod
     def resolve_theme(cls, theme: str) -> str:
         """Map ApplyForge preset aliases to real RenderCV built-in themes."""
+        if theme in THEME_PRESETS:
+            return THEME_PRESETS[theme]["base"]
         return cls.THEME_ALIASES.get(theme, theme)
     
     @classmethod
     def get_themes(cls) -> list[str]:
         """Return list of available themes."""
-        return [*cls.THEME_ALIASES.keys(), *cls.AVAILABLE_THEMES]
+        return [*THEME_PRESETS.keys(), *cls.THEME_ALIASES.keys(), *cls.AVAILABLE_THEMES]
 
     @classmethod
     def get_theme_metadata(cls) -> list[dict]:
         """Return metadata for all available built-in themes."""
+        presets = [
+            {
+                "id": preset_id,
+                **preset["meta"],
+                "previewImage": f"/theme-{preset_id}.png",
+                "renderTheme": preset_id,
+            }
+            for preset_id, preset in THEME_PRESETS.items()
+        ]
         theme_ids = [*cls.THEME_ALIASES.keys(), *cls.AVAILABLE_THEMES]
-        return [
+        return presets + [
             {
                 "id": theme_id,
                 **cls.THEME_METADATA.get(
@@ -341,7 +358,8 @@ class CVService:
         """Validate data with RenderCV and render its Typst template."""
         yaml_text = yaml.dump(full_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
         try:
-            _, model = build_rendercv_dictionary_and_model(yaml_text)
+            with _rendercv_parse_lock:
+                _, model = build_rendercv_dictionary_and_model(yaml_text)
         except RenderCVUserValidationError as error:
             raise RenderValidationError(
                 "Some CV fields have values the renderer can't use.",
@@ -745,6 +763,10 @@ class CVService:
         if ordered_sections:
             cv_section["sections"] = ordered_sections
         
+        preset = THEME_PRESETS.get(theme)
+        if preset:
+            # Preset font/colour apply unless the CV sets its own.
+            design_settings = {**preset["defaults"], **{k: v for k, v in design_settings.items() if v not in (None, "")}}
         design = {
             "theme": cls.resolve_theme(theme),
         }
@@ -783,6 +805,10 @@ class CVService:
 
         if design_settings.get("sectionSpacingCm"):
             design["section_titles"] = {"space_above": f"{float(design_settings['sectionSpacingCm']):g}cm"}
+
+        if preset:
+            # The preset recipe is the base; the CV's own choices override it.
+            design = merge(preset["design"], design)
         
         # Build final structure
         return {

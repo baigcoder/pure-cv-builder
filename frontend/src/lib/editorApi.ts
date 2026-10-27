@@ -44,6 +44,7 @@ const buildCoverLetterPayload = (
   cvData: CVData,
   coverLetter: CoverLetterDraft,
   aiOnly = false,
+  designSettings?: DesignSettings,
 ): CoverLetterRequest => ({
   cv_data: toApiCV(cvData),
   cover_letter: {
@@ -52,9 +53,12 @@ const buildCoverLetterPayload = (
     hiring_manager: coverLetter.hiringManager,
     job_description: coverLetter.jobDescription,
     tone: coverLetter.tone,
+    length: coverLetter.length || "standard",
+    highlights: coverLetter.highlights || "",
     letter: coverLetter.letter,
   },
   ai_only: aiOnly,
+  design_settings: designSettings,
 });
 
 const safeFileName = (name: string, extension: string) => {
@@ -162,10 +166,11 @@ export const downloadCoverLetterPDF = async (
   apiUrl: string,
   cvData: CVData,
   coverLetter: CoverLetterDraft,
+  designSettings?: DesignSettings,
 ) => {
   const blob = await postForBlob(
     `${apiUrl}/api/cover-letter/download`,
-    buildCoverLetterPayload(cvData, coverLetter),
+    buildCoverLetterPayload(cvData, coverLetter, false, designSettings),
     "Cover letter export failed.",
   );
   downloadBlob(blob, safeFileName(cvData.name || "Cover_Letter", "pdf").replace("_CV.", "_Cover_Letter."));

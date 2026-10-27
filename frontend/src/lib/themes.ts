@@ -1,4 +1,4 @@
-import { entryContentValues, type CVData, type Entry } from "@/lib/cvBuilder";
+import { entryContentValues, type CVData, type DesignSettings, type Entry } from "@/lib/cvBuilder";
 
 export type SectionOrderType = "standard" | "academic" | "tech" | "entry_level" | "portfolio" | "early_tech" | "recruiter";
 
@@ -15,6 +15,8 @@ export interface ThemeMeta {
   atsScore: number;
   atsRationale: string;
   recommendedFor: string[];
+  /** Trending presets set their own font and accent colour when chosen. */
+  defaults?: { fontFamily: string; primaryColor: string };
 }
 
 export const THEME_SECTION_ORDER: Record<SectionOrderType, string[]> = {
@@ -28,6 +30,96 @@ export const THEME_SECTION_ORDER: Record<SectionOrderType, string[]> = {
 };
 
 export const THEME_DATA: ThemeMeta[] = [
+  {
+    id: "modern",
+    name: "Modern Minimal",
+    renderTheme: "modern",
+    image: "/theme-modern.png",
+    previewImage: "/theme-modern.png",
+    description: "Clean sans-serif layout with airy spacing and hairline section rules.",
+    bestFor: "Tech, product, design and most modern roles",
+    sectionOrderType: "standard",
+    tags: ["Trending", "ATS-Safe"],
+    atsScore: 95,
+    atsRationale: "Single column, standard headings, plain text links and no decorative elements.",
+    recommendedFor: ["software", "product", "design", "marketing", "startup"],
+    defaults: { fontFamily: "Open Sauce Sans", primaryColor: "#2563EB" },
+  },
+  {
+    id: "executive",
+    name: "Executive Serif",
+    renderTheme: "executive",
+    image: "/theme-executive.png",
+    previewImage: "/theme-executive.png",
+    description: "Refined serif typography with a centred header for senior roles.",
+    bestFor: "Leadership, finance, legal, consulting",
+    sectionOrderType: "recruiter",
+    tags: ["Trending", "Senior"],
+    atsScore: 92,
+    atsRationale: "Conventional single-column flow; serif type parses as plain text.",
+    recommendedFor: ["senior", "director", "executive", "finance", "legal", "consulting"],
+    defaults: { fontFamily: "EB Garamond", primaryColor: "#1A365D" },
+  },
+  {
+    id: "bold",
+    name: "Bold Accent",
+    renderTheme: "bold",
+    image: "/theme-bold.png",
+    previewImage: "/theme-bold.png",
+    description: "Confident geometric type with a strong accent colour and accent rules.",
+    bestFor: "Marketing, sales, creative and customer-facing roles",
+    sectionOrderType: "standard",
+    tags: ["Trending", "Bold"],
+    atsScore: 93,
+    atsRationale: "Colour is decorative only; structure stays single-column with standard headings.",
+    recommendedFor: ["marketing", "sales", "creative", "brand", "growth"],
+    defaults: { fontFamily: "Poppins", primaryColor: "#0D9488" },
+  },
+  {
+    id: "startup",
+    name: "Clean Startup",
+    renderTheme: "startup",
+    image: "/theme-startup.png",
+    previewImage: "/theme-startup.png",
+    description: "Lightweight, rule-free layout that lets project work stand out.",
+    bestFor: "Startups, engineers with strong projects, early-career builders",
+    sectionOrderType: "portfolio",
+    tags: ["Trending", "Projects"],
+    atsScore: 94,
+    atsRationale: "No tables or lines to confuse parsers; clear headings and spacing.",
+    recommendedFor: ["startup", "projects", "engineering", "new grad"],
+    defaults: { fontFamily: "Raleway", primaryColor: "#0F766E" },
+  },
+  {
+    id: "elegant",
+    name: "Elegant Classic",
+    renderTheme: "elegant",
+    image: "/theme-elegant.png",
+    previewImage: "/theme-elegant.png",
+    description: "Timeless book-style serif with small-caps headings.",
+    bestFor: "Academia, research, publishing and policy",
+    sectionOrderType: "academic",
+    tags: ["Trending", "Serif"],
+    atsScore: 90,
+    atsRationale: "Readable single column; small caps render as regular text for parsers.",
+    recommendedFor: ["academic", "research", "publishing", "policy", "writing"],
+    defaults: { fontFamily: "Libertinus Serif", primaryColor: "#334155" },
+  },
+  {
+    id: "compact",
+    name: "Compact One-Page",
+    renderTheme: "compact",
+    image: "/theme-compact.png",
+    previewImage: "/theme-compact.png",
+    description: "Tight spacing and smaller type to fit a full career on one page.",
+    bestFor: "Experienced candidates who need everything on one page",
+    sectionOrderType: "recruiter",
+    tags: ["Trending", "One page"],
+    atsScore: 95,
+    atsRationale: "Dense but strictly single-column with standard section names.",
+    recommendedFor: ["experienced", "one page", "engineering", "operations"],
+    defaults: { fontFamily: "Lato", primaryColor: "#111827" },
+  },
   {
     id: "jake",
     name: "Jake ATS",
@@ -190,6 +282,12 @@ export const getTheme = (themeId: string): ThemeMeta => {
 
 export const getRenderThemeId = (themeId: string): string => {
   return getTheme(themeId).renderTheme;
+};
+
+/** Design a template renders with: a preset's font and colour, unless it's the CV's current template. */
+export const getTemplateDesign = (themeId: string, designSettings: DesignSettings, activeThemeId?: string): DesignSettings => {
+  const defaults = getTheme(themeId).defaults;
+  return defaults && themeId !== activeThemeId ? { ...designSettings, ...defaults } : designSettings;
 };
 
 export const getSectionIdsForTheme = (themeId: string): string[] => {

@@ -56,6 +56,9 @@ export interface CoverLetterDraft {
   hiringManager: string;
   jobDescription: string;
   tone: string;
+  length: "short" | "standard" | "detailed";
+  /** What the letter should emphasise, e.g. why this company. */
+  highlights: string;
   letter: string;
   source: "" | "ai" | "template";
 }
@@ -114,6 +117,8 @@ export const DEFAULT_COVER_LETTER_DRAFT: CoverLetterDraft = {
   hiringManager: "",
   jobDescription: "",
   tone: "professional",
+  length: "standard",
+  highlights: "",
   letter: "",
   source: "",
 };

@@ -18,6 +18,8 @@ class SavedCoverLetter(BaseModel):
     hiringManager: str = Field(default="", max_length=120)
     jobDescription: str = Field(default="", max_length=12000)
     tone: str = Field(default="professional", max_length=40)
+    length: Literal["short", "standard", "detailed"] = "standard"
+    highlights: str = Field(default="", max_length=1000)
     letter: str = Field(default="", max_length=8000)
     source: Literal["", "ai", "template"] = ""
 

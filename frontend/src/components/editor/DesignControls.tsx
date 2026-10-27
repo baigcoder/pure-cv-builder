@@ -57,9 +57,9 @@ export function SectionLayoutControls({ theme, cvData, designSettings, onChange 
   const isCustom = Boolean(designSettings.sectionOrder?.length) || hidden.size > 0;
 
   return (
-    <div className="form-group">
-      <label className="form-label">Section order &amp; visibility</label>
-      <p className={styles.sectionHint} style={{ margin: "0 0 0.75rem" }}>
+    <div>
+      <h2 className={styles.controlTitle}>Section order and visibility</h2>
+      <p className={styles.controlHint}>
         Drag to reorder how sections print on this CV. Hidden sections keep their content but stay off the PDF.
       </p>
       <SortableList
@@ -123,7 +123,7 @@ function Slider({ label, value, fallback, min, max, step, unit, onChange }: Slid
   return (
     <div className={styles.control}>
       <div className={styles.controlLabel}>
-        <label className="form-label" htmlFor={id} style={{ margin: 0 }}>
+        <label className="form-label" htmlFor={id}>
           {label}
         </label>
         <span className={styles.controlValue}>{value === undefined ? "Template" : `${value}${unit}`}</span>
@@ -150,14 +150,14 @@ export function PageTypographyControls({ designSettings, onChange }: Omit<Contro
   const isCustom = DESIGN_KEYS.some((key) => designSettings[key] !== undefined);
 
   return (
-    <div className="form-group">
-      <label className="form-label">Page &amp; typography</label>
-      <p className={styles.sectionHint} style={{ margin: "0 0 0.75rem" }}>
+    <div>
+      <h2 className={styles.controlTitle}>Page and typography</h2>
+      <p className={styles.controlHint}>
         Fit more on a page or give it room to breathe. Untouched settings use the template&apos;s defaults.
       </p>
       <div className={styles.controlGrid}>
         <div className={styles.control}>
-          <span className="form-label" style={{ margin: 0 }}>
+          <span className="form-label">
             Page size
           </span>
           <div className={styles.segmented} role="radiogroup" aria-label="Page size">
@@ -181,7 +181,7 @@ export function PageTypographyControls({ designSettings, onChange }: Omit<Contro
           </div>
         </div>
         <div className={styles.control}>
-          <span className="form-label" style={{ margin: 0 }}>
+          <span className="form-label">
             Footer
           </span>
           <label className={styles.toggle}>

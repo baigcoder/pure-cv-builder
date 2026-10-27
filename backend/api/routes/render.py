@@ -94,20 +94,25 @@ async def preview_thumbnails(request: Request, payload: ThumbnailsRequest) -> Th
     cv_data = payload.cv_data.model_dump()
     design = payload.design_settings.model_dump() if payload.design_settings else None
 
-    async def render_one(theme: str, section_order: list[str] | None) -> Thumbnail:
+    async def render_one(theme: str, section_order: list[str] | None, item_design: dict | None) -> Thumbnail:
         try:
             image = await run_render(
                 CVService.render_thumbnail,
                 cv_data=cv_data,
                 theme=theme,
-                design_settings=design,
+                design_settings=item_design or design,
                 section_order=section_order,
             )
         except AppError as error:
             return Thumbnail(theme=theme, error=error.detail)
         return Thumbnail(theme=theme, image=f"data:image/png;base64,{base64.b64encode(image).decode('ascii')}")
 
-    thumbnails = await asyncio.gather(*(render_one(item.theme, item.section_order) for item in payload.items))
+    thumbnails = await asyncio.gather(*(render_one(
+            item.theme,
+            item.section_order,
+            item.design_settings.model_dump() if item.design_settings else None,
+        )
+        for item in payload.items))
     return ThumbnailsResponse(thumbnails=list(thumbnails))
 
 

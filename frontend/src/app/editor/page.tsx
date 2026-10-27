@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { CloudUpload, Command as CommandIcon, Download, Eye, FileCode2, History, Home, LayoutGrid, LayoutTemplate, Mail, Moon, Pencil, Redo2, RotateCcw, Search, Sparkles, Target, Undo2 } from "lucide-react";
+import { ArrowRight, Check, CloudUpload, Command as CommandIcon, Download, Eye, FileCode2, History, Home, LayoutGrid, LayoutTemplate, Mail, Moon, Pencil, Redo2, RotateCcw, Search, Sparkles, Target, Undo2, X } from "lucide-react";
 import styles from "./editor.module.css";
 import { Logo, Icons } from "@/components/Brand";
 import { TemplateCard } from "@/components/AppUI";
@@ -11,9 +11,13 @@ import { useDraftAutosave } from "@/hooks/useDraftAutosave";
 import { useCVDocument } from "@/hooks/useCVDocument";
 import { useTemplateThumbnails } from "@/hooks/useTemplateThumbnails";
 import { CommandPalette, useCommandPaletteShortcut, type Command } from "@/components/CommandPalette";
+import { EnhanceReview } from "@/components/editor/EnhanceReview";
+import { applyCVChanges, diffCV, type CVChange } from "@/lib/cvChanges";
 import { ThemeToggle, useThemePreference } from "@/components/ThemeToggle";
 import { useCloudResume, type CloudSyncStatus } from "@/hooks/useCloudResume";
 import { AccountMenu } from "@/components/AccountMenu";
+import { AtsPanel } from "@/components/editor/AtsPanel";
+import { Button } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import { VersionHistoryPanel } from "@/components/VersionHistoryPanel";
 import {
@@ -105,8 +109,8 @@ function EditorContent() {
         theme,
         designSettings,
         setCVData,
-        setTheme,
         setDesignSettings,
+        chooseTemplate,
         loaders,
         undo,
         redo,
@@ -118,6 +122,12 @@ function EditorContent() {
     const [editorMode, setEditorMode] = useState<'preview' | 'edit'>('edit');
     const [isAISuggesting, setIsAISuggesting] = useState(false);
     const [isEnhancingCV, setIsEnhancingCV] = useState(false);
+    const [enhanceReview, setEnhanceReview] = useState<{
+        changes: CVChange[];
+        keywords: string[];
+        source: "ai" | "fallback";
+        beforeScore: number;
+    } | null>(null);
     const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
     const [aiStatusLabel, setAiStatusLabel] = useState("Checking AI writing tools...");
     const [atsEnhanceNotice, setAtsEnhanceNotice] = useState<string | null>(null);
@@ -219,10 +229,20 @@ function EditorContent() {
     const { thumbnails: templateThumbnails } = useTemplateThumbnails({
         cvData,
         designSettings,
+        activeTheme: theme,
         enabled: isRestored && (editorMode === "preview" || activeSection === "design"),
     });
 
     const syncStatus = isGenerating ? "syncing" : draftStatus;
+    // Browser-draft save state for the header (saved CVs show the cloud status).
+    const draftStatusLabel = syncStatus === "saving"
+        ? "Saving..."
+        : syncStatus === "error"
+            ? "Couldn't save in this browser"
+            : lastSavedAt
+                ? "Saved in this browser"
+                : "";
+    const draftStatusTone = syncStatus === "error" ? "error" : syncStatus === "saving" ? "saving" : "saved";
     const CLOUD_STATUS_LABELS: Record<CloudSyncStatus, string> = {
         loading: "Loading CV...",
         saving: "Saving...",
@@ -289,13 +309,13 @@ function EditorContent() {
                 coverLetter.jobDescription,
                 beforeScore,
             );
-            const enhancedData = normalizeCVData(result.cv_data);
-            const afterScore = calculateATSScoreForData(enhancedData).score;
-            setCVData(enhancedData);
-            setActiveSection("profile");
-            setAtsEnhanceNotice(
-                `${result.source === "ai" ? "AI" : "Local"} ATS enhancement applied: ${beforeScore}% -> ${afterScore}%. ${result.changes?.[0] || "Updated live CV content."}`,
-            );
+            const changes = diffCV(cvData, normalizeCVData(result.cv_data));
+            const keywords = result.market_keywords ?? [];
+            if (changes.length === 0 && keywords.length === 0) {
+                setAtsEnhanceNotice("No changes suggested: your CV already covers what Enhance looks for.");
+            } else {
+                setEnhanceReview({ changes, keywords, source: result.source, beforeScore });
+            }
             if ((result.warnings ?? []).length > 0) {
                 setAiAvailable(false);
             }
@@ -305,6 +325,21 @@ function EditorContent() {
         } finally {
             setIsEnhancingCV(false);
         }
+    };
+
+    const scoreWithChanges = useCallback(
+        (selected: CVChange[]) => calculateATSScoreForData(applyCVChanges(cvData, selected).data).score,
+        [cvData],
+    );
+
+    const applyEnhancements = (selected: CVChange[]) => {
+        const { data, skipped } = applyCVChanges(cvData, selected);
+        const applied = selected.length - skipped;
+        setCVData(data);
+        setEnhanceReview(null);
+        setAtsEnhanceNotice(
+            `Applied ${applied} ${applied === 1 ? "improvement" : "improvements"}${skipped ? `; skipped ${skipped} you'd edited since` : ""}. Undo with Ctrl+Z.`,
+        );
     };
 
     // Update Field
@@ -392,13 +427,6 @@ function EditorContent() {
             .filter(sectionId => REPEATABLE_SECTIONS.includes(sectionId as RepeatableSection))
             .filter(sectionId => renderableData[sectionId as RepeatableSection].length === 0)
         : [];
-    const nextRecommendedSection = orderedSectionIds.find(sectionId => {
-        if (sectionId === "design" || sectionId === "job_match") return false;
-        if (sectionId === "cover_letter") return !coverLetter.letter.trim();
-        if (sectionId === "profile") return calculateSectionProgress("profile") < 60;
-        return REPEATABLE_SECTIONS.includes(sectionId as RepeatableSection)
-            && renderableData[sectionId as RepeatableSection].length === 0;
-    });
     const printedSectionNames = orderedContentSections
         .filter(sectionId => REPEATABLE_SECTIONS.includes(sectionId as RepeatableSection))
         .filter(sectionId => !(designSettings.hiddenSections ?? []).includes(sectionId as RepeatableSection))
@@ -413,6 +441,36 @@ function EditorContent() {
         onboarding.dismiss();
     };
     const showOnboarding = isRestored && !onboarding.dismissed && activeSection === "profile" && !hasRenderableContent(renderableData);
+    // Sidebar and mobile ATS panels share one set of props.
+    const atsResult = calculateATSScore();
+    const atsPanelProps = {
+        contentScore: atsResult.score,
+        templateScore: templateFit.score,
+        tip: atsResult.tips[0],
+        templateTip: templateFit.tip,
+        totalWords: Object.keys(BASE_SECTIONS)
+            .filter(s => s !== "design" && s !== "cover_letter" && s !== "job_match")
+            .reduce((sum, s) => sum + getSectionWordCount(s), 0),
+        onEnhance: enhanceCVForATS,
+        enhancing: isEnhancingCV,
+        disabled: isEnhancingCV || isGenerating,
+        aiNote: aiAvailable === false ? aiStatusLabel : undefined,
+    };
+    // Only actionable messages; the AI-provider status lives in the ATS tooltip.
+    const editorNotice = atsEnhanceError
+        ? { tone: "error", text: atsEnhanceError }
+        : exportError
+            ? { tone: "error", text: exportError }
+            : atsEnhanceNotice
+                ? { tone: "success", text: atsEnhanceNotice }
+                : null;
+    const dismissNotice = () => {
+        setAtsEnhanceError(null);
+        setExportError(null);
+        setAtsEnhanceNotice(null);
+    };
+    const activeIndex = orderedSectionIds.indexOf(activeSection);
+    const nextSectionId = activeIndex >= 0 ? orderedSectionIds[activeIndex + 1] : undefined;
     const goToSection = (sectionId: string) => {
         setEditorMode("edit");
         setActiveSection(sectionId);
@@ -471,13 +529,24 @@ function EditorContent() {
             group: "Templates",
             icon: <LayoutTemplate size={16} />,
             keywords: `${t.tags.join(" ")} ${t.atsScore}% ats`,
-            run: () => setTheme(t.id),
+            run: () => chooseTemplate(t.id),
         })),
     ];
 
     return (
         <div className={styles.editorLayout}>
             {paletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setPaletteOpen(false)} />}
+            {enhanceReview && (
+                <EnhanceReview
+                    changes={enhanceReview.changes}
+                    suggestedKeywords={enhanceReview.keywords}
+                    source={enhanceReview.source}
+                    beforeScore={enhanceReview.beforeScore}
+                    scoreWith={scoreWithChanges}
+                    onApply={applyEnhancements}
+                    onClose={() => setEnhanceReview(null)}
+                />
+            )}
             {resumeId && cloud.loadError && (
                 <div className={styles.cloudErrorOverlay} role="alert">
                     <div className={styles.cloudErrorCard}>
@@ -503,7 +572,7 @@ function EditorContent() {
             )}
             <header className={styles.header}>
                 <div className={styles.logoArea}>
-                    <Link href={resumeId ? "/dashboard" : "/"} aria-label="ApplyForge home" style={{ display: 'flex' }}>
+                    <Link href={resumeId ? "/dashboard" : "/"} aria-label="ApplyForge home" className={styles.logoLink}>
                         <Logo width={28} height={28} />
                     </Link>
                     {resumeId ? (
@@ -535,7 +604,14 @@ function EditorContent() {
                             </span>
                         </div>
                     ) : (
-                        <span style={{ letterSpacing: '0.03em', fontWeight: 800 }}>ApplyForge</span>
+                        <div className={styles.docTitleWrap}>
+                            <span className={styles.brandWord}>ApplyForge</span>
+                            {draftStatusLabel && (
+                                <span className={`${styles.cloudStatus} ${styles[`cloudStatus_${draftStatusTone}`] ?? ""}`} role="status">
+                                    {draftStatusLabel}
+                                </span>
+                            )}
+                        </div>
                     )}
                 </div>
                 <div className={styles.headerActions}>
@@ -556,7 +632,6 @@ function EditorContent() {
                     <button
                         onClick={() => setEditorMode(editorMode === 'preview' ? 'edit' : 'preview')}
                         className="btn btn-secondary"
-                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                         aria-label={editorMode === 'preview' ? "Edit CV" : "Templates"}
                         title={editorMode === 'preview' ? "Edit CV" : "Browse templates"}
                     >
@@ -633,7 +708,7 @@ function EditorContent() {
                             <button
                                 type="button"
                                 className={styles.templateRecommendBtn}
-                                onClick={() => setTheme(recommendedTheme.id)}
+                                onClick={() => chooseTemplate(recommendedTheme.id)}
                             >
                                 <Sparkles size={14} />
                                 Use best ATS template: {recommendedTheme.name}
@@ -650,7 +725,7 @@ function EditorContent() {
                                     badge={recommendedTheme.id === t.id ? "Best ATS match" : `${t.atsScore}% ATS`}
                                     meta={t.atsRationale}
                                     selected={theme === t.id}
-                                    onClick={() => setTheme(t.id)}
+                                    onClick={() => chooseTemplate(t.id)}
                                 />
                             ))}
                         </div>
@@ -688,157 +763,40 @@ function EditorContent() {
                                     key={s.id}
                                     onClick={() => setActiveSection(s.id)}
                                     className={`${styles.navItem} ${activeSection === s.id ? styles.navItemActive : ""}`}
+                                    aria-current={activeSection === s.id ? "page" : undefined}
                                 >
                                     <span className={styles.navIcon}>{s.icon}</span>
                                     <span className={styles.navText}>{s.name}</span>
-                                    {wordCount > 0 && s.id !== "design" && (
-                                        <span style={{
-                                            fontSize: '0.65rem',
-                                            color: 'var(--text-light)',
-                                            marginLeft: 'auto',
-                                            marginRight: '0.5rem',
-                                            opacity: 0.7
-                                        }}>
-                                            {wordCount}w
-                                        </span>
-                                    )}
-                                    {progress === 100 && (
-                                        <div style={{ marginLeft: wordCount > 0 ? '0' : 'auto' }}>
-                                            <svg style={{ color: 'var(--success)' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                                        </div>
-                                    )}
+                                    <span className={styles.navMeta}>
+                                        {wordCount > 0 && s.id !== "design" && <span className={styles.navWords}>{wordCount}w</span>}
+                                        {progress === 100 && <Check size={14} strokeWidth={3} className={styles.navCheck} aria-label="Complete" />}
+                                    </span>
                                 </button>
                             );
                         })}
                         </div>
                         <div className={styles.sidebarFooter}>
-                            {(() => {
-                                const totalWords = Object.keys(BASE_SECTIONS)
-                                    .filter(s => s !== 'design' && s !== 'cover_letter')
-                                    .reduce((sum, s) => sum + getSectionWordCount(s), 0);
-                                const ats = calculateATSScore();
-                                const scoreColor = ats.score >= 80 ? 'var(--success)' : ats.score >= 60 ? 'var(--warning)' : 'var(--error)';
-                                const fitColor = templateFit.score >= 92 ? 'var(--success)' : templateFit.score >= 82 ? 'var(--warning)' : 'var(--error)';
-                                return (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                        <div className={styles.atsScore}>
-                                            <span className={styles.atsLabel}>ATS Control</span>
-                                            <div className={styles.atsMetricGrid}>
-                                                <span>
-                                                    <small>Content</small>
-                                                    <strong style={{ color: scoreColor }}>{ats.score}%</strong>
-                                                </span>
-                                                <span>
-                                                    <small>Template</small>
-                                                    <strong style={{ color: fitColor }}>{templateFit.score}%</strong>
-                                                </span>
-                                            </div>
-                                            {ats.tips.length > 0 && (
-                                                <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '0.5rem', lineHeight: 1.4 }}>
-                                                    {ats.tips[0]}
-                                                </p>
-                                            )}
-                                            <p style={{ fontSize: '0.65rem', color: 'var(--text-light)', marginTop: '0.4rem', lineHeight: 1.4 }}>
-                                                {templateFit.tip}
-                                            </p>
-                                            <button
-                                                className={styles.atsEnhanceBtn}
-                                                onClick={enhanceCVForATS}
-                                                disabled={isEnhancingCV || isGenerating}
-                                                title="Enhance this live CV for ATS strength using the current role, skills, projects, and market keywords"
-                                            >
-                                                <Sparkles size={14} />
-                                                {isEnhancingCV ? "Hardening..." : "Enhance CV"}
-                                            </button>
-                                        </div>
-                                        <div style={{ textAlign: 'center' }}>
-                                            <p style={{
-                                                fontSize: '0.75rem',
-                                                color: 'var(--text-light)',
-                                                fontWeight: 500,
-                                                letterSpacing: '0.02em'
-                                            }}>
-                                                Approx. {totalWords} words
-                                            </p>
-                                        </div>
-                                    </div>
-                                );
-                            })()}
+                            <AtsPanel {...atsPanelProps} />
                         </div>
                     </aside>
 
                     <div className={styles.formArea}>
-                        <div className={styles.statusBar}>
-                            <div className={`${styles.statusDot} ${syncStatus === 'syncing' ? styles.statusDotPulse : ""}`} />
-                            {syncStatus === 'syncing'
-                                ? "Rendering preview..."
-                                : resumeId
-                                    ? CLOUD_STATUS_LABELS[cloud.status]
-                                : syncStatus === 'saving'
-                                    ? "Saving draft..."
-                                    : syncStatus === 'error'
-                                        ? "Draft save failed"
-                                        : lastSavedAt
-                                            ? "Draft saved"
-                                            : "Ready"}
-                        </div>
                         <div className={styles.mobileAtsPanel}>
-                            {(() => {
-                                const totalWords = Object.keys(BASE_SECTIONS)
-                                    .filter(s => s !== 'design' && s !== 'cover_letter')
-                                    .reduce((sum, s) => sum + getSectionWordCount(s), 0);
-                                const ats = calculateATSScore();
-                                const scoreColor = ats.score >= 80 ? 'var(--success)' : ats.score >= 60 ? 'var(--warning)' : 'var(--error)';
-                                const fitColor = templateFit.score >= 92 ? 'var(--success)' : templateFit.score >= 82 ? 'var(--warning)' : 'var(--error)';
-                                return (
-                                    <div className={styles.atsScore}>
-                                        <span className={styles.atsLabel}>ATS Control</span>
-                                        <div className={styles.atsMetricGrid}>
-                                            <span>
-                                                <small>Content</small>
-                                                <strong style={{ color: scoreColor }}>{ats.score}%</strong>
-                                            </span>
-                                            <span>
-                                                <small>Template</small>
-                                                <strong style={{ color: fitColor }}>{templateFit.score}%</strong>
-                                            </span>
-                                        </div>
-                                        <p style={{ fontSize: '0.72rem', color: 'var(--text-light)', marginTop: '0.55rem', lineHeight: 1.4 }}>
-                                            {ats.tips[0] || templateFit.tip} Approx. {totalWords} words.
-                                        </p>
-                                        <button
-                                            className={styles.atsEnhanceBtn}
-                                            onClick={enhanceCVForATS}
-                                            disabled={isEnhancingCV || isGenerating}
-                                            title="Enhance this live CV for ATS strength using the current role, skills, projects, and market keywords"
-                                        >
-                                            <Sparkles size={14} />
-                                            {isEnhancingCV ? "Hardening..." : "Enhance CV"}
-                                        </button>
-                                    </div>
-                                );
-                            })()}
+                            <AtsPanel {...atsPanelProps} tone="card" />
                         </div>
-                        <div className={styles.workflowPanel}>
-                            <div>
-                                <span className={styles.summaryEyebrow}>Operator flow</span>
-                                <p>
-                                    {nextRecommendedSection
-                                        ? `Next: ${getSectionName(nextRecommendedSection)}`
-                                        : "Core CV structure is ready for final review."}
-                                </p>
+                        {editorNotice && (
+                            <div className={`${styles.notice} ${styles[`notice_${editorNotice.tone}`]}`} role={editorNotice.tone === "error" ? "alert" : "status"}>
+                                <span>{editorNotice.text}</span>
+                                <button type="button" className={styles.noticeClose} onClick={dismissNotice} aria-label="Dismiss message">
+                                    <X size={14} />
+                                </button>
                             </div>
-                            {missingBeforeActive.length > 0 && (
-                                <div className={styles.positionNote}>
-                                    {getSectionName(activeSection)} is later in this template. It will follow {missingBeforeActive.map(getSectionName).join(", ")} when those sections are added. Empty sections are not printed in a professional CV.
-                                </div>
-                            )}
-                            {(atsEnhanceError || atsEnhanceNotice || exportError || aiStatusLabel) && (
-                                <div className={styles.positionNote}>
-                                    {atsEnhanceError || atsEnhanceNotice || exportError || aiStatusLabel}
-                                </div>
-                            )}
-                        </div>
+                        )}
+                        {missingBeforeActive.length > 0 && (
+                            <p className={styles.positionNote}>
+                                In this template, {getSectionName(activeSection)} prints after {missingBeforeActive.map(getSectionName).join(", ")}. Empty sections are left out of the PDF.
+                            </p>
+                        )}
                         <div className={styles.sectionContent}>
                             {showOnboarding && (
                                 <OnboardingPanel
@@ -899,6 +857,7 @@ function EditorContent() {
                                     renderableData={renderableData}
                                     coverLetter={coverLetter}
                                     setCoverLetter={setCoverLetter}
+                                    designSettings={designSettings}
                                     onTemplateFallback={() => setAiAvailable(false)}
                                 />
                             )}
@@ -907,12 +866,20 @@ function EditorContent() {
                                 <DesignSection
                                     thumbnails={templateThumbnails}
                                     theme={theme}
-                                    onThemeChange={setTheme}
+                                    onThemeChange={chooseTemplate}
                                     recommendedTheme={recommendedTheme}
                                     cvData={cvData}
                                     designSettings={designSettings}
                                     setDesignSettings={setDesignSettings}
                                 />
+                            )}
+                            {nextSectionId && (
+                                <div className={styles.sectionFooter}>
+                                    <Button variant="secondary" onClick={() => goToSection(nextSectionId)}>
+                                        Continue to {getSectionName(nextSectionId)}
+                                        <ArrowRight size={16} />
+                                    </Button>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -932,35 +899,18 @@ function EditorContent() {
                         <div className={styles.pageStack}>
                         <div className={styles.canvas}>
                             {isGenerating && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '1.5rem',
-                                    right: '1.5rem',
-                                    zIndex: 20,
-                                    background: 'var(--white)',
-                                    color: 'var(--primary)',
-                                    padding: '0.625rem 1.25rem',
-                                    borderRadius: 'var(--radius-full)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    fontSize: '0.75rem',
-                                    fontWeight: '800',
-                                    boxShadow: 'var(--shadow-lg)',
-                                    border: '1px solid var(--border)',
-                                    animation: 'slideUp 0.4s ease'
-                                }}>
-                                    <div className="spinner" style={{ width: '14px', height: '14px' }}></div>
-                                    SYNCHRONIZING
+                                <div className={styles.renderingBadge} role="status">
+                                    <span className="spinner" aria-hidden="true" />
+                                    Updating preview
                                 </div>
                             )}
 
                             {isGenerating && previewPages.length === 0 && (
-                                <div className="skeleton" style={{ width: '100%', height: '100%' }}></div>
+                                <div className={`skeleton ${styles.fill}`}></div>
                             )}
 
                             {previewPages.length > 0 ? (
-                                <div className={isGenerating ? "" : "animate-fade"} style={{ width: '100%', height: '100%', opacity: isGenerating ? 0.6 : 1, transition: 'opacity 0.3s ease' }}>
+                                <div className={`${styles.fill} ${styles.pageImage} ${isGenerating ? styles.pageStale : "animate-fade"}`}>
                                     {/* eslint-disable-next-line @next/next/no-img-element -- data URL from the render API */}
                                     <img src={previewPages[0]} alt="CV preview, page 1" className={styles.previewImage} />
                                 </div>
@@ -978,7 +928,7 @@ function EditorContent() {
                             )}
                         </div>
                         {previewPages.slice(1).map((page, index) => (
-                            <div key={index + 2} className={styles.canvas} style={{ opacity: isGenerating ? 0.6 : 1 }}>
+                            <div key={index + 2} className={`${styles.canvas} ${isGenerating ? styles.pageStale : ""}`}>
                                 {/* eslint-disable-next-line @next/next/no-img-element -- data URL from the render API */}
                                 <img src={page} alt={`CV preview, page ${index + 2}`} className={styles.previewImage} />
                             </div>

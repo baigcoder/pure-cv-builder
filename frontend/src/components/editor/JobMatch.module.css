@@ -400,3 +400,7 @@
         align-items: stretch;
     }
 }
+
+.lastGroup {
+    margin-bottom: 0;
+}

@@ -48,6 +48,9 @@ class ThemesResponse(BaseModel):
 class ThumbnailItem(BaseModel):
     theme: str
     section_order: Optional[list[str]] = None
+    design_settings: Optional[DesignSettings] = Field(
+        default=None, description="Overrides the request-level design settings for this item."
+    )
 
 
 class ThumbnailsRequest(BaseModel):

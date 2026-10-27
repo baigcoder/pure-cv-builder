@@ -3,6 +3,7 @@
 import { useCallback, useMemo, type SetStateAction } from "react";
 import { CVData, DEFAULT_CV_DATA, DEFAULT_DESIGN_SETTINGS, DesignSettings } from "@/lib/cvBuilder";
 import { useUndoableState, useUndoShortcuts } from "@/hooks/useUndoableState";
+import { getTemplateDesign } from "@/lib/themes";
 
 interface CVDocument {
   cvData: CVData;
@@ -24,7 +25,7 @@ export function useCVDocument(initialTheme: string) {
   const { state, setState, reset, undo, redo, canUndo, canRedo } = useUndoableState<CVDocument>({
     cvData: DEFAULT_CV_DATA,
     theme: initialTheme,
-    designSettings: DEFAULT_DESIGN_SETTINGS,
+    designSettings: getTemplateDesign(initialTheme, DEFAULT_DESIGN_SETTINGS),
   });
 
   useUndoShortcuts(undo, redo);
@@ -40,6 +41,12 @@ export function useCVDocument(initialTheme: string) {
   const setDesignSettings = useCallback(
     (action: SetStateAction<DesignSettings>) =>
       setState((doc) => ({ ...doc, designSettings: resolve(action, doc.designSettings) })),
+    [setState],
+  );
+
+  /** Switch template in one undo step; trending presets also apply their font and colour. */
+  const chooseTemplate = useCallback(
+    (theme: string) => setState((doc) => ({ ...doc, theme, designSettings: getTemplateDesign(theme, doc.designSettings) })),
     [setState],
   );
 
@@ -59,6 +66,7 @@ export function useCVDocument(initialTheme: string) {
     setCVData,
     setTheme,
     setDesignSettings,
+    chooseTemplate,
     loaders,
     undo,
     redo,

@@ -228,7 +228,7 @@ export function JobMatchSection({ cvData, setCVData, coverLetter, setCoverLetter
             />
           </div>
         </div>
-        <div className="form-group" style={{ marginBottom: 0 }}>
+        <div className={`form-group ${styles.lastGroup}`}>
           <label className="form-label" htmlFor="job-post">Job post</label>
           <textarea
             id="job-post"

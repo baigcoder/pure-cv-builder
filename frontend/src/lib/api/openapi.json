@@ -426,6 +426,13 @@
             "title": "Company",
             "type": "string"
           },
+          "highlights": {
+            "default": "",
+            "description": "What the letter should emphasise, e.g. why this company.",
+            "maxLength": 1000,
+            "title": "Highlights",
+            "type": "string"
+          },
           "hiring_manager": {
             "default": "",
             "maxLength": 120,
@@ -436,6 +443,16 @@
             "maxLength": 12000,
             "minLength": 40,
             "title": "Job Description",
+            "type": "string"
+          },
+          "length": {
+            "default": "standard",
+            "enum": [
+              "short",
+              "standard",
+              "detailed"
+            ],
+            "title": "Length",
             "type": "string"
           },
           "letter": {
@@ -476,6 +493,17 @@
           },
           "cv_data": {
             "$ref": "#/components/schemas/CVData"
+          },
+          "design_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignSettings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The CV's font and accent colour, so the letter PDF matches."
           }
         },
         "required": [
@@ -1535,6 +1563,12 @@
             "title": "Company",
             "type": "string"
           },
+          "highlights": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Highlights",
+            "type": "string"
+          },
           "hiringManager": {
             "default": "",
             "maxLength": 120,
@@ -1545,6 +1579,16 @@
             "default": "",
             "maxLength": 12000,
             "title": "Jobdescription",
+            "type": "string"
+          },
+          "length": {
+            "default": "standard",
+            "enum": [
+              "short",
+              "standard",
+              "detailed"
+            ],
+            "title": "Length",
             "type": "string"
           },
           "letter": {
@@ -1836,6 +1880,17 @@
       },
       "ThumbnailItem": {
         "properties": {
+          "design_settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DesignSettings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Overrides the request-level design settings for this item."
+          },
           "section_order": {
             "anyOf": [
               {

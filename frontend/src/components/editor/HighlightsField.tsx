@@ -43,7 +43,6 @@ export function HighlightsField({ label, values, onChange, addLabel, multiline, 
               <textarea
                 className="form-textarea"
                 rows={2}
-                style={{ fontSize: "0.875rem" }}
                 value={item.value}
                 placeholder={placeholder}
                 aria-label={`${label} ${index + 1}`}
@@ -62,7 +61,7 @@ export function HighlightsField({ label, values, onChange, addLabel, multiline, 
               <button
                 type="button"
                 className={styles.iconBtn}
-                style={{ color: "var(--accent)" }}
+                data-tone="accent"
                 title="AI polish"
                 aria-label={`Polish bullet ${index + 1} with AI`}
                 disabled={ai.busy || !item.value.trim()}

@@ -1,35 +1,32 @@
 "use client";
 
 import type { SetStateAction } from "react";
-import { Sparkles } from "lucide-react";
-import styles from "@/app/editor/editor.module.css";
+import { Check, Sparkles } from "lucide-react";
+import styles from "./Design.module.css";
+import editorStyles from "@/app/editor/editor.module.css";
 import type { CVData, DesignSettings } from "@/lib/cvBuilder";
 import { THEME_DATA, type ThemeMeta } from "@/lib/themes";
+import { Badge, Button, Card, Field, SectionHeading } from "@/components/ui";
 import { PageTypographyControls, SectionLayoutControls } from "./DesignControls";
 
-// Color presets for CV themes
 const COLOR_PRESETS = [
     { name: "Classic Blue", value: "#004F90" },
     { name: "Professional Black", value: "#0F172A" },
-    { name: "Modern Indigo", value: "#6366f1" },
-    { name: "Elegant Teal", value: "#0d9488" },
-    { name: "Bold Red", value: "#dc2626" },
-    { name: "Forest Green", value: "#16a34a" },
-    { name: "Royal Purple", value: "#7c3aed" },
-    { name: "Slate Gray", value: "#475569" },
-    { name: "Professional Gold", value: "#DAA520" },
     { name: "Navy Blue", value: "#1a365d" },
+    { name: "Elegant Teal", value: "#0d9488" },
+    { name: "Forest Green", value: "#16a34a" },
+    { name: "Modern Indigo", value: "#6366f1" },
+    { name: "Royal Purple", value: "#7c3aed" },
+    { name: "Bold Red", value: "#dc2626" },
+    { name: "Professional Gold", value: "#B8860B" },
+    { name: "Slate Gray", value: "#475569" },
 ];
 
-// Font options
+// Fonts bundled with the renderer; anything else would silently fall back.
 const FONT_OPTIONS = [
-    { name: "Source Sans 3", value: "Source Sans 3" },
-    { name: "Inter", value: "Inter" },
-    { name: "Roboto", value: "Roboto" },
-    { name: "Open Sans", value: "Open Sans" },
-    { name: "Lato", value: "Lato" },
-    { name: "Georgia", value: "Georgia" },
-    { name: "Times New Roman", value: "Times New Roman" },
+    { group: "Sans serif", fonts: ["Source Sans 3", "Open Sauce Sans", "Lato", "Roboto", "Open Sans", "Noto Sans", "Poppins", "Raleway", "Mukta", "Ubuntu"] },
+    { group: "Serif", fonts: ["EB Garamond", "Libertinus Serif", "Gentium Book Plus", "XCharter", "New Computer Modern", "Fontin"] },
+    { group: "Monospace", fonts: ["DejaVu Sans Mono"] },
 ];
 
 interface DesignSectionProps {
@@ -45,186 +42,123 @@ interface DesignSectionProps {
 
 /** Template choice, colour and font, section layout, and page/typography controls. */
 export function DesignSection({ thumbnails, theme, onThemeChange: setTheme, recommendedTheme, cvData, designSettings, setDesignSettings }: DesignSectionProps) {
+    const setColor = (primaryColor: string) => setDesignSettings((previous) => ({ ...previous, primaryColor }));
+    const isPreset = COLOR_PRESETS.some((color) => color.value.toLowerCase() === designSettings.primaryColor.toLowerCase());
+
     return (
         <div className="animate-fade">
-            <h1 className={styles.sectionTitle}>Customize Design.</h1>
+            <SectionHeading
+                eyebrow="Design"
+                title="Look and layout"
+                description="Pick a template, then fine-tune colour, type and spacing. The preview on the right updates as you go."
+            />
 
-            {/* Template Selection - Grid Layout */}
-            <div className="form-group">
-                <label className="form-label" style={{ fontSize: '0.85rem', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '1rem' }}>Choose Template</label>
-                <button
-                    type="button"
-                    className={styles.templateRecommendBtn}
-                    style={{ marginBottom: '1rem' }}
-                    onClick={() => setTheme(recommendedTheme.id)}
-                >
-                    <Sparkles size={14} />
-                    Use best ATS template: {recommendedTheme.name}
-                </button>
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                    gap: '1.5rem',
-                    marginBottom: '2rem'
-                }}>
-                    {THEME_DATA.map((t) => (
-                        <div
-                            key={t.id}
-                            onClick={() => setTheme(t.id)}
-                            style={{
-                                position: 'relative',
-                                aspectRatio: '3/4',
-                                borderRadius: '16px',
-                                overflow: 'hidden',
-                                cursor: 'pointer',
-                                border: theme === t.id ? '3px solid var(--accent)' : '2px solid var(--border)',
-                                boxShadow: theme === t.id ? '0 8px 24px rgba(99, 102, 241, 0.25)' : 'var(--shadow-md)',
-                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                transform: theme === t.id ? 'scale(1.02)' : 'scale(1)',
-                                background: 'var(--paper)'
-                            }}
-                        >
-                            <div style={{
-                                position: 'absolute',
-                                top: '12px',
-                                left: '12px',
-                                zIndex: 2,
-                                background: recommendedTheme.id === t.id ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.92)',
-                                color: recommendedTheme.id === t.id ? '#67e8f9' : 'var(--primary)',
-                                padding: '4px 10px',
-                                borderRadius: '100px',
-                                fontSize: '0.62rem',
-                                fontWeight: 800,
-                                letterSpacing: '0.05em',
-                                textTransform: 'uppercase'
-                            }}>{recommendedTheme.id === t.id ? 'Best ATS match' : `${t.atsScore}% ATS`}</div>
-                            <img
-                                src={thumbnails[t.id] ?? t.image}
-                                alt={t.name}
-                                style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    transition: 'transform 0.5s ease'
-                                }}
-                                onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                }}
-                            />
-                            <div style={{
-                                position: 'absolute',
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                padding: '1rem',
-                                background: 'linear-gradient(to top, rgba(15, 23, 42, 0.9), transparent)',
-                                color: 'white'
-                            }}>
-                                <p style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{t.name}</p>
-                                <p style={{ fontSize: '0.7rem', opacity: 0.8 }}>{t.description}</p>
-                            </div>
-                            {theme === t.id && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '12px',
-                                    right: '12px',
-                                    background: 'var(--accent)',
-                                    color: 'white',
-                                    padding: '4px 10px',
-                                    borderRadius: '100px',
-                                    fontSize: '0.65rem',
-                                    fontWeight: 700,
-                                    letterSpacing: '0.05em'
-                                }}>ACTIVE</div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Color & Typography */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '2rem',
-                padding: '1.5rem',
-                background: 'var(--surface)',
-                backdropFilter: 'blur(8px)',
-                borderRadius: '16px',
-                border: '1px solid var(--border)'
-            }}>
-                <div>
-                    <label className="form-label" style={{ marginBottom: '0.75rem' }}>Primary Color</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                        {COLOR_PRESETS.slice(0, 4).map((color) => (
+            <Card
+                title="Template"
+                description="Thumbnails show your own CV in each template."
+                actions={
+                    theme !== recommendedTheme.id && (
+                        <Button size="sm" variant="secondary" icon={<Sparkles size={14} />} onClick={() => setTheme(recommendedTheme.id)}>
+                            Use best match
+                        </Button>
+                    )
+                }
+                className={editorStyles.formCard}
+            >
+                <div className={styles.templateGrid} role="radiogroup" aria-label="Template">
+                    {THEME_DATA.map((t) => {
+                        const active = theme === t.id;
+                        return (
                             <button
-                                key={color.value}
-                                onClick={() => setDesignSettings({ ...designSettings, primaryColor: color.value })}
-                                style={{
-                                    width: '36px',
-                                    height: '36px',
-                                    borderRadius: '50%',
-                                    background: color.value,
-                                    border: designSettings.primaryColor === color.value ? '3px solid var(--primary)' : '2px solid white',
-                                    boxShadow: 'var(--shadow-sm)',
-                                    cursor: 'pointer',
-                                    transition: 'transform 0.2s'
-                                }}
-                                title={color.name}
-                            />
-                        ))}
-                        <input
-                            type="color"
-                            value={designSettings.primaryColor}
-                            onChange={(e) => setDesignSettings({ ...designSettings, primaryColor: e.target.value })}
-                            style={{ width: '36px', height: '36px', border: 'none', cursor: 'pointer', borderRadius: '50%' }}
-                            title="Custom Color"
-                        />
+                                key={t.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={active}
+                                className={`${styles.template} ${active ? styles.templateActive : ""}`}
+                                onClick={() => setTheme(t.id)}
+                            >
+                                <span className={styles.templateThumb}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element -- live data URL or static sample */}
+                                    <img src={thumbnails[t.id] ?? t.image} alt="" />
+                                    {active && (
+                                        <span className={styles.activeMark} aria-hidden="true">
+                                            <Check size={14} strokeWidth={3} />
+                                        </span>
+                                    )}
+                                </span>
+                                <span className={styles.templateInfo}>
+                                    <span className={styles.templateName}>{t.name}</span>
+                                    <span className={styles.templateBadges}>
+                                        {recommendedTheme.id === t.id ? (
+                                            <Badge tone="accent">Best match</Badge>
+                                        ) : (
+                                            <Badge tone={t.atsScore >= 90 ? "success" : "neutral"}>{t.atsScore}% ATS</Badge>
+                                        )}
+                                    </span>
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </Card>
+
+            <Card title="Colour and font" className={editorStyles.formCard}>
+                <div className={styles.styleGrid}>
+                    <div>
+                        <span className="form-label" id="accent-color-label">Accent colour</span>
+                        <div className={styles.swatches} role="radiogroup" aria-labelledby="accent-color-label">
+                            {COLOR_PRESETS.map((color) => {
+                                const selected = color.value.toLowerCase() === designSettings.primaryColor.toLowerCase();
+                                return (
+                                    <button
+                                        key={color.value}
+                                        type="button"
+                                        role="radio"
+                                        aria-checked={selected}
+                                        aria-label={color.name}
+                                        title={color.name}
+                                        className={`${styles.swatch} ${selected ? styles.swatchSelected : ""}`}
+                                        style={{ background: color.value }}
+                                        onClick={() => setColor(color.value)}
+                                    >
+                                        {selected && <Check size={14} strokeWidth={3} />}
+                                    </button>
+                                );
+                            })}
+                            <label className={`${styles.swatch} ${styles.customSwatch} ${!isPreset ? styles.swatchSelected : ""}`} title="Custom colour">
+                                <input
+                                    type="color"
+                                    value={designSettings.primaryColor}
+                                    onChange={(event) => setColor(event.target.value)}
+                                    aria-label="Custom accent colour"
+                                />
+                            </label>
+                        </div>
                     </div>
+                    <Field label="Font">
+                        <select
+                            className="form-input"
+                            value={designSettings.fontFamily}
+                            onChange={(event) => setDesignSettings((previous) => ({ ...previous, fontFamily: event.target.value }))}
+                        >
+                            {FONT_OPTIONS.map(({ group, fonts }) => (
+                                <optgroup key={group} label={group}>
+                                    {fonts.map((font) => (
+                                        <option key={font} value={font}>{font}</option>
+                                    ))}
+                                </optgroup>
+                            ))}
+                        </select>
+                    </Field>
                 </div>
-                <div>
-                    <label className="form-label" style={{ marginBottom: '0.75rem' }}>Font Family</label>
-                    <select
-                        className="form-input"
-                        value={designSettings.fontFamily}
-                        onChange={(e) => setDesignSettings({ ...designSettings, fontFamily: e.target.value })}
-                        style={{ cursor: 'pointer' }}
-                    >
-                        {FONT_OPTIONS.map((font) => (
-                            <option key={font.value} value={font.value}>{font.name}</option>
-                        ))}
-                    </select>
-                </div>
-            </div>
+            </Card>
 
-            <div className={styles.designPanel}>
+            <Card className={editorStyles.formCard}>
                 <SectionLayoutControls theme={theme} cvData={cvData} designSettings={designSettings} onChange={setDesignSettings} />
-            </div>
-            <div className={styles.designPanel}>
+            </Card>
+            <Card className={editorStyles.formCard}>
                 <PageTypographyControls designSettings={designSettings} onChange={setDesignSettings} />
-            </div>
-
-            {/* Live Preview */}
-            <div style={{
-                marginTop: '2rem',
-                padding: '2rem',
-                background: 'var(--panel)',
-                borderRadius: '16px',
-                border: '1px solid var(--border)',
-                boxShadow: 'var(--shadow-lg)'
-            }}>
-                <p style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-light)', marginBottom: '1rem' }}>Live Preview</p>
-                <p style={{ color: designSettings.primaryColor, fontFamily: designSettings.fontFamily, fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.02em' }}>
-                    {cvData.name || "Your Name"}
-                </p>
-                <p style={{ color: designSettings.primaryColor, fontFamily: designSettings.fontFamily, fontSize: '1rem', marginTop: '0.25rem' }}>
-                    {cvData.headline || "Professional Title"}
-                </p>
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', fontSize: '0.8rem', color: 'var(--text-light)' }}>
-                    <span>📧 {cvData.email || "email@example.com"}</span>
-                    <span>📍 {cvData.location || "City, Country"}</span>
-                </div>
-            </div>
+            </Card>
         </div>
     );
 }

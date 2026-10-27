@@ -1,0 +1,125 @@
+/* Default tone sits on the always-dark sidebar; .panelCard is the light card. */
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.9rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.86);
+}
+
+.panelCard {
+    border-color: var(--border);
+    background: var(--panel);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1rem;
+}
+
+.title {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.meter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.meterTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: var(--text-xs);
+}
+
+.meterTop strong {
+    font-size: var(--text-sm);
+    font-variant-numeric: tabular-nums;
+}
+
+.track {
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.panelCard .track {
+    background: var(--surface-strong);
+}
+
+.fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.fill_good {
+    background: #34d399;
+}
+
+.fill_ok {
+    background: #fbbf24;
+}
+
+.fill_low {
+    background: #f87171;
+}
+
+.score_good {
+    color: #34d399;
+}
+
+.score_ok {
+    color: #fbbf24;
+}
+
+.score_low {
+    color: #f87171;
+}
+
+.panelCard .score_good {
+    color: var(--success);
+}
+
+.panelCard .score_ok {
+    color: var(--warning);
+}
+
+.panelCard .score_low {
+    color: var(--error);
+}
+
+.tip {
+    font-size: var(--text-xs);
+    line-height: 1.45;
+    opacity: 0.75;
+}
+
+.enhance {
+    margin-top: 0.15rem;
+}
+
+/* On the dark sidebar the primary button needs the accent to stand out. */
+.panel:not(.panelCard) .enhance {
+    background: var(--accent);
+    color: var(--on-dark);
+}
+
+.panel:not(.panelCard) .enhance:hover:not(:disabled) {
+    background: var(--accent-strong);
+}
+
+.words {
+    font-size: 0.6875rem;
+    text-align: center;
+    opacity: 0.55;
+}

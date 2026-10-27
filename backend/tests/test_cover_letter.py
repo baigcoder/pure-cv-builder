@@ -172,3 +172,44 @@ def test_download_cover_letter_returns_pdf() -> None:
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
     assert response.content.startswith(b"%PDF")
+
+
+def test_download_cover_letter_matches_cv_font_and_stays_on_one_page() -> None:
+    import fitz
+
+    payload = sample_cover_letter_payload()
+    payload["design_settings"] = {"fontFamily": "EB Garamond", "primaryColor": "#1A365D"}
+    payload["cover_letter"]["letter"] = "Dear Hiring Team,\n\n" + "Shipped measurable results. " * 120 + "\n\nSincerely,\nA User"
+
+    response = TestClient(app).post("/api/cover-letter/download", json=payload)
+
+    doc = fitz.open(stream=response.content, filetype="pdf")
+    fonts = {span["font"] for block in doc[0].get_text("dict")["blocks"] for line in block.get("lines", []) for span in line["spans"]}
+    assert doc.page_count == 1
+    assert any(font.startswith("EBGaramond") for font in fonts)
+
+
+def test_cover_letter_text_cannot_inject_typst_markup() -> None:
+    source = CoverLetterService.typst_source(
+        {"name": 'Evil" #panic("x") "'}, 'Hi #panic("boom") \ *bold*', "Lato", "#000000", 11
+    )
+
+    import fitz
+    from services.cv_service import _compile_typst
+
+    # Compiles (no panic ran) and the would-be markup prints as literal text.
+    text = fitz.open(stream=_compile_typst(source, "pdf"), filetype="pdf")[0].get_text()
+    assert 'Hi #panic("boom")' in text
+    assert '*bold*' in text
+    assert 'Evil" #panic("x")' in text
+
+
+def test_cover_letter_prompt_includes_length_tone_and_highlights() -> None:
+    prompt = AIService.cover_letter_prompt(
+        {"name": "A User"}, "Engineer", "Northwind", "", "Build APIs with Python and React for merchants.",
+        "warm", "short", "I use Northwind every day as a seller.",
+    )
+
+    assert "150-220 words" in prompt
+    assert "friendly and personable" in prompt
+    assert "I use Northwind every day as a seller." in prompt

@@ -758,12 +758,24 @@ export interface components {
              */
             company?: string;
             /**
+             * Highlights
+             * @description What the letter should emphasise, e.g. why this company.
+             * @default
+             */
+            highlights?: string;
+            /**
              * Hiring Manager
              * @default
              */
             hiring_manager?: string;
             /** Job Description */
             job_description: string;
+            /**
+             * Length
+             * @default standard
+             * @enum {string}
+             */
+            length?: "short" | "standard" | "detailed";
             /**
              * Letter
              * @default
@@ -786,6 +798,8 @@ export interface components {
             ai_only?: boolean;
             cover_letter: components["schemas"]["CoverLetterData"];
             cv_data: components["schemas"]["CVData"];
+            /** @description The CV's font and accent colour, so the letter PDF matches. */
+            design_settings?: components["schemas"]["DesignSettings"] | null;
         };
         /** CoverLetterResponse */
         CoverLetterResponse: {
@@ -1266,6 +1280,11 @@ export interface components {
              */
             company?: string;
             /**
+             * Highlights
+             * @default
+             */
+            highlights?: string;
+            /**
              * Hiringmanager
              * @default
              */
@@ -1275,6 +1294,12 @@ export interface components {
              * @default
              */
             jobDescription?: string;
+            /**
+             * Length
+             * @default standard
+             * @enum {string}
+             */
+            length?: "short" | "standard" | "detailed";
             /**
              * Letter
              * @default
@@ -1399,6 +1424,8 @@ export interface components {
         };
         /** ThumbnailItem */
         ThumbnailItem: {
+            /** @description Overrides the request-level design settings for this item. */
+            design_settings?: components["schemas"]["DesignSettings"] | null;
             /** Section Order */
             section_order?: string[] | null;
             /** Theme */

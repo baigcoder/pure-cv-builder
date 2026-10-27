@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getTemplateDesign } from "@/lib/themes";
 import {
   CVData,
   CoverLetterDraft,
@@ -108,8 +109,10 @@ export const useDraftAutosave = ({
       if (rawDraft) {
         const parsed = JSON.parse(rawDraft) as Partial<DraftState>;
         setCVData(normalizeCVData(parsed.cvData));
+        const restoredDesign = normalizeDesignSettings(parsed.designSettings);
         setTheme(initialTheme || parsed.theme || "classic");
-        setDesignSettings(normalizeDesignSettings(parsed.designSettings));
+        // A template picked from the landing page brings its own font and colour.
+        setDesignSettings(initialTheme && initialTheme !== parsed.theme ? getTemplateDesign(initialTheme, restoredDesign) : restoredDesign);
         setCoverLetter({
           ...DEFAULT_COVER_LETTER_DRAFT,
           ...(parsed.coverLetter || {}),
@@ -159,7 +162,7 @@ export const useDraftAutosave = ({
     window.localStorage.removeItem(DRAFT_STORAGE_KEY);
     setCVData(DEFAULT_CV_DATA);
     setTheme(initialTheme || "classic");
-    setDesignSettings(DEFAULT_DESIGN_SETTINGS);
+    setDesignSettings(getTemplateDesign(initialTheme || "classic", DEFAULT_DESIGN_SETTINGS));
     setCoverLetter(DEFAULT_COVER_LETTER_DRAFT);
     setLastSavedAt(null);
     setDraftStatus("saved");

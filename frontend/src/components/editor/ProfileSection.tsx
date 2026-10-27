@@ -1,7 +1,9 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import styles from "@/app/editor/editor.module.css";
 import type { CVData } from "@/lib/cvBuilder";
+import { Button, Card, CharCounter, Field, SectionHeading } from "@/components/ui";
 import type { AIHelper } from "./types";
 
 interface ProfileSectionProps {
@@ -13,13 +15,13 @@ interface ProfileSectionProps {
     aiUnavailable: boolean;
 }
 
-export function ProfileSection({ cvData, onFieldChange: updateField, fieldErrors, ai, aiUnavailable: isAIUnavailable }: ProfileSectionProps) {
-    const getAISuggestion = ai.suggest;
-    const isAISuggesting = ai.busy;
+const HEADLINE_RECOMMENDED = 80;
+const SUMMARY_RECOMMENDED = 500;
 
+export function ProfileSection({ cvData, onFieldChange: updateField, fieldErrors, ai, aiUnavailable }: ProfileSectionProps) {
     const improveSummary = async () => {
         if (!cvData.summary.trim() && !cvData.name.trim()) return;
-        const suggestion = await getAISuggestion(
+        const suggestion = await ai.suggest(
             cvData.summary || cvData.name,
             cvData.summary ? "summary" : "generate",
             cvData.name
@@ -27,122 +29,112 @@ export function ProfileSection({ cvData, onFieldChange: updateField, fieldErrors
         if (suggestion) updateField("summary", suggestion);
     };
 
+    const suggestHeadline = async () => {
+        const suggestion = await ai.suggest(cvData.name, "headline", cvData.summary || cvData.headline);
+        if (suggestion) updateField("headline", suggestion);
+    };
+
     return (
         <div className="animate-fade">
-            <h1 className={styles.sectionTitle}>Build the candidate profile.</h1>
+            <SectionHeading
+                eyebrow="Profile"
+                title="Who you are"
+                description="Your name, headline and contact details form the top of every template."
+            />
 
-            <div className="form-group">
-                <label className="form-label">Full Name <span style={{ color: '#e53e3e' }}>*</span></label>
-                <input
-                    type="text" className="form-input" placeholder="John Doe"
-                    value={cvData.name} onChange={e => updateField("name", e.target.value)}
-                />
-                {!cvData.name.trim() && <small style={{ color: '#718096', fontSize: '0.75rem' }}>Required for CV header</small>}
-            </div>
-
-            <div className="form-group">
-                <label className="form-label">Headline / Professional Title</label>
-                <div className={styles.inlineFieldWithAction}>
+            <Card title="Identity" className={styles.formCard}>
+                <Field label="Full name" required hint={!cvData.name.trim() ? "Shown as the title of your CV." : undefined}>
+                    <input
+                        type="text" className="form-input" placeholder="John Doe" autoComplete="name"
+                        value={cvData.name} onChange={e => updateField("name", e.target.value)}
+                    />
+                </Field>
+                <Field
+                    label="Headline"
+                    hint="Your target role and one or two strengths, e.g. “Backend Engineer | Python, AWS”."
+                    aside={<CharCounter length={cvData.headline.length} recommended={HEADLINE_RECOMMENDED} />}
+                >
                     <input
                         type="text" className="form-input" placeholder="e.g. Senior Software Engineer | ML Expert"
                         value={cvData.headline} onChange={e => updateField("headline", e.target.value)}
-                        style={{ flex: 1 }}
                         maxLength={100}
                     />
-                    <button
-                        className={styles.aiBtn}
-                        disabled={isAISuggesting || !cvData.name}
-                        onClick={async () => {
-                            const suggestion = await getAISuggestion(cvData.name, "headline", cvData.summary || cvData.headline);
-                            if (suggestion) updateField("headline", suggestion);
-                        }}
-                        title={isAIUnavailable ? "Generate a local fallback headline" : "AI Generate Headline"}
+                </Field>
+                <div className={styles.fieldActions}>
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        icon={<Sparkles size={14} />}
+                        loading={ai.busy}
+                        disabled={!cvData.name.trim()}
+                        onClick={suggestHeadline}
+                        title={aiUnavailable ? "Generate a local fallback headline" : "Suggest a headline with AI"}
                     >
-                        {isAISuggesting ? "..." : "✨"}
-                    </button>
+                        Suggest headline
+                    </Button>
                 </div>
-                <span style={{ fontSize: '0.7rem', color: cvData.headline.length > 80 ? '#d69e2e' : '#a0aec0' }}>
-                    {cvData.headline.length}/80 recommended
-                </span>
-            </div>
+            </Card>
 
-            <div className={styles.twoColumnGrid}>
-                <div className="form-group">
-                    <label className="form-label">Email</label>
-                    <input
-                        type="email" className="form-input" placeholder="you@example.com"
-                        value={cvData.email} onChange={e => updateField("email", e.target.value)}
-                    />
+            <Card title="Contact and links" className={styles.formCard}>
+                <div className={styles.twoColumnGrid}>
+                    <Field label="Email">
+                        <input
+                            type="email" className="form-input" placeholder="you@example.com" autoComplete="email"
+                            value={cvData.email} onChange={e => updateField("email", e.target.value)}
+                        />
+                    </Field>
+                    <Field label="Phone" error={fieldErrors.phone}>
+                        <input
+                            type="tel" className="form-input" placeholder="+1 (555) 123-4567" autoComplete="tel"
+                            value={cvData.phone} onChange={e => updateField("phone", e.target.value)}
+                        />
+                    </Field>
+                    <Field label="Location">
+                        <input
+                            type="text" className="form-input" placeholder="City, Country"
+                            value={cvData.location} onChange={e => updateField("location", e.target.value)}
+                        />
+                    </Field>
+                    <Field label="Website" error={fieldErrors.website}>
+                        <input
+                            type="url" className="form-input" placeholder="https://yoursite.com" autoComplete="url"
+                            value={cvData.website} onChange={e => updateField("website", e.target.value)}
+                        />
+                    </Field>
+                    <Field label="LinkedIn username">
+                        <input
+                            type="text" className="form-input" placeholder="yourprofile"
+                            value={cvData.linkedin} onChange={e => updateField("linkedin", e.target.value)}
+                        />
+                    </Field>
+                    <Field label="GitHub username">
+                        <input
+                            type="text" className="form-input" placeholder="yourgithub"
+                            value={cvData.github} onChange={e => updateField("github", e.target.value)}
+                        />
+                    </Field>
                 </div>
-                <div className="form-group">
-                    <label className="form-label">Phone</label>
-                    <input
-                        type="tel" className={`form-input ${fieldErrors.phone ? 'form-input-error' : ''}`} placeholder="+1 (555) 123-4567"
-                        value={cvData.phone} onChange={e => updateField("phone", e.target.value)}
-                    />
-                    {fieldErrors.phone && <span className="form-error">{fieldErrors.phone}</span>}
-                </div>
-            </div>
+            </Card>
 
-            <div className={styles.twoColumnGrid}>
-                <div className="form-group">
-                    <label className="form-label">Location</label>
-                    <input
-                        type="text" className="form-input" placeholder="City, Country"
-                        value={cvData.location} onChange={e => updateField("location", e.target.value)}
+            <Card title="Professional summary" description="Two or three sentences on what you do and the impact you bring." className={styles.formCard}>
+                <Field
+                    label="Summary"
+                    aside={<CharCounter length={cvData.summary.length} recommended={SUMMARY_RECOMMENDED} max={600} />}
+                    error={cvData.summary.length > SUMMARY_RECOMMENDED ? "A little long; aim for 500 characters or fewer." : undefined}
+                >
+                    <textarea
+                        className="form-textarea" placeholder="Describe what you do, for whom, and the results you deliver..."
+                        value={cvData.summary} onChange={e => updateField("summary", e.target.value)}
+                        rows={5}
+                        maxLength={600}
                     />
+                </Field>
+                <div className={styles.fieldActions}>
+                    <Button size="sm" variant="ghost" icon={<Sparkles size={14} />} loading={ai.busy} onClick={improveSummary}>
+                        {cvData.summary.trim() ? "Polish with AI" : "Draft with AI"}
+                    </Button>
                 </div>
-                <div className="form-group">
-                    <label className="form-label">Website</label>
-                    <input
-                        type="url" className={`form-input ${fieldErrors.website ? 'form-input-error' : ''}`} placeholder="https://yoursite.com"
-                        value={cvData.website} onChange={e => updateField("website", e.target.value)}
-                    />
-                    {fieldErrors.website && <span className="form-error">{fieldErrors.website}</span>}
-                </div>
-            </div>
-
-            <div className={styles.twoColumnGrid}>
-                <div className="form-group">
-                    <label className="form-label">LinkedIn Username</label>
-                    <input
-                        type="text" className="form-input" placeholder="yourprofile"
-                        value={cvData.linkedin} onChange={e => updateField("linkedin", e.target.value)}
-                    />
-                </div>
-                <div className="form-group">
-                    <label className="form-label">GitHub Username</label>
-                    <input
-                        type="text" className="form-input" placeholder="yourgithub"
-                        value={cvData.github} onChange={e => updateField("github", e.target.value)}
-                    />
-                </div>
-            </div>
-
-            <div className="form-group" style={{ position: 'relative' }}>
-                <label className="form-label">Professional Summary</label>
-                <textarea
-                    className="form-textarea" placeholder="Describe your professional essence..."
-                    value={cvData.summary} onChange={e => updateField("summary", e.target.value)}
-                    rows={5}
-                    maxLength={600}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', alignItems: 'center' }}>
-                    <span style={{
-                        fontSize: '0.75rem',
-                        color: cvData.summary.length > 500 ? '#e53e3e' : cvData.summary.length > 400 ? '#d69e2e' : '#718096'
-                    }}>
-                        {cvData.summary.length}/500 characters {cvData.summary.length > 500 && '(too long)'}
-                    </span>
-                    <button
-                        onClick={improveSummary}
-                        disabled={isAISuggesting}
-                        className={styles.aiBtn}
-                    >
-                        {isAISuggesting ? "✨ Refining..." : "✨ AI Polish"}
-                    </button>
-                </div>
-            </div>
+            </Card>
         </div>
     );
 }

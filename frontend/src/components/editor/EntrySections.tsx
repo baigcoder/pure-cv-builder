@@ -8,6 +8,7 @@ import { EntryCard } from "./EntryCard";
 import { HighlightsField } from "./HighlightsField";
 import { SortableList } from "./SortableList";
 import type { AIHelper, EntrySectionProps } from "./types";
+import { Button, Field, SectionHeading } from "@/components/ui";
 import { Entry, RepeatableSection, getEmptyEntry, getString, getStringList } from "@/lib/cvBuilder";
 
 /**
@@ -33,14 +34,13 @@ function useEntryList(section: RepeatableSection, entries: Entry[], onChange: (n
 }
 
 const getId = (entry: Entry) => getString(entry.id);
-const Required = () => <span style={{ color: "#e53e3e" }}>*</span>;
-
 function TextField({
   label,
   value,
   onChange,
   placeholder,
   required,
+  hint,
   type = "text",
 }: {
   label: string;
@@ -48,21 +48,13 @@ function TextField({
   onChange: (value: string) => void;
   placeholder?: string;
   required?: boolean;
+  hint?: string;
   type?: string;
 }) {
   return (
-    <div className="form-group">
-      <label className="form-label">
-        {label} {required && <Required />}
-      </label>
-      <input
-        type={type}
-        className="form-input"
-        placeholder={placeholder}
-        value={getString(value)}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </div>
+    <Field label={label} required={required} hint={hint}>
+      <input type={type} className="form-input" placeholder={placeholder} value={getString(value)} onChange={(event) => onChange(event.target.value)} />
+    </Field>
   );
 }
 
@@ -81,8 +73,7 @@ export function ExperienceSection({ entries, onChange, ai }: EntrySectionProps) 
   const list = useEntryList("experience", entries, onChange);
   return (
     <div className="animate-fade">
-      <h1 className={editorStyles.sectionTitle}>Professional Journey.</h1>
-      <p className={styles.sectionHint}>Drag the grip to reorder roles. Most recent first works best for ATS.</p>
+      <SectionHeading eyebrow="Experience" title="Work experience" description="Most recent role first. Lead each bullet with an action and a result." />
       <SortableList
         items={list.items}
         getId={getId}
@@ -126,7 +117,7 @@ export function EducationSection({ entries, onChange, ai }: EntrySectionProps) {
   const list = useEntryList("education", entries, onChange);
   return (
     <div className="animate-fade">
-      <h1 className={editorStyles.sectionTitle}>Your Education.</h1>
+      <SectionHeading eyebrow="Education" title="Education" description="Degrees, schools and notable results such as GPA or honours." />
       <SortableList
         items={list.items}
         getId={getId}
@@ -171,7 +162,7 @@ export function ProjectsSection({ entries, onChange, ai }: EntrySectionProps) {
   const list = useEntryList("projects", entries, onChange);
   return (
     <div className="animate-fade">
-      <h1 className={editorStyles.sectionTitle}>Your Projects.</h1>
+      <SectionHeading eyebrow="Projects" title="Projects" description="Work you built or led. A live link helps reviewers see it." />
       <SortableList
         items={list.items}
         getId={getId}
@@ -231,7 +222,7 @@ export function PublicationsSection({ entries, onChange }: EntrySectionProps) {
   const list = useEntryList("publications", entries, onChange);
   return (
     <div className="animate-fade">
-      <h1 className={editorStyles.sectionTitle}>Your Publications.</h1>
+      <SectionHeading eyebrow="Publications" title="Publications" description="Papers and articles, with your name marked in the author list." />
       <SortableList
         items={list.items}
         getId={getId}
@@ -274,7 +265,7 @@ export function SkillsSection({ entries, onChange, ai, headline }: EntrySectionP
   const list = useEntryList("skills", entries, onChange);
   return (
     <div className="animate-fade">
-      <h1 className={editorStyles.sectionTitle}>Your Skills.</h1>
+      <SectionHeading eyebrow="Skills" title="Skills" description="Group related skills by category so recruiters can scan them quickly." />
       <SortableList
         items={list.items}
         getId={getId}
@@ -285,8 +276,7 @@ export function SkillsSection({ entries, onChange, ai, headline }: EntrySectionP
               <GripVertical size={14} />
             </button>
             <input
-              className="form-input"
-              style={{ flex: "0 0 32%" }}
+              className={`form-input ${styles.skillCategory}`}
               placeholder="Category *"
               aria-label={`Skill category ${i + 1}`}
               value={getString(skill.label)}
@@ -307,11 +297,11 @@ export function SkillsSection({ entries, onChange, ai, headline }: EntrySectionP
       />
       <div className={styles.toolbar}>
         <AddEntryButton label="Add skill category" onClick={list.add} />
-        <button
-          type="button"
-          className={editorStyles.aiBtn}
-          style={{ marginTop: 0 }}
-          disabled={ai.busy || !headline}
+        <Button
+          variant="secondary"
+          icon={<Sparkles size={15} />}
+          loading={ai.busy}
+          disabled={!headline}
           title={headline ? "Suggest skills for your headline" : "Add a headline first"}
           onClick={async () => {
             const current = entries.map((entry) => getString(entry.details)).join(", ");
@@ -319,17 +309,17 @@ export function SkillsSection({ entries, onChange, ai, headline }: EntrySectionP
             if (suggestion) onChange([...entries, { ...getEmptyEntry("skills"), label: "Suggested", details: suggestion }]);
           }}
         >
-          {ai.busy ? "..." : "✨ Suggest"}
-        </button>
+          Suggest skills
+        </Button>
       </div>
     </div>
   );
 }
 
 const SIMPLE_SECTIONS = {
-  honors: { title: "Awards & Certifications.", field: "bullet", placeholder: "e.g. AWS Certified, Forbes 30 Under 30", add: "Add award or certification", numbering: "none" },
-  patents: { title: "Your Patents.", field: "number", placeholder: "e.g. Patent Title (US Patent XX,XXX,XXX)", add: "Add patent", numbering: "ascending" },
-  talks: { title: "Invited Talks.", field: "reversed_number", placeholder: "e.g. Talk Title — Conference Name (Year)", add: "Add talk", numbering: "descending" },
+  honors: { eyebrow: "Awards", title: "Awards and certifications", description: "One line each: what, who awarded it, and when.", field: "bullet", placeholder: "e.g. AWS Certified, Forbes 30 Under 30", add: "Add award or certification", numbering: "none" },
+  patents: { eyebrow: "Patents", title: "Patents", description: "Title and patent number, numbered automatically.", field: "number", placeholder: "e.g. Patent Title (US Patent XX,XXX,XXX)", add: "Add patent", numbering: "ascending" },
+  talks: { eyebrow: "Talks", title: "Invited talks", description: "Talk title, event and year, most recent first.", field: "reversed_number", placeholder: "e.g. Talk Title — Conference Name (Year)", add: "Add talk", numbering: "descending" },
 } as const;
 
 /** One-line lists: honors (bullets), patents (numbered), talks (reverse-numbered). */
@@ -339,8 +329,7 @@ export function SimpleListSection({ section, entries, onChange }: Omit<EntrySect
   const count = list.items.length;
   return (
     <div className="animate-fade">
-      <h1 className={editorStyles.sectionTitle}>{config.title}</h1>
-      {section === "talks" && <p className={styles.sectionHint}>Listed in reverse order (most recent first).</p>}
+      <SectionHeading eyebrow={config.eyebrow} title={config.title} description={config.description} />
       <SortableList
         items={list.items}
         getId={getId}
@@ -390,7 +379,7 @@ function AIPolishButton({
     <button
       type="button"
       className={styles.iconBtn}
-      style={{ color: "var(--accent)" }}
+      data-tone="accent"
       title="AI polish"
       aria-label={label}
       disabled={ai.busy || !text.trim()}

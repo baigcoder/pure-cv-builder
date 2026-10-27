@@ -106,7 +106,9 @@ def test_ai_enhance_cv_returns_structured_fallback(monkeypatch) -> None:
     assert payload["source"] == "fallback"
     assert payload["cv_data"]["headline"].startswith("Full-Stack Developer")
     assert "ambiguous product requirements" in payload["cv_data"]["summary"]
-    assert payload["cv_data"]["skills"][-1]["label"] == "ATS Market Fit"
+    # Unverified skills are suggested, not written into the CV.
+    assert [row["label"] for row in payload["cv_data"]["skills"]] == ["Languages"]
+    assert payload["market_keywords"]
     assert "Live Demo" not in payload["cv_data"]["projects"][0]["summary"]
     assert payload["changes"]
 
@@ -115,3 +117,9 @@ def test_clean_plain_text_removes_markdown_formatting() -> None:
     result = clean_plain_text('```markdown\n- **Improved** `API` latency\n```')
 
     assert result == "Improved API latency"
+
+
+def test_fallback_enhancement_keeps_a_summary_the_user_wrote() -> None:
+    result = AIService.fallback_cv_enhancement({"summary": "Backend engineer who ships.", "headline": "Engineer"}, "Engineer")
+
+    assert result["cv_data"]["summary"] == "Backend engineer who ships."

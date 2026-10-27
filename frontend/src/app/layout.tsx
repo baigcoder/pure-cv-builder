@@ -6,12 +6,12 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
 
 export const metadata: Metadata = {
-  title: "ApplyForge | ATS Application Workspace",
+  title: "ApplyForge | ATS-friendly CV builder",
   description: "Build ATS-ready CVs, import resume PDFs, optimize live content, and draft tailored cover letters in one industrial application workspace.",
   keywords: ["ATS CV builder", "resume optimizer", "cover letter generator", "RenderCV editor", "job application workspace"],
   applicationName: "ApplyForge",
   openGraph: {
-    title: "ApplyForge | ATS Application Workspace",
+    title: "ApplyForge | ATS-friendly CV builder",
     description: "A focused workspace for ATS CVs, PDF import, AI enhancement, and cover letters.",
     type: "website",
   },

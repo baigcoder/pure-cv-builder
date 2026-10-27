@@ -1,38 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { CheckCircle2, FileText, PenLine, Rocket, Sparkles, Upload, WandSparkles, X, ArrowLeft } from "lucide-react";
+import { useMemo, useState } from "react";
+import { CheckCircle2, FileText, PenLine, Rocket, Upload, WandSparkles, X, ArrowLeft } from "lucide-react";
 import styles from "./page.module.css";
 import { Logo } from "@/components/Brand";
 import { ActionBar, SectionHeader, TemplateCard } from "@/components/AppUI";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { THEME_DATA } from "@/lib/themes";
+import { THEME_DATA, type ThemeMeta } from "@/lib/themes";
+
+type TemplateFilter = "all" | "trending" | "ats" | "academic";
+
+const TEMPLATE_FILTERS: Record<TemplateFilter, { label: string; match: (theme: ThemeMeta) => boolean }> = {
+  all: { label: "All", match: () => true },
+  trending: { label: "Trending", match: (theme) => theme.tags.includes("Trending") },
+  ats: { label: "Most ATS-safe", match: (theme) => theme.atsScore >= 93 },
+  academic: { label: "Academic", match: (theme) => theme.sectionOrderType === "academic" },
+};
 
 export default function Home() {
   const templates = THEME_DATA;
+  const [templateFilter, setTemplateFilter] = useState<TemplateFilter>("all");
+  const visibleTemplates = useMemo(() => templates.filter(TEMPLATE_FILTERS[templateFilter].match), [templates, templateFilter]);
 
   const features = [
     {
       icon: <WandSparkles size={24} />,
-      title: "AI Writing Ops",
-      description: "Generate stronger summaries, bullets, cover letters, and ATS upgrades with safe local fallbacks."
+      title: "AI that writes with you",
+      description: "Draft summaries, sharpen bullet points and get suggestions you review before anything changes."
     },
     {
       icon: <CheckCircle2 size={24} />,
-      title: "ATS Control Loop",
-      description: "Live score, market keyword checks, and one-click CV enhancement from the current editor state."
+      title: "Built to pass ATS",
+      description: "A live ATS score, keyword checks against the job ad, and parser-safe single-column layouts."
     },
     {
       icon: <FileText size={24} />,
-      title: "Render-Grade Preview",
-      description: "Keep the editable form and final PDF output visible in the same production workspace."
+      title: "See the real PDF as you type",
+      description: "The preview is the exact PDF you'll download, typeset properly, not an approximation."
     },
     {
       icon: <PenLine size={24} />,
-      title: "Application Packet",
-      description: "Build a matching one-page cover letter from the same CV, role, skills, location, and projects."
+      title: "Cover letters that match",
+      description: "Write a tailored cover letter for each job from your CV and the job description, in your tone."
     }
   ];
 
@@ -66,14 +77,14 @@ export default function Home() {
           <div className={styles.heroCopy}>
             <div className={styles.heroTag}>
               <Rocket size={14} />
-              Industrial ATS workspace
+              Free CV builder with live PDF preview
             </div>
             <h1 className={styles.heroTitle}>
-              Forge every application asset from one live CV system.
+              A CV that gets past the filters and in front of people.
             </h1>
             <p className={styles.heroSubtitle}>
-              ApplyForge combines PDF import, RenderCV previews, live ATS diagnostics,
-              AI enhancement, and cover-letter drafting into one focused operator console.
+              Pick a modern, ATS-friendly template, fill in your experience with AI help,
+              tailor it to each job and download a beautifully typeset PDF.
             </p>
             <ActionBar align="center">
             <button
@@ -81,18 +92,14 @@ export default function Home() {
               className="btn btn-primary btn-lg"
             >
               <PenLine size={20} />
-              Open Workspace
+              Create my CV
             </button>
             <Link
               href="/upload"
               className="btn btn-secondary btn-lg"
             >
               <Upload size={20} />
-              Upload Existing PDF
-            </Link>
-            <Link href="/editor?section=cover_letter" className="btn btn-secondary btn-lg">
-              <Sparkles size={20} />
-              Cover Letter
+              Import my existing CV
             </Link>
             </ActionBar>
           </div>
@@ -104,9 +111,9 @@ export default function Home() {
               ))}
             </div>
             <div className={styles.workflowCard}>
-              <span>Workspace</span>
-              <strong>CV editor + ATS engine + cover-letter studio</strong>
-              <p>Import once, strengthen the signal, tailor for every role, export clean documents.</p>
+              <span>New</span>
+              <strong>Trending templates for {new Date().getFullYear()}</strong>
+              <p>Modern Minimal, Executive Serif and Bold Accent: clean, current and still ATS-safe.</p>
             </div>
           </div>
 
@@ -114,15 +121,15 @@ export default function Home() {
           <div className={styles.trustIndicators}>
             <div className={styles.trustItem}>
               <CheckCircle2 size={16} className={styles.trustIcon} />
-              <span>RenderCV PDFs</span>
+              <span>Free to start</span>
             </div>
             <div className={styles.trustItem}>
               <CheckCircle2 size={16} className={styles.trustIcon} />
-              <span>ATS Optimized</span>
+              <span>ATS-friendly layouts</span>
             </div>
             <div className={styles.trustItem}>
               <CheckCircle2 size={16} className={styles.trustIcon} />
-              <span>No account wall</span>
+              <span>No sign-up needed</span>
             </div>
           </div>
         </section>
@@ -130,9 +137,9 @@ export default function Home() {
         {/* Features Section */}
         <section className={styles.features}>
           <SectionHeader
-            eyebrow="Document workflow"
-            title="A serious operating system for job documents"
-            description="Built for scanning, editing, checking, and exporting application material without marketing clutter."
+            eyebrow="Why ApplyForge"
+            title="Everything you need for the application, in one place"
+            description="Write your CV once, then tailor it and its cover letter for every role."
           />
           <div className={styles.featureGrid}>
             {features.map((feature, index) => (
@@ -148,12 +155,27 @@ export default function Home() {
         <section className={styles.templates}>
           <SectionHeader
             eyebrow="Templates"
-            title="Select the format that fits the hiring lane"
-            description="RenderCV-backed templates for engineering, academic, entry-level, and professional submissions."
+            title="Templates that look current and read cleanly"
+            description="Every template is single-column with standard headings, so applicant tracking systems read it correctly."
           />
 
+          <div className={styles.filterBar} role="tablist" aria-label="Filter templates">
+            {(Object.keys(TEMPLATE_FILTERS) as TemplateFilter[]).map((key) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={templateFilter === key}
+                className={`${styles.filterChip} ${templateFilter === key ? styles.filterChipActive : ""}`}
+                onClick={() => setTemplateFilter(key)}
+              >
+                {TEMPLATE_FILTERS[key].label}
+              </button>
+            ))}
+          </div>
+
           <div className={styles.templateGrid}>
-            {templates.map((theme) => (
+            {visibleTemplates.map((theme) => (
               <TemplateCard
                 key={theme.id}
                 name={theme.name}
@@ -170,38 +192,38 @@ export default function Home() {
         {/* How It Works Section */}
         <section className={styles.howItWorks}>
           <SectionHeader
-            eyebrow="Flow"
-            title="Move from raw resume to application packet"
-            description="A compact workflow for importing, strengthening, previewing, and sending."
+            eyebrow="How it works"
+            title="From blank page to ready-to-send in three steps"
+            description="Start from scratch or import the CV you already have."
           />
           <div className={styles.stepsGrid}>
             <div className={styles.stepCard}>
               <div className={styles.stepNumber}>1</div>
-              <h3 className={styles.stepTitle}>Pick a target format</h3>
-              <p className={styles.stepDesc}>Choose a theme that matches the role, seniority, and review context.</p>
+              <h3 className={styles.stepTitle}>Choose a template</h3>
+              <p className={styles.stepDesc}>Pick a style for your field and seniority. You can switch at any time.</p>
             </div>
             <div className={styles.stepCard}>
               <div className={styles.stepNumber}>2</div>
-              <h3 className={styles.stepTitle}>Strengthen the signal</h3>
-              <p className={styles.stepDesc}>Use live ATS scoring, AI polish, market keywords, and project links.</p>
+              <h3 className={styles.stepTitle}>Write and tailor</h3>
+              <p className={styles.stepDesc}>Fill in your experience, then paste a job ad to see missing keywords and tailor bullets.</p>
             </div>
             <div className={styles.stepCard}>
               <div className={styles.stepNumber}>3</div>
-              <h3 className={styles.stepTitle}>Export the packet</h3>
-              <p className={styles.stepDesc}>Download the CV PDF and draft a matching cover letter from the same data.</p>
+              <h3 className={styles.stepTitle}>Download and apply</h3>
+              <p className={styles.stepDesc}>Export a polished PDF and a matching cover letter for the same role.</p>
             </div>
           </div>
         </section>
 
         {/* Final CTA */}
         <section className={styles.finalCta}>
-          <h2 className={styles.ctaTitle}>Ready to harden your application packet?</h2>
-          <p className={styles.ctaSubtitle}>Open ApplyForge and turn your current CV into a role-ready submission.</p>
+          <h2 className={styles.ctaTitle}>Your next application starts here</h2>
+          <p className={styles.ctaSubtitle}>Build your CV in minutes. Free, with no sign-up needed.</p>
           <button
             onClick={() => setShowTemplateModal(true)}
             className="btn btn-primary btn-lg"
           >
-            Launch ApplyForge
+            Create my CV
           </button>
         </section>
       </main>
@@ -212,7 +234,7 @@ export default function Home() {
           <Link href="/upload" className={styles.footerLink}>Upload</Link>
           <Link href="/editor?section=cover_letter" className={styles.footerLink}>Cover Letter</Link>
         </div>
-        <p>ApplyForge. Built for disciplined application workflows.</p>
+        <p>ApplyForge. CVs and cover letters that get read.</p>
       </footer>
 
       {/* Template Selection Modal (triggered by Start Drafting) */}

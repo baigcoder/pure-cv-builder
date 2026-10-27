@@ -58,6 +58,8 @@ async def generate_cover_letter(
             hiring_manager=cover_letter.hiring_manager,
             job_description=cover_letter.job_description,
             tone=cover_letter.tone,
+            length=cover_letter.length,
+            highlights=cover_letter.highlights,
         )
 
     source = "ai"
@@ -96,6 +98,8 @@ def _stream_letter(cv_dict: dict, cover_letter, ai_only: bool) -> Iterator[str]:
             cover_letter.hiring_manager,
             cover_letter.job_description,
             cover_letter.tone,
+            cover_letter.length,
+            cover_letter.highlights,
         )
         parts: list[str] = []
         for delta in AIService.stream_provider(prompt, max_tokens=AIService.max_tokens_for_task("cover_letter")):
@@ -155,6 +159,11 @@ async def download_cover_letter(
         CoverLetterService.render_pdf,
         cv_data=cv_dict,
         letter_text=CoverLetterService.normalize_letter_spacing(letter_text),
+        design_settings=(
+            cover_letter_request.design_settings.model_dump() if cover_letter_request.design_settings else None
+        ),
+        company=cover_letter.company,
+        hiring_manager=cover_letter.hiring_manager,
     )
     safe_name = (cv_dict.get("name") or "Cover_Letter").replace(" ", "_")
 

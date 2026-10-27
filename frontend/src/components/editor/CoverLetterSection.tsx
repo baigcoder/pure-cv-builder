@@ -1,17 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Copy, Download, MapPin, Sparkles } from "lucide-react";
-import styles from "@/app/editor/editor.module.css";
+import { useMemo, useState } from "react";
+import { Check, Copy, Download, FileText, Sparkles, TriangleAlert, X } from "lucide-react";
+import editorStyles from "@/app/editor/editor.module.css";
+import styles from "./CoverLetter.module.css";
+import { Badge, Button, Card, CharCounter, Field, SectionHeading } from "@/components/ui";
 import { API_URL } from "@/lib/config";
-import type { CoverLetterDraft, CVData } from "@/lib/cvBuilder";
+import type { CoverLetterDraft, CVData, DesignSettings } from "@/lib/cvBuilder";
 import { downloadCoverLetterPDF, streamCoverLetter } from "@/lib/editorApi";
-import {
-    buildAutoCoverLetterContext,
-    getAutoSkillTerms,
-    inferCountryFromLocation,
-    inferTargetRole,
-} from "@/lib/coverLetterContext";
+import { buildAutoCoverLetterContext, inferTargetRole } from "@/lib/coverLetterContext";
+import { LETTER_LENGTHS, checkLetter, type LetterLength } from "@/lib/letterCheck";
 
 interface CoverLetterSectionProps {
     cvData: CVData;
@@ -19,373 +17,293 @@ interface CoverLetterSectionProps {
     renderableData: CVData;
     coverLetter: CoverLetterDraft;
     setCoverLetter: (update: (previous: CoverLetterDraft) => CoverLetterDraft) => void;
+    /** The CV's font and colour, so the letter PDF matches it. */
+    designSettings: DesignSettings;
     /** Called when the server fell back to the template (AI unavailable). */
     onTemplateFallback: () => void;
 }
 
-/** Cover letter brief, generation, editing, copy and PDF export. */
-export function CoverLetterSection({ cvData, renderableData, coverLetter, setCoverLetter, onTemplateFallback }: CoverLetterSectionProps) {
-    const [coverLetterStatus, setCoverLetterStatus] = useState<"idle" | "generating" | "copying" | "exporting">("idle");
-    const [coverLetterError, setCoverLetterError] = useState<string | null>(null);
-    const [coverLetterNotice, setCoverLetterNotice] = useState<string | null>(null);
+const TONES = [
+    { value: "professional", label: "Professional", hint: "Confident and polished" },
+    { value: "warm", label: "Warm", hint: "Friendly and personable" },
+    { value: "concise", label: "Concise", hint: "Short and direct" },
+    { value: "executive", label: "Executive", hint: "Strategic, impact-led" },
+    { value: "enthusiastic", label: "Enthusiastic", hint: "Energetic, upbeat" },
+];
 
-    const updateCoverLetter = (patch: Partial<CoverLetterDraft>) => {
-        setCoverLetter(prev => ({ ...prev, ...patch }));
-        setCoverLetterError(null);
-        setCoverLetterNotice(null);
-    };
+type Status = "idle" | "generating" | "exporting";
+type Notice = { tone: "success" | "error"; text: string } | null;
 
-    const validateCoverLetterInputs = (): string | null => {
-        if (!coverLetter.targetRole.trim()) return "Add the target role before generating a cover letter.";
-        if (!coverLetter.company.trim()) return "Add the company name before generating a cover letter.";
-        if (coverLetter.jobDescription.trim().length < 40) return "Paste at least a short job description so the letter can be tailored.";
-        if (!cvData.name.trim() && !cvData.summary.trim() && cvData.experience.length === 0) {
-            return "Add basic CV profile or experience details first so the letter has real material to use.";
-        }
-        return null;
+/** Cover letter brief, style, streaming generation, live quality checks, copy and PDF export. */
+export function CoverLetterSection({ cvData, renderableData, coverLetter, setCoverLetter, designSettings, onTemplateFallback }: CoverLetterSectionProps) {
+    const [status, setStatus] = useState<Status>("idle");
+    const [notice, setNotice] = useState<Notice>(null);
+    const [copied, setCopied] = useState(false);
+
+    const length: LetterLength = coverLetter.length || "standard";
+    const highlights = coverLetter.highlights || "";
+    const check = useMemo(() => checkLetter({ ...coverLetter, length }), [coverLetter, length]);
+    const passed = check.items.filter((item) => item.status === "pass").length;
+    const hasCvContent = Boolean(cvData.name.trim() || cvData.summary.trim() || cvData.experience.length || cvData.skills.length);
+    const jobDescriptionLength = coverLetter.jobDescription.trim().length;
+    const busy = status !== "idle";
+
+    const update = (patch: Partial<CoverLetterDraft>) => {
+        setCoverLetter((previous) => ({ ...previous, ...patch }));
+        setNotice(null);
     };
 
     /** Stream a letter into the editor as it's written; resolves with the final text. */
     const streamLetter = (draft: CoverLetterDraft) => {
-        setCoverLetter(prev => ({ ...prev, letter: "", source: "" }));
+        setCoverLetter((previous) => ({ ...previous, letter: "", source: "" }));
         return streamCoverLetter(API_URL, renderableData, draft, {
-            onDelta: (text) => setCoverLetter(prev => ({ ...prev, letter: prev.letter + text })),
-            onReset: () => setCoverLetter(prev => ({ ...prev, letter: "" })),
+            onDelta: (text) => setCoverLetter((previous) => ({ ...previous, letter: previous.letter + text })),
+            onReset: () => setCoverLetter((previous) => ({ ...previous, letter: "" })),
         });
     };
 
-    const generateCoverLetterDraft = async () => {
-        const validationError = validateCoverLetterInputs();
-        if (validationError) {
-            setCoverLetterError(validationError);
+    const generate = async (fromCvOnly: boolean) => {
+        if (!hasCvContent) {
+            setNotice({ tone: "error", text: "Add your profile, skills or experience first so the letter has real material to use." });
+            return;
+        }
+        const targetRole = coverLetter.targetRole.trim() || (fromCvOnly ? inferTargetRole(cvData, "") : "");
+        if (!targetRole) {
+            setNotice({ tone: "error", text: "Add the job title you're applying for." });
+            return;
+        }
+        if (!fromCvOnly && jobDescriptionLength < 40) {
+            setNotice({ tone: "error", text: "Paste the job ad (at least a few sentences) so the letter can match it, or use Draft from CV only." });
             return;
         }
 
-        setCoverLetterStatus("generating");
-        setCoverLetterError(null);
-        setCoverLetterNotice(null);
-
-        try {
-            const result = await streamLetter(coverLetter);
-            setCoverLetter(prev => ({
-                ...prev,
-                letter: result.letter,
-                source: result.source,
-            }));
-            setCoverLetterNotice(
-                result.source === "ai"
-                    ? "AI tailored the letter from your CV and the pasted job post."
-                    : "Template draft created locally. Add an AI key later for richer tailoring.",
-            );
-            if (result.source === "template") onTemplateFallback();
-        } catch (error) {
-            console.error("Cover letter generation failed:", error);
-            setCoverLetterError(error instanceof Error ? error.message : "Cover letter generation failed.");
-        } finally {
-            setCoverLetterStatus("idle");
-        }
-    };
-
-    const generateAutoCoverLetterDraft = async () => {
-        if (!cvData.name.trim() && !cvData.summary.trim() && cvData.experience.length === 0 && cvData.skills.length === 0) {
-            setCoverLetterError("Add profile, skills, or experience details first so the auto draft has real CV context.");
-            return;
-        }
-
-        const targetRole = inferTargetRole(cvData, coverLetter.targetRole);
-        const autoDraft: CoverLetterDraft = {
+        const draft: CoverLetterDraft = {
             ...coverLetter,
             targetRole,
-            company: coverLetter.company.trim(),
-            hiringManager: coverLetter.hiringManager.trim() || "Hiring Team",
-            jobDescription: coverLetter.jobDescription.trim().length >= 40
-                ? coverLetter.jobDescription
-                : buildAutoCoverLetterContext(cvData, targetRole),
+            length,
+            highlights,
+            jobDescription: jobDescriptionLength >= 40 ? coverLetter.jobDescription : buildAutoCoverLetterContext(cvData, targetRole),
         };
-
-        setCoverLetterStatus("generating");
-        setCoverLetterError(null);
-        setCoverLetterNotice(null);
-        setCoverLetter(prev => ({ ...prev, ...autoDraft }));
-
+        setStatus("generating");
+        setNotice(null);
+        setCoverLetter((previous) => ({ ...previous, targetRole }));
         try {
-            const result = await streamLetter(autoDraft);
-            setCoverLetter(prev => ({
-                ...prev,
-                targetRole: autoDraft.targetRole,
-                company: autoDraft.company,
-                hiringManager: autoDraft.hiringManager,
-                jobDescription: autoDraft.jobDescription,
-                letter: result.letter,
-                source: result.source,
-            }));
-            setCoverLetterNotice(
-                result.source === "ai"
-                    ? "AI auto-drafted the letter from your live CV, location, skills, and application context."
-                    : "Auto draft created from your live CV. Add an AI key later for richer tailoring.",
-            );
-            if (result.source === "template") onTemplateFallback();
+            const result = await streamLetter(draft);
+            setCoverLetter((previous) => ({ ...previous, targetRole, letter: result.letter, source: result.source }));
+            if (result.source === "ai") {
+                setNotice({ tone: "success", text: "Your letter is ready. Read it through and make it sound like you." });
+            } else {
+                setNotice({ tone: "success", text: "Drafted from a template because AI isn't available right now. Edit it to add your voice." });
+                onTemplateFallback();
+            }
         } catch (error) {
-            console.error("Auto cover letter generation failed:", error);
-            setCoverLetterError(error instanceof Error ? error.message : "Auto cover letter generation failed.");
+            setNotice({ tone: "error", text: error instanceof Error ? error.message : "Couldn't write the letter. Please try again." });
         } finally {
-            setCoverLetterStatus("idle");
+            setStatus("idle");
         }
     };
 
-    const copyCoverLetter = async () => {
-        if (!coverLetter.letter.trim()) return;
-        setCoverLetterStatus("copying");
-        setCoverLetterError(null);
+    const copy = async () => {
         try {
             await navigator.clipboard.writeText(coverLetter.letter);
-            setCoverLetterNotice("Cover letter copied to clipboard.");
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1600);
         } catch {
-            setCoverLetterError("Copy failed. Select the letter text and copy it manually.");
-        } finally {
-            setCoverLetterStatus("idle");
+            setNotice({ tone: "error", text: "Couldn't copy. Select the text and copy it manually." });
         }
     };
 
-    const downloadCoverLetter = async () => {
-        const validationError = validateCoverLetterInputs();
-        if (validationError) {
-            setCoverLetterError(validationError);
+    const download = async () => {
+        if (!coverLetter.targetRole.trim() || jobDescriptionLength < 40) {
+            setNotice({ tone: "error", text: "Add the job title and job ad before downloading." });
             return;
         }
-
-        setCoverLetterStatus("exporting");
-        setCoverLetterError(null);
+        setStatus("exporting");
+        setNotice(null);
         try {
-            await downloadCoverLetterPDF(API_URL, renderableData, coverLetter);
+            await downloadCoverLetterPDF(API_URL, renderableData, { ...coverLetter, length, highlights }, designSettings);
         } catch (error) {
-            console.error("Cover letter PDF export failed:", error);
-            setCoverLetterError(error instanceof Error ? error.message : "Cover letter PDF export failed.");
+            setNotice({ tone: "error", text: error instanceof Error ? error.message : "Couldn't create the PDF." });
         } finally {
-            setCoverLetterStatus("idle");
+            setStatus("idle");
         }
     };
 
-    const coverLetterWordCount = coverLetter.letter.trim().split(/\s+/).filter(Boolean).length;
-    const jobDescriptionLength = coverLetter.jobDescription.trim().length;
-    const coverLetterReadyChecks = [
-        { label: "Role", done: Boolean(coverLetter.targetRole.trim()) },
-        { label: "Company", done: Boolean(coverLetter.company.trim()) },
-        { label: "Job post", done: jobDescriptionLength >= 40 },
-        { label: "CV context", done: Boolean(renderableData.summary.trim() || renderableData.experience.length || renderableData.skills.length) },
-        { label: "Letter", done: Boolean(coverLetter.letter.trim()) },
-    ];
-    const completedCoverLetterChecks = coverLetterReadyChecks.filter(item => item.done).length;
-    const inferredCountry = inferCountryFromLocation(cvData.location);
-    const autoSkillPreview = getAutoSkillTerms(cvData).slice(0, 5);
-    const inferredRolePreview = inferTargetRole(cvData, coverLetter.targetRole);
-    const coverLetterWordStatus =
-        coverLetterWordCount === 0
-            ? "Draft pending"
-            : coverLetterWordCount < 180
-                ? "Likely too short"
-                : coverLetterWordCount <= 380
-                    ? "One-page range"
-                    : "Trim for one page";
+    const hasLetter = Boolean(coverLetter.letter.trim());
+    const contact = [cvData.email, cvData.phone, cvData.location].filter(Boolean).join("  ·  ");
 
     return (
-        <div className="animate-fade">
-            <div className={styles.coverLetterHero}>
-                <div className={styles.coverLetterHeroContent}>
-                    <span className={styles.coverLetterKicker}>Application packet</span>
-                    <h1 className={styles.sectionTitle}>Generate the role narrative.</h1>
-                    <p>Turn the live CV, role context, location, skills, and projects into a focused one-page letter with an editable final copy.</p>
-                    <div className={styles.coverLetterPills}>
-                        <span>{coverLetter.source === "ai" ? "AI tailored" : coverLetter.source === "template" ? "Template draft" : "Ready to draft"}</span>
-                        <span>{coverLetterWordStatus}</span>
-                    </div>
+        <div className={`animate-fade ${styles.root}`}>
+            <SectionHeading
+                eyebrow="Cover letter"
+                title="Write a letter for this job"
+                description="Paste the job ad, pick a tone and length, and get a letter written from your CV. Edit anything before you download it."
+            />
+
+            <Card title="The job" description="The more of the job ad you paste, the better the letter matches it." className={editorStyles.formCard}>
+                <div className={styles.jobGrid}>
+                    <Field label="Job title" required>
+                        <input className="form-input" placeholder="Senior Full-Stack Engineer" value={coverLetter.targetRole} onChange={(event) => update({ targetRole: event.target.value })} />
+                    </Field>
+                    <Field label="Company" optional>
+                        <input className="form-input" placeholder="Northwind" value={coverLetter.company} onChange={(event) => update({ company: event.target.value })} />
+                    </Field>
+                    <Field label="Hiring manager" optional hint="A name gets more replies than “Hiring Team”.">
+                        <input className="form-input" placeholder="Priya Shah" value={coverLetter.hiringManager} onChange={(event) => update({ hiringManager: event.target.value })} />
+                    </Field>
                 </div>
-                <div className={styles.coverLetterScore}>
-                    <strong>{completedCoverLetterChecks}/{coverLetterReadyChecks.length}</strong>
-                    <span>ready</span>
-                </div>
-            </div>
-
-            <div className={styles.coverLetterChecklist}>
-                {coverLetterReadyChecks.map(item => (
-                    <span key={item.label} className={item.done ? styles.coverLetterCheckDone : ""}>
-                        <span>{item.done ? "✓" : ""}</span>
-                        {item.label}
-                    </span>
-                ))}
-            </div>
-
-            <div className={styles.coverLetterAutoPanel}>
-                <div>
-                    <span className={styles.summaryEyebrow}>Auto CV analysis</span>
-                    <strong>{inferredRolePreview}</strong>
-                    <p>
-                        {cvData.location
-                            ? `${cvData.location}${inferredCountry ? ` (${inferredCountry})` : ""}`
-                            : "Add a location to tailor country or market context."}
-                    </p>
-                </div>
-                <div className={styles.coverLetterAutoTags}>
-                    {autoSkillPreview.length > 0
-                        ? autoSkillPreview.map(skill => <span key={skill}>{skill}</span>)
-                        : <span>Add skills for stronger targeting</span>}
-                </div>
-            </div>
-
-            <div className={styles.coverLetterWorkspace}>
-                <section className={styles.coverLetterPanel}>
-                    <div className={styles.coverLetterPanelHeader}>
-                        <div>
-                            <span className={styles.summaryEyebrow}>Target</span>
-                            <strong>Application brief</strong>
-                        </div>
-                        <small>Required for tailoring</small>
-                    </div>
-
-                    <div className={styles.coverLetterGrid}>
-                        <div className="form-group">
-                            <label className="form-label">Target Role <span style={{ color: '#e53e3e' }}>*</span></label>
-                            <input
-                                className="form-input"
-                                placeholder="Senior Full-Stack Engineer"
-                                value={coverLetter.targetRole}
-                                onChange={e => updateCoverLetter({ targetRole: e.target.value })}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Company <span style={{ color: '#e53e3e' }}>*</span></label>
-                            <input
-                                className="form-input"
-                                placeholder="Northstar Labs"
-                                value={coverLetter.company}
-                                onChange={e => updateCoverLetter({ company: e.target.value })}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Hiring Manager</label>
-                            <input
-                                className="form-input"
-                                placeholder="Hiring Team"
-                                value={coverLetter.hiringManager}
-                                onChange={e => updateCoverLetter({ hiringManager: e.target.value })}
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Tone</label>
-                            <select
-                                className="form-input"
-                                value={coverLetter.tone}
-                                onChange={e => updateCoverLetter({ tone: e.target.value })}
-                            >
-                                <option value="professional">Professional</option>
-                                <option value="warm">Warm</option>
-                                <option value="concise">Concise</option>
-                                <option value="executive">Executive</option>
-                            </select>
-                        </div>
-                    </div>
-                </section>
-
-                <section className={styles.coverLetterPanel}>
-                    <div className={styles.coverLetterPanelHeader}>
-                        <div>
-                            <span className={styles.summaryEyebrow}>Job match</span>
-                            <strong>Role description</strong>
-                        </div>
-                        <small>{jobDescriptionLength} chars</small>
-                    </div>
+                <Field
+                    label="Job ad"
+                    hint={jobDescriptionLength >= 40 ? `${check.keywords.length} key terms found` : "Paste the responsibilities and requirements"}
+                    aside={<CharCounter length={jobDescriptionLength} recommended={4000} max={12000} />}
+                >
                     <textarea
-                        className={`${styles.coverLetterJobPost} form-textarea`}
-                        placeholder="Paste the role description, requirements, and responsibilities here..."
+                        className="form-textarea"
+                        rows={6}
+                        maxLength={12000}
+                        placeholder="Paste the job description here..."
                         value={coverLetter.jobDescription}
-                        onChange={e => updateCoverLetter({ jobDescription: e.target.value })}
-                        rows={7}
+                        onChange={(event) => update({ jobDescription: event.target.value })}
                     />
-                    <div className={styles.coverLetterMeta}>
-                        <span>{jobDescriptionLength >= 40 ? "Enough context to tailor" : "Paste at least 40 characters"}</span>
-                        <span>Keywords are pulled from this text</span>
-                    </div>
-                </section>
+                </Field>
+            </Card>
 
-                <section className={styles.coverLetterPanel}>
-                    <div className={styles.coverLetterPanelHeader}>
-                        <div>
-                            <span className={styles.summaryEyebrow}>Draft controls</span>
-                            <strong>Generate and export</strong>
+            <Card title="Style" className={editorStyles.formCard}>
+                <div className={styles.styleRow}>
+                    <div>
+                        <span className="form-label" id="letter-tone-label">Tone</span>
+                        <div className={styles.choices} role="radiogroup" aria-labelledby="letter-tone-label">
+                            {TONES.map((tone) => (
+                                <button
+                                    key={tone.value}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={coverLetter.tone === tone.value}
+                                    className={`${styles.choice} ${coverLetter.tone === tone.value ? styles.choiceActive : ""}`}
+                                    onClick={() => update({ tone: tone.value })}
+                                    title={tone.hint}
+                                >
+                                    {tone.label}
+                                </button>
+                            ))}
                         </div>
-                        <small>{coverLetterStatus === "idle" ? "Ready" : coverLetterStatus}</small>
                     </div>
-                    <div className={styles.coverLetterActions}>
-                        <button
-                            className="btn btn-secondary"
-                            onClick={generateAutoCoverLetterDraft}
-                            disabled={coverLetterStatus === "generating"}
-                            title="Build a cover letter from the live CV, location, skills, projects, and experience"
-                        >
-                            <MapPin size={16} />
-                            Auto Draft from CV
-                        </button>
-                        <button
-                            className="btn btn-primary"
-                            onClick={generateCoverLetterDraft}
-                            disabled={coverLetterStatus === "generating"}
-                        >
-                            <Sparkles size={16} />
-                            {coverLetterStatus === "generating" ? "Drafting..." : coverLetter.letter.trim() ? "Regenerate" : "Generate"}
-                        </button>
-                        <button
-                            className="btn btn-secondary"
-                            onClick={copyCoverLetter}
-                            disabled={!coverLetter.letter.trim() || coverLetterStatus === "copying"}
-                        >
-                            <Copy size={16} />
-                            Copy
-                        </button>
-                        <button
-                            className="btn btn-secondary"
-                            onClick={downloadCoverLetter}
-                            disabled={coverLetterStatus === "exporting"}
-                        >
-                            <Download size={16} />
-                            {coverLetterStatus === "exporting" ? "Exporting..." : "Cover PDF"}
-                        </button>
-                    </div>
-                    {(coverLetterError || coverLetterNotice) && (
-                        <div className={coverLetterError ? styles.coverLetterError : styles.coverLetterNotice}>
-                            {coverLetterError || coverLetterNotice}
+                    <div>
+                        <span className="form-label" id="letter-length-label">Length</span>
+                        <div className={styles.choices} role="radiogroup" aria-labelledby="letter-length-label">
+                            {(Object.keys(LETTER_LENGTHS) as LetterLength[]).map((key) => (
+                                <button
+                                    key={key}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={length === key}
+                                    className={`${styles.choice} ${length === key ? styles.choiceActive : ""}`}
+                                    onClick={() => update({ length: key })}
+                                >
+                                    {LETTER_LENGTHS[key].label}
+                                    <span className={styles.choiceMeta}>~{Math.round((LETTER_LENGTHS[key].min + LETTER_LENGTHS[key].max) / 2 / 10) * 10}</span>
+                                </button>
+                            ))}
                         </div>
-                    )}
-                </section>
+                    </div>
+                </div>
+                <Field label="What should it highlight?" optional hint="For example, why you want this company, or a project you're proud of." aside={<CharCounter length={highlights.length} recommended={400} max={1000} />}>
+                    <textarea
+                        className="form-textarea"
+                        rows={3}
+                        maxLength={1000}
+                        placeholder="I've used Northwind as a seller for three years and..."
+                        value={highlights}
+                        onChange={(event) => update({ highlights: event.target.value })}
+                    />
+                </Field>
+                <div className={styles.generateRow}>
+                    <Button variant="primary" icon={<Sparkles size={16} />} loading={status === "generating"} disabled={busy} onClick={() => generate(false)}>
+                        {status === "generating" ? "Writing..." : hasLetter ? "Rewrite letter" : "Write my letter"}
+                    </Button>
+                    <Button variant="ghost" icon={<FileText size={16} />} disabled={busy} onClick={() => generate(true)} title="Write a general letter from your CV without a job ad">
+                        Draft from CV only
+                    </Button>
+                </div>
+                {notice && (
+                    <div className={`${editorStyles.notice} ${editorStyles[`notice_${notice.tone}`]}`} role={notice.tone === "error" ? "alert" : "status"}>
+                        <span>{notice.text}</span>
+                        <button type="button" className={editorStyles.noticeClose} onClick={() => setNotice(null)} aria-label="Dismiss message">
+                            <X size={14} />
+                        </button>
+                    </div>
+                )}
+            </Card>
 
-                <section className={styles.coverLetterDocumentPanel}>
-                    <div className={styles.coverLetterDocumentToolbar}>
-                        <div>
-                            <span className={styles.summaryEyebrow}>Letter workspace</span>
-                            <strong>{coverLetter.targetRole || "Target role"}{coverLetter.company ? ` at ${coverLetter.company}` : ""}</strong>
+            <div className={styles.letterLayout}>
+                <section className={styles.paperCard} aria-label="Your letter">
+                    <div className={styles.paperToolbar}>
+                        <div className={styles.paperTitle}>
+                            <strong>Your letter</strong>
+                            {coverLetter.source === "ai" && <Badge tone="accent">AI written</Badge>}
+                            {coverLetter.source === "template" && <Badge>Template</Badge>}
+                            <span className={styles.wordCount}>{check.words} words</span>
                         </div>
-                        <div className={styles.coverLetterStats}>
-                            <span>{coverLetterWordCount} words</span>
-                            <span>{coverLetterWordStatus}</span>
+                        <div className={styles.paperActions}>
+                            <Button size="sm" variant="secondary" icon={copied ? <Check size={14} /> : <Copy size={14} />} disabled={!hasLetter} onClick={copy}>
+                                {copied ? "Copied" : "Copy"}
+                            </Button>
+                            <Button size="sm" variant="primary" icon={<Download size={14} />} loading={status === "exporting"} disabled={!hasLetter || busy} onClick={download}>
+                                Download PDF
+                            </Button>
                         </div>
                     </div>
-                    <div className={styles.coverLetterPaper}>
-                        <div className={styles.coverLetterPaperHeader}>
-                            <strong>{cvData.name || "Your Name"}</strong>
-                            <span>{[cvData.email, cvData.phone, cvData.location].filter(Boolean).join(" | ") || "Contact details from your CV"}</span>
+                    <div className={styles.paper}>
+                        <div className={styles.paperHeader} style={{ borderColor: designSettings.primaryColor }}>
+                            <strong style={{ color: designSettings.primaryColor }}>{cvData.name || "Your name"}</strong>
+                            {cvData.headline && <span className={styles.paperHeadline} style={{ color: designSettings.primaryColor }}>{cvData.headline}</span>}
+                            <span>{contact || "Contact details from your CV"}</span>
                         </div>
                         <textarea
-                            className={styles.coverLetterTextarea}
-                            placeholder="Your tailored cover letter will appear here. You can edit it before copying or exporting."
+                            className={styles.paperText}
+                            aria-label="Letter text"
+                            placeholder={"Your letter will appear here as it's written.\n\nYou can also type or paste your own and use the checks alongside to improve it."}
                             value={coverLetter.letter}
-                            onChange={e => updateCoverLetter({ letter: e.target.value, source: coverLetter.source || "template" })}
-                            rows={18}
+                            onChange={(event) => update({ letter: event.target.value, source: coverLetter.source || "template" })}
                         />
                     </div>
-                    <div className={styles.coverLetterFooter}>
-                        <span>Recommended: 250-350 words</span>
-                        <span>Plain text, one page, ATS-readable</span>
-                    </div>
+                    <p className={styles.paperNote}>The PDF uses your CV&apos;s font and accent colour and fits on one page.</p>
                 </section>
+
+                <Card
+                    title="Letter check"
+                    description={hasLetter ? `${passed} of ${check.items.length} looking good` : "Checks appear once there's a letter."}
+                    className={styles.checkCard}
+                >
+                    {hasLetter && (
+                        <ul className={styles.checkList}>
+                            {check.items.map((item) => (
+                                <li key={item.id} className={styles.checkItem} data-status={item.status}>
+                                    <span className={styles.checkIcon} aria-hidden="true">
+                                        {item.status === "pass" ? <Check size={13} strokeWidth={3} /> : <TriangleAlert size={13} />}
+                                    </span>
+                                    <span>
+                                        <strong>{item.label}</strong>
+                                        <span className={styles.checkDetail}>{item.detail}</span>
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {check.keywords.length > 0 && (
+                        <div className={styles.keywords}>
+                            <span className="form-label">Key terms from the job ad</span>
+                            <div className={styles.keywordList}>
+                                {check.keywords.map((keyword) => (
+                                    <span key={keyword.term} className={styles.keyword} data-found={hasLetter && keyword.found ? "true" : "false"}>
+                                        {hasLetter && keyword.found && <Check size={11} strokeWidth={3} aria-label="Used" />}
+                                        {keyword.term}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </Card>
             </div>
         </div>
     );

@@ -5,29 +5,34 @@ import type { components } from "@/lib/api/schema";
 import { postJSON } from "@/lib/api/client";
 import { API_URL } from "@/lib/config";
 import { CVData, DesignSettings, hasRenderableContent, toRenderableCVData } from "@/lib/cvBuilder";
-import { THEME_DATA, getDownloadSectionOrder, getRenderThemeId } from "@/lib/themes";
+import { createSampleCV } from "@/lib/sampleCV";
+import { THEME_DATA, getDownloadSectionOrder, getRenderThemeId, getTemplateDesign } from "@/lib/themes";
 
 type ThumbnailsResponse = components["schemas"]["ThumbnailsResponse"];
 
 interface Options {
   cvData: CVData;
   designSettings: DesignSettings;
+  /** The CV's current template; it renders with the CV's own design settings. */
+  activeTheme?: string;
   /** Only fetch while a gallery is on screen. */
   enabled: boolean;
 }
 
 /**
  * Page one of the user's own CV in every template, as small PNG data URLs
- * keyed by template id. Empty until the CV has printable content, so callers
- * fall back to the static sample images.
+ * keyed by template id. An empty CV renders the sample CV instead; callers
+ * show the static images until the first response.
  */
-export function useTemplateThumbnails({ cvData, designSettings, enabled }: Options) {
+export function useTemplateThumbnails({ cvData, designSettings, activeTheme, enabled }: Options) {
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const renderable = toRenderableCVData(cvData);
-    if (!enabled || !hasRenderableContent(renderable)) return;
+    if (!enabled) return;
+    // An empty CV previews the sample, so the gallery still shows each style.
+    const own = toRenderableCVData(cvData);
+    const renderable = hasRenderableContent(own) ? own : toRenderableCVData(createSampleCV());
 
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
@@ -41,6 +46,7 @@ export function useTemplateThumbnails({ cvData, designSettings, enabled }: Optio
             items: THEME_DATA.map((theme) => ({
               theme: getRenderThemeId(theme.id),
               section_order: getDownloadSectionOrder(theme.id),
+              design_settings: getTemplateDesign(theme.id, designSettings, activeTheme),
             })),
           },
           "Couldn't render template previews.",
@@ -62,7 +68,7 @@ export function useTemplateThumbnails({ cvData, designSettings, enabled }: Optio
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [cvData, designSettings, enabled]);
+  }, [cvData, designSettings, activeTheme, enabled]);
 
   return { thumbnails, isLoading };
 }

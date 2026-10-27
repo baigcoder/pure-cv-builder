@@ -162,6 +162,21 @@ def infer_country(location: str) -> str:
     return parts[-1] if len(parts) > 1 else ""
 
 
+COVER_LETTER_LENGTHS: dict[str, tuple[int, int]] = {
+    "short": (150, 220),
+    "standard": (250, 350),
+    "detailed": (350, 450),
+}
+
+COVER_LETTER_TONES: dict[str, str] = {
+    "professional": "confident and polished; clear, direct sentences with no hype.",
+    "warm": "friendly and personable while staying professional; show genuine interest in the team.",
+    "concise": "brief and to the point; short paragraphs and no filler.",
+    "executive": "strategic and outcome-focused; emphasise leadership, scope and business impact.",
+    "enthusiastic": "energetic and upbeat, without exclamation marks or exaggeration.",
+}
+
+
 def compact_cv_context(cv_data: dict) -> dict:
     """Keep cover-letter prompts focused and token-bounded."""
     location = cv_data.get("location", "")
@@ -359,7 +374,8 @@ class AIService:
 
 Improve the provided live CV JSON for the target role while preserving all factual information.
 Do not invent employers, degrees, dates, metrics, certifications, or links.
-You may improve wording, add a missing headline, add a 45-70 word professional summary, clean noisy project titles/summaries, and add missing role-relevant skills only when they are supported by the CV context.
+You may improve wording, add a missing headline, add a 45-70 word professional summary, clean noisy project titles/summaries, and strengthen bullet points with stronger action verbs and clearer impact.
+Only add a skill when the CV already shows it in use. Put role-relevant skills the CV does not show in "market_keywords" instead; the user decides whether to add them.
 Keep plain text only. No markdown. No placeholders. No fake claims.
 
 Current ATS score: {current_score}
@@ -391,13 +407,13 @@ Return one JSON object only with this exact shape:
         existing_skills = collect_skill_terms(enhanced)
 
         if not str(enhanced.get("headline", "") or "").strip():
-            top_skills = existing_skills[:2] or market_keywords[:2]
-            enhanced["headline"] = f"{target_role} | {', '.join(top_skills)} | Production Web Apps"
+            top_skills = existing_skills[:2]
+            enhanced["headline"] = " | ".join([target_role, ", ".join(top_skills)] if top_skills else [target_role])
             changes.append("Added a role-specific headline for recruiter and ATS matching.")
 
-        summary_words = word_count(str(enhanced.get("summary", "") or ""))
-        if summary_words < 35:
-            skills_for_summary = existing_skills[:5] or market_keywords[:5]
+        # Only fill an empty summary; a short one the user wrote stays theirs.
+        if not str(enhanced.get("summary", "") or "").strip():
+            skills_for_summary = existing_skills[:5] or [target_role.lower()]
             location = str(enhanced.get("location", "") or "").strip()
             location_phrase = f" Based in {location}, " if location else " "
             enhanced["summary"] = (
@@ -405,19 +421,11 @@ Return one JSON object only with this exact shape:
                 f"{', '.join(skills_for_summary)}.{location_phrase}I turn ambiguous product requirements into shipped features, "
                 "clean APIs, responsive interfaces, and measurable project outcomes across full-stack systems."
             )
-            changes.append("Added a 35-90 word professional summary aligned with ATS recommendations.")
+            changes.append("Added a professional summary aligned with ATS recommendations.")
 
-        missing_market_skills = [
-            skill for skill in market_keywords
-            if skill.lower() not in {existing.lower() for existing in existing_skills}
-        ][:6]
-        if missing_market_skills:
-            skills = enhanced.get("skills")
-            if not isinstance(skills, list):
-                skills = []
-            skills.append({"label": "ATS Market Fit", "details": ", ".join(missing_market_skills)})
-            enhanced["skills"] = skills
-            changes.append("Added a focused ATS Market Fit skill row based on the target role.")
+        # Skills the CV doesn't mention are suggested, never added: only the user knows if they're true.
+        existing_lower = {existing.lower() for existing in existing_skills}
+        missing_market_skills = [skill for skill in market_keywords if skill.lower() not in existing_lower]
 
         projects = enhanced.get("projects")
         if isinstance(projects, list):
@@ -440,7 +448,7 @@ Return one JSON object only with this exact shape:
         return {
             "cv_data": enhanced,
             "changes": changes[:8],
-            "market_keywords": market_keywords[:12],
+            "market_keywords": missing_market_skills[:12],
         }
 
     @staticmethod
@@ -550,7 +558,7 @@ Return one JSON object only with this exact shape:
             "skills": (1, 35),
             "generate": (8, 90),
             "honor": (2, 24),
-            "cover_letter": (180, 430),
+            "cover_letter": (120, 520),
         }
         minimum, maximum = limits[task]
         if count < minimum:
@@ -688,31 +696,46 @@ Return one JSON object only with this exact shape:
         hiring_manager: str,
         job_description: str,
         tone: str,
+        length: str = "standard",
+        highlights: str = "",
     ) -> str:
         """Prompt for a tailored, one-page, plain-text cover letter."""
-        return f"""Write a tailored, ATS-readable cover letter.
+        low, high = COVER_LETTER_LENGTHS.get(length, COVER_LETTER_LENGTHS["standard"])
+        tone_guide = COVER_LETTER_TONES.get(tone, COVER_LETTER_TONES["professional"])
+        emphasis = f"\nThe candidate wants the letter to emphasise:\n{highlights}\n" if highlights else ""
+        return f"""Write a tailored cover letter that a hiring manager will actually want to read.
 
 Target role: {target_role}
-Company: {company}
-Hiring manager: {hiring_manager or "Hiring Manager"}
-Tone: {tone}
-
+Company: {company or "(not given)"}
+Hiring manager: {hiring_manager or "(not given)"}
+{emphasis}
 CV snapshot:
 {json.dumps(compact_cv_context(cv_data), ensure_ascii=False)}
 
 Job description:
 {job_description}
 
-Requirements:
-- One page, 250-350 words.
-- Plain text only, no markdown, no bullets, no placeholders.
-- If the company is blank or generic, write to "your team" and do not invent a company name.
-- Include greeting and formal sign-off.
-- Open with a specific value proposition, not a generic introduction.
-- Match keywords from the job description naturally.
-- Use the candidate's location/country context when it strengthens fit, but do not invent work authorization.
-- Prioritize the candidate's edited skills, projects, and recent experience.
-- Mention 1-2 concrete achievements or projects from the CV when available.
+Structure (plain paragraphs, no headings):
+1. Greeting: "Dear {{name}}," if a hiring manager is given, otherwise "Dear Hiring Team,".
+2. Opening (2-3 sentences): name the role and lead with the single strongest reason the candidate fits,
+   tied to what this job needs. Never start with "I am writing to" or "I am applying".
+3. Evidence (1-2 paragraphs): pick the 2-3 most important requirements in the job description and show,
+   with specific results from the CV, how the candidate has already done that work. Keep numbers exactly as
+   they appear in the CV.
+4. Why this company (2-3 sentences): connect the candidate's interests or the emphasis above to the company
+   and the role. If the company is not given, write about the team and the work instead.
+5. Close: one confident sentence asking for a conversation, then "Sincerely," and the candidate's name on its own line.
+
+Rules:
+- {low}-{high} words in total. Plain text only: no markdown, bullets, brackets or placeholders.
+- Tone: {tone_guide}
+- Use only facts from the CV snapshot and the emphasis above. Never invent employers, metrics, degrees,
+  visas or work authorisation.
+- Weave in the job description's key skills and terms naturally, using its exact wording where truthful.
+- Avoid cliches: "passionate", "team player", "hard-working", "go-getter", "think outside the box",
+  "I believe I would be a great fit", "To whom it may concern".
+- Vary sentence openings; do not start more than two sentences with "I".
+- If the company is blank or generic, do not invent a company name.
 """
 
     @staticmethod
@@ -723,8 +746,12 @@ Requirements:
         hiring_manager: str,
         job_description: str,
         tone: str,
+        length: str = "standard",
+        highlights: str = "",
     ) -> str:
         """Generate a tailored cover letter from CV data and a job description."""
-        prompt = AIService.cover_letter_prompt(cv_data, target_role, company, hiring_manager, job_description, tone)
+        prompt = AIService.cover_letter_prompt(
+            cv_data, target_role, company, hiring_manager, job_description, tone, length, highlights
+        )
         result = AIService.suggest("cover_letter", prompt)
         return result.text if result.source == "ai" else ""
