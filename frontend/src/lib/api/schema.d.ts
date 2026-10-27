@@ -377,6 +377,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/job/tailor-cv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tailor Cv
+         * @description The whole CV tailored to a job (headline, summary, skills order, bullets) for review.
+         */
+        post: operations["tailor_cv_api_job_tailor_cv_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -1881,6 +1901,38 @@ export interface components {
             /** Suggestions */
             suggestions?: components["schemas"]["BulletSuggestion"][];
         };
+        /** TailorCVRequest */
+        TailorCVRequest: {
+            cv_data: components["schemas"]["CVData"];
+            /** Job Description */
+            job_description: string;
+            /**
+             * Target Role
+             * @default
+             */
+            target_role?: string;
+        };
+        /** TailorCVResponse */
+        TailorCVResponse: {
+            /** Changes */
+            changes?: string[];
+            /** @description The CV with every suggested edit applied; the editor diffs it for review. */
+            cv_data: components["schemas"]["CVData"];
+            /**
+             * Missing Keywords
+             * @description Job skills the CV lacks; add only if true.
+             */
+            missing_keywords?: string[];
+            /** Score After */
+            score_after: number;
+            /** Score Before */
+            score_before: number;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "ai" | "rules";
+        };
         /** TailorRequest */
         TailorRequest: {
             /** Base Resume Id */
@@ -2672,6 +2724,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TailorBulletsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tailor_cv_api_job_tailor_cv_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TailorCVRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TailorCVResponse"];
                 };
             };
             /** @description Validation Error */

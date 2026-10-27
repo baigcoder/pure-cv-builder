@@ -151,3 +151,18 @@ class JobFetchResponse(BaseModel):
     company: str
     location: str
     description: str
+
+
+class TailorCVRequest(BaseModel):
+    cv_data: CVData
+    job_description: str = Field(..., min_length=40, max_length=12000)
+    target_role: str = Field(default="", max_length=120)
+
+
+class TailorCVResponse(BaseModel):
+    cv_data: CVData = Field(description="The CV with every suggested edit applied; the editor diffs it for review.")
+    source: Literal["ai", "rules"]
+    changes: list[str] = Field(default_factory=list)
+    missing_keywords: list[str] = Field(default_factory=list, description="Job skills the CV lacks; add only if true.")
+    score_before: int = Field(ge=0, le=100)
+    score_after: int = Field(ge=0, le=100)

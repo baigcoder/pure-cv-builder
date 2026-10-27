@@ -108,7 +108,7 @@ export function diffCV(before: CVData, after: CVData): CVChange[] {
           changes.push({
             id: `${section.key}.${index}.${field}`,
             group: section.label,
-            label: `${title}: ${FIELD_LABELS[field] || field}`,
+            label: field === "details" ? title : `${title}: ${FIELD_LABELS[field] || field}`,
             before: was,
             after: now,
             path: [section.key, index, field],

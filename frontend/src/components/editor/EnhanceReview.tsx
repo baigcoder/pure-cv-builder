@@ -13,14 +13,24 @@ interface EnhanceReviewProps {
   suggestedKeywords: string[];
   source: "ai" | "fallback";
   beforeScore: number;
-  /** ATS content score if the given changes were applied. */
-  scoreWith: (selected: CVChange[]) => number;
+  /** Score if the given changes were applied, or null when it can't be known for a partial selection. */
+  scoreWith: (selected: CVChange[]) => number | null;
+  /** What the score measures. */
+  scoreLabel?: string;
+  /** Heading for the dialog. */
+  title?: string;
   onApply: (selected: CVChange[]) => void;
   onClose: () => void;
 }
 
+/** True when two comma-separated lists hold the same items in a different order. */
+const isReorder = (before: string, after: string) => {
+  const items = (text: string) => text.split(/,\s*/).map((item) => item.trim().toLowerCase()).sort().join("|");
+  return before !== after && items(before) === items(after);
+};
+
 /** Review suggested CV improvements one by one before any of them touch the CV. */
-export function EnhanceReview({ changes, suggestedKeywords, source, beforeScore, scoreWith, onApply, onClose }: EnhanceReviewProps) {
+export function EnhanceReview({ changes, suggestedKeywords, source, beforeScore, scoreWith, scoreLabel = "Checklist score", title = "Review suggested improvements", onApply, onClose }: EnhanceReviewProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [rejected, setRejected] = useState<Set<string>>(() => new Set());
 
@@ -63,7 +73,7 @@ export function EnhanceReview({ changes, suggestedKeywords, source, beforeScore,
         <header className={styles.header}>
           <div>
             <h2 id="enhance-review-title" className={styles.title}>
-              Review suggested improvements
+              {title}
             </h2>
             <p className={styles.subtitle}>
               {changes.length === 0
@@ -78,9 +88,16 @@ export function EnhanceReview({ changes, suggestedKeywords, source, beforeScore,
 
         {changes.length > 0 && (
           <div className={styles.score} aria-live="polite">
-            <span>Checklist score</span>
+            <span>{scoreLabel}</span>
             <strong>
-              {beforeScore}% <span aria-hidden="true">→</span> <span className={afterScore > beforeScore ? styles.up : ""}>{afterScore}%</span>
+              {beforeScore}%{" "}
+              {afterScore !== null ? (
+                <>
+                  <span aria-hidden="true">→</span> <span className={afterScore > beforeScore ? styles.up : ""}>{afterScore}%</span>
+                </>
+              ) : (
+                <span className={styles.scoreNote}>(tick every change to see the new score)</span>
+              )}
             </strong>
           </div>
         )}
@@ -100,7 +117,11 @@ export function EnhanceReview({ changes, suggestedKeywords, source, beforeScore,
                         {!change.before && <Badge tone="accent">New</Badge>}
                       </label>
                       <p className={styles.diff}>
-                        {change.before
+                        {change.before && isReorder(change.before, change.after) ? (
+                          <>
+                            <span className={styles.reordered}>Reordered:</span> {change.after}
+                          </>
+                        ) : change.before
                           ? diffWords(change.before, change.after).map((part, index) =>
                               part.kind === "same" ? (
                                 <span key={index}>{part.text}</span>

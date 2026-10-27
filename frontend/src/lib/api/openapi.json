@@ -2462,6 +2462,82 @@
         "title": "TailorBulletsResponse",
         "type": "object"
       },
+      "TailorCVRequest": {
+        "properties": {
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData"
+          },
+          "job_description": {
+            "maxLength": 12000,
+            "minLength": 40,
+            "title": "Job Description",
+            "type": "string"
+          },
+          "target_role": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Target Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cv_data",
+          "job_description"
+        ],
+        "title": "TailorCVRequest",
+        "type": "object"
+      },
+      "TailorCVResponse": {
+        "properties": {
+          "changes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "cv_data": {
+            "$ref": "#/components/schemas/CVData",
+            "description": "The CV with every suggested edit applied; the editor diffs it for review."
+          },
+          "missing_keywords": {
+            "description": "Job skills the CV lacks; add only if true.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Keywords",
+            "type": "array"
+          },
+          "score_after": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score After",
+            "type": "integer"
+          },
+          "score_before": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score Before",
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "ai",
+              "rules"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cv_data",
+          "source",
+          "score_before",
+          "score_after"
+        ],
+        "title": "TailorCVResponse",
+        "type": "object"
+      },
       "TailorRequest": {
         "properties": {
           "base_resume_id": {
@@ -3724,6 +3800,48 @@
           }
         },
         "summary": "Tailor Bullets",
+        "tags": [
+          "job"
+        ]
+      }
+    },
+    "/api/job/tailor-cv": {
+      "post": {
+        "description": "The whole CV tailored to a job (headline, summary, skills order, bullets) for review.",
+        "operationId": "tailor_cv_api_job_tailor_cv_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TailorCVRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TailorCVResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tailor Cv",
         "tags": [
           "job"
         ]

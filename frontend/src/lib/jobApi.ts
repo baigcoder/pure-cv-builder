@@ -10,6 +10,7 @@ export type KeywordMatch = Schemas["KeywordMatch"];
 export type TailorBulletsResult = Schemas["TailorBulletsResponse"];
 export type BulletSuggestion = Schemas["BulletSuggestion"];
 export type BulletHint = Schemas["BulletHint"];
+export type TailoredCV = Schemas["TailorCVResponse"];
 
 const apiCV = (cvData: CVData) => toRenderableCVData(cvData) as unknown as Schemas["CVData"];
 
@@ -19,6 +20,17 @@ export const requestJobMatch = (cvData: CVData, jobDescription: string, targetRo
     { cv_data: apiCV(cvData), job_description: jobDescription, target_role: targetRole },
     "Couldn't analyse the job post.",
     { signal },
+  );
+
+/**
+ * The whole CV tailored to a job. Sends the full CV (not the render copy) so
+ * suggested edits line up with the editor's entries when applied.
+ */
+export const requestTailoredCV = (cvData: CVData, jobDescription: string, targetRole: string) =>
+  postJSON<TailoredCV>(
+    `${API_URL}/api/job/tailor-cv`,
+    { cv_data: cvData as unknown as Schemas["CVData"], job_description: jobDescription, target_role: targetRole },
+    "Couldn't tailor the CV.",
   );
 
 export const requestTailoredBullets = (cvData: CVData, jobDescription: string, keywords: string[]) =>

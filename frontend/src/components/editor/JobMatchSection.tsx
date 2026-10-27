@@ -12,12 +12,16 @@ import { ApiError } from "@/lib/api/client";
 import {
   requestJobMatch,
   requestTailoredBullets,
+  requestTailoredCV,
   type BulletHint,
   type BulletSuggestion,
   type JobMatchResult,
   type KeywordMatch,
 } from "@/lib/jobApi";
 import { diffWords } from "@/lib/wordDiff";
+import { EnhanceReview } from "./EnhanceReview";
+import { applyCVChanges, diffCV, type CVChange } from "@/lib/cvChanges";
+import { normalizeCVData } from "@/lib/cvBuilder";
 
 interface JobMatchSectionProps {
   cvData: CVData;
@@ -98,6 +102,44 @@ export function JobMatchSection({ cvData, setCVData, coverLetter, setCoverLetter
   const [isTailoring, setIsTailoring] = useState(false);
   const [tailorError, setTailorError] = useState<string | null>(null);
   const [staleKeys, setStaleKeys] = useState<Set<string>>(new Set());
+  const [cvReview, setCvReview] = useState<{ changes: CVChange[]; keywords: string[]; source: "ai" | "fallback"; before: number; after: number } | null>(null);
+  const [isTailoringCV, setIsTailoringCV] = useState(false);
+  const [cvTailorNote, setCvTailorNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+
+  const tailorWholeCV = async () => {
+    setIsTailoringCV(true);
+    setCvTailorNote(null);
+    try {
+      const result = await requestTailoredCV(cvData, jobDescription, coverLetter.targetRole);
+      const changes = diffCV(cvData, normalizeCVData(result.cv_data));
+      if (changes.length === 0 && result.missing_keywords?.length === 0) {
+        setCvTailorNote({ tone: "ok", text: "Your CV already fits this job well; nothing to change." });
+      } else {
+        setCvReview({
+          changes,
+          keywords: result.missing_keywords ?? [],
+          source: result.source === "ai" ? "ai" : "fallback",
+          before: result.score_before,
+          after: result.score_after,
+        });
+      }
+    } catch (error) {
+      setCvTailorNote({ tone: "error", text: error instanceof ApiError ? error.message : "Couldn't tailor the CV." });
+    } finally {
+      setIsTailoringCV(false);
+    }
+  };
+
+  const applyTailoring = (selected: CVChange[]) => {
+    const { data, skipped } = applyCVChanges(cvData, selected);
+    const applied = selected.length - skipped;
+    setCVData(data);
+    setCvReview(null);
+    setCvTailorNote({
+      tone: "ok",
+      text: `Applied ${applied} change${applied === 1 ? "" : "s"}${skipped ? `; skipped ${skipped} you'd edited since` : ""}. Undo with Ctrl+Z.`,
+    });
+  };
 
   const jobDescription = coverLetter.jobDescription;
   const hasJob = jobDescription.trim().length >= MIN_JOB_LENGTH;
@@ -330,6 +372,39 @@ export function JobMatchSection({ cvData, setCVData, coverLetter, setCoverLetter
               </div>
             </div>
           </div>
+
+          <section className={`${styles.block} ${styles.tailorCv}`}>
+            <div>
+              <h2>Tailor the whole CV</h2>
+              <p className={styles.blockHint}>
+                Headline, summary, skills order and the most relevant bullets, rewritten for this job from what&apos;s already in
+                your CV. You review every change before it&apos;s applied.
+              </p>
+              {cvTailorNote && (
+                <p className={cvTailorNote.tone === "error" ? styles.error : styles.hint} role={cvTailorNote.tone === "error" ? "alert" : "status"}>
+                  {cvTailorNote.text}
+                </p>
+              )}
+            </div>
+            <button type="button" className="btn btn-primary" onClick={tailorWholeCV} disabled={isTailoringCV}>
+              <Wand2 size={15} />
+              {isTailoringCV ? "Tailoring..." : "Tailor my CV"}
+            </button>
+          </section>
+
+          {cvReview && (
+            <EnhanceReview
+              title="Tailor your CV to this job"
+              changes={cvReview.changes}
+              suggestedKeywords={cvReview.keywords}
+              source={cvReview.source}
+              beforeScore={cvReview.before}
+              scoreLabel="Job match"
+              scoreWith={(selected) => (selected.length === cvReview.changes.length ? cvReview.after : selected.length === 0 ? cvReview.before : null)}
+              onApply={applyTailoring}
+              onClose={() => setCvReview(null)}
+            />
+          )}
 
           {missingTechnical.length > 0 && (
             <section className={styles.block}>

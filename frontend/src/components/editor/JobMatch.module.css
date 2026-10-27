@@ -409,3 +409,20 @@
   display: flex;
   gap: 0.5rem;
 }
+
+.tailorCv {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tailorCv > :global(.btn) {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 640px) {
+  .tailorCv {
+    flex-direction: column;
+  }
+}

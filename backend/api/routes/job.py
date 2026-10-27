@@ -13,8 +13,10 @@ from schemas.ai import (
     JobMatchResponse,
     TailorBulletsRequest,
     TailorBulletsResponse,
+    TailorCVRequest,
+    TailorCVResponse,
 )
-from services import job_fetch_service, job_match_service, tailor_service
+from services import cv_tailor, job_fetch_service, job_match_service, tailor_service
 
 router = APIRouter(prefix="/job", tags=["job"])
 
@@ -47,3 +49,13 @@ async def fetch_job(request: Request, payload: JobFetchRequest) -> JobFetchRespo
     """Read a job posting from its link: title, company, location and description."""
     job = await run_in_threadpool(job_fetch_service.fetch_job, payload.url)
     return JobFetchResponse(**asdict(job))
+
+
+@router.post("/tailor-cv")
+@limiter.limit(AI_LIMIT)
+async def tailor_cv(request: Request, payload: TailorCVRequest) -> TailorCVResponse:
+    """The whole CV tailored to a job (headline, summary, skills order, bullets) for review."""
+    result = await run_in_threadpool(
+        cv_tailor.tailor_cv, payload.cv_data.model_dump(), payload.job_description, payload.target_role
+    )
+    return TailorCVResponse(**asdict(result))
