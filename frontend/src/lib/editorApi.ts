@@ -186,3 +186,60 @@ export const extractPDF = async (apiUrl: string, file: File): Promise<PDFExtract
   }
   return (await response.json()) as PDFExtractResult;
 };
+
+export interface CoverLetterStreamHandlers {
+  /** Called with each new piece of text as it arrives. */
+  onDelta: (text: string) => void;
+  /** The server discarded what it streamed so far and is starting over. */
+  onReset?: () => void;
+}
+
+/**
+ * Generate a cover letter as a stream of server-sent events. Resolves with
+ * the final, normalised letter once the server sends `done`.
+ */
+export const streamCoverLetter = async (
+  apiUrl: string,
+  cvData: CVData,
+  coverLetter: CoverLetterDraft,
+  { onDelta, onReset }: CoverLetterStreamHandlers,
+  aiOnly = false,
+  signal?: AbortSignal,
+): Promise<CoverLetterResponse> => {
+  const response = await fetch(`${apiUrl}/api/cover-letter/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify(buildCoverLetterPayload(cvData, coverLetter, aiOnly)),
+    signal,
+  });
+  if (!response.ok || !response.body) {
+    throw await parseApiError(response, "Cover letter generation failed.");
+  }
+
+  const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+    let boundary = buffer.indexOf("\n\n");
+    while (boundary !== -1) {
+      const block = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      boundary = buffer.indexOf("\n\n");
+
+      let event = "message";
+      let data = "";
+      for (const line of block.split("\n")) {
+        if (line.startsWith("event: ")) event = line.slice(7);
+        else if (line.startsWith("data: ")) data += line.slice(6);
+      }
+      const payload = data ? JSON.parse(data) : {};
+      if (event === "delta") onDelta(payload.text ?? "");
+      else if (event === "reset") onReset?.();
+      else if (event === "error") throw new Error(payload.detail || "Cover letter generation failed.");
+      else if (event === "done") return payload as CoverLetterResponse;
+    }
+  }
+  throw new Error("The cover letter stream ended unexpectedly. Please try again.");
+};

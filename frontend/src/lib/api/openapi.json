@@ -800,9 +800,25 @@
             "title": "Raw Text Length",
             "type": "integer"
           },
+          "source": {
+            "default": "heuristic",
+            "enum": [
+              "ai",
+              "heuristic"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
           "success": {
             "title": "Success",
             "type": "boolean"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
           }
         },
         "required": [
@@ -2172,6 +2188,41 @@
           }
         },
         "summary": "Generate Cover Letter",
+        "tags": [
+          "cover-letter"
+        ]
+      }
+    },
+    "/api/cover-letter/stream": {
+      "post": {
+        "description": "Generate a cover letter as server-sent events (``delta``, ``reset``, ``done``, ``error``).",
+        "operationId": "stream_cover_letter_api_cover_letter_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoverLetterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stream Cover Letter",
         "tags": [
           "cover-letter"
         ]

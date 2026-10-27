@@ -38,6 +38,8 @@ interface ExtractedData {
   cvData: CVData;
   rawTextLength: number;
   message: string;
+  source: "ai" | "heuristic";
+  warnings: string[];
 }
 
 export default function UploadPage() {
@@ -94,6 +96,8 @@ export default function UploadPage() {
           cvData: normalizedCVData,
           rawTextLength: result.raw_text_length,
           message: result.message,
+          source: result.source ?? "heuristic",
+          warnings: result.warnings ?? [],
         });
         setSelectedTheme(recommendTemplate(normalizedCVData).id);
         setUploadState("success");
@@ -442,6 +446,8 @@ export default function UploadPage() {
                   </div>
                   <div className={styles.successSubtitle}>
                     {extractedData.rawTextLength.toLocaleString()} characters extracted from {fileName}
+                    {" · "}
+                    {extractedData.source === "ai" ? "Structured with AI" : "Structured with the built-in parser"}
                   </div>
                 </div>
               </div>
@@ -451,6 +457,11 @@ export default function UploadPage() {
             </div>
 
             <div className={styles.qualityPanel}>
+              {extractedData.warnings.length > 0 && (
+                <StatusBanner tone="warning" title="Check these before you continue">
+                  {extractedData.warnings.join(" ")}
+                </StatusBanner>
+              )}
               <StatusBanner
                 tone={extractionQuality.score >= 80 ? "success" : extractionQuality.score >= 50 ? "warning" : "info"}
                 title={`${extractionQuality.label} (${extractionQuality.score}%)`}

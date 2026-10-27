@@ -286,8 +286,8 @@ class PDFExtractService:
         except (RuntimeError, ValueError):
             raise
         except Exception as e:
-            logger.error(f"PDF text extraction failed: {e}")
-            raise ValueError(f"Failed to read PDF file: {e}")
+            logger.error("PDF text extraction failed: %s", e)
+            raise ValueError("This PDF couldn't be read. It may be damaged or password-protected.") from e
 
     # ------------------------------------------------------------------
     # Main pipeline
@@ -303,7 +303,7 @@ class PDFExtractService:
         return {
             "cv_data": structured,
             "raw_text_length": len(raw_text),
-            "raw_text_preview": raw_text[:500],
+            "raw_text": raw_text,
         }
 
     # ------------------------------------------------------------------

@@ -11,7 +11,7 @@ import os
 import re
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Any, Iterator, Literal
 
 from openai import OpenAI
 from pydantic import ValidationError
@@ -20,6 +20,12 @@ from core.config import get_settings  # noqa: F401  (loads .env before reading p
 from schemas.cv import CVData
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_SYSTEM_PROMPT = (
+    "You are an expert ATS resume and cover-letter writer. "
+    "Return only the requested final text. Do not include labels, markdown, "
+    "unsupported symbols, explanations, or invented metrics."
+)
 
 
 AITask = Literal[
@@ -564,21 +570,21 @@ Return one JSON object only with this exact shape:
         return 0.45 if task in {"bullet", "skills", "honor"} else 0.6
 
     @staticmethod
-    def call_provider(prompt: str, max_tokens: int = 300, temperature: float = 0.6) -> str:
+    def call_provider(
+        prompt: str,
+        max_tokens: int = 300,
+        temperature: float = 0.6,
+        timeout: float | None = None,
+        system: str | None = None,
+    ) -> str:
         """Call the OpenAI-compatible provider and return plain text."""
         if client is None:
             return ""
         try:
-            chat_completion = client.chat.completions.create(
+            provider = client.with_options(timeout=timeout) if timeout else client
+            chat_completion = provider.chat.completions.create(
                 messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are an expert ATS resume and cover-letter writer. "
-                            "Return only the requested final text. Do not include labels, markdown, "
-                            "unsupported symbols, explanations, or invented metrics."
-                        ),
-                    },
+                    {"role": "system", "content": system or DEFAULT_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
                 model=OPENCODE_MODEL,
@@ -589,6 +595,35 @@ Return one JSON object only with this exact shape:
         except Exception as error:
             logger.warning("AI provider call failed: %s", error.__class__.__name__)
             return ""
+
+    @staticmethod
+    def stream_provider(prompt: str, max_tokens: int = 750, temperature: float = 0.6, timeout: float = 60) -> Iterator[str]:
+        """Yield text deltas from the provider as they arrive.
+
+        Stops quietly on provider errors; callers treat an empty or short
+        result as a failure and fall back.
+        """
+        if client is None:
+            return
+        try:
+            stream = client.with_options(timeout=timeout).chat.completions.create(
+                messages=[
+                    {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                model=OPENCODE_MODEL,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield delta
+        except Exception as error:
+            logger.warning("AI provider stream failed: %s", error.__class__.__name__)
 
     @staticmethod
     def improve_summary(current_summary: str, job_title: str = "") -> str:
@@ -646,7 +681,7 @@ Return one JSON object only with this exact shape:
         return AIService.suggest("honor", context).text
 
     @staticmethod
-    def generate_cover_letter(
+    def cover_letter_prompt(
         cv_data: dict,
         target_role: str,
         company: str,
@@ -654,8 +689,8 @@ Return one JSON object only with this exact shape:
         job_description: str,
         tone: str,
     ) -> str:
-        """Generate a tailored cover letter from CV data and a job description."""
-        prompt = f"""Write a tailored, ATS-readable cover letter.
+        """Prompt for a tailored, one-page, plain-text cover letter."""
+        return f"""Write a tailored, ATS-readable cover letter.
 
 Target role: {target_role}
 Company: {company}
@@ -679,5 +714,17 @@ Requirements:
 - Prioritize the candidate's edited skills, projects, and recent experience.
 - Mention 1-2 concrete achievements or projects from the CV when available.
 """
+
+    @staticmethod
+    def generate_cover_letter(
+        cv_data: dict,
+        target_role: str,
+        company: str,
+        hiring_manager: str,
+        job_description: str,
+        tone: str,
+    ) -> str:
+        """Generate a tailored cover letter from CV data and a job description."""
+        prompt = AIService.cover_letter_prompt(cv_data, target_role, company, hiring_manager, job_description, tone)
         result = AIService.suggest("cover_letter", prompt)
         return result.text if result.source == "ai" else ""

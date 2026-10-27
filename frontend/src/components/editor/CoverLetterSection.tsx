@@ -5,7 +5,7 @@ import { Copy, Download, MapPin, Sparkles } from "lucide-react";
 import styles from "@/app/editor/editor.module.css";
 import { API_URL } from "@/lib/config";
 import type { CoverLetterDraft, CVData } from "@/lib/cvBuilder";
-import { downloadCoverLetterPDF, generateCoverLetter as requestCoverLetter } from "@/lib/editorApi";
+import { downloadCoverLetterPDF, streamCoverLetter } from "@/lib/editorApi";
 import {
     buildAutoCoverLetterContext,
     getAutoSkillTerms,
@@ -45,6 +45,15 @@ export function CoverLetterSection({ cvData, renderableData, coverLetter, setCov
         return null;
     };
 
+    /** Stream a letter into the editor as it's written; resolves with the final text. */
+    const streamLetter = (draft: CoverLetterDraft) => {
+        setCoverLetter(prev => ({ ...prev, letter: "", source: "" }));
+        return streamCoverLetter(API_URL, renderableData, draft, {
+            onDelta: (text) => setCoverLetter(prev => ({ ...prev, letter: prev.letter + text })),
+            onReset: () => setCoverLetter(prev => ({ ...prev, letter: "" })),
+        });
+    };
+
     const generateCoverLetterDraft = async () => {
         const validationError = validateCoverLetterInputs();
         if (validationError) {
@@ -57,7 +66,7 @@ export function CoverLetterSection({ cvData, renderableData, coverLetter, setCov
         setCoverLetterNotice(null);
 
         try {
-            const result = await requestCoverLetter(API_URL, renderableData, coverLetter);
+            const result = await streamLetter(coverLetter);
             setCoverLetter(prev => ({
                 ...prev,
                 letter: result.letter,
@@ -100,7 +109,7 @@ export function CoverLetterSection({ cvData, renderableData, coverLetter, setCov
         setCoverLetter(prev => ({ ...prev, ...autoDraft }));
 
         try {
-            const result = await requestCoverLetter(API_URL, renderableData, autoDraft);
+            const result = await streamLetter(autoDraft);
             setCoverLetter(prev => ({
                 ...prev,
                 targetRole: autoDraft.targetRole,

@@ -121,6 +121,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cover-letter/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stream Cover Letter
+         * @description Generate a cover letter as server-sent events (``delta``, ``reset``, ``done``, ``error``).
+         */
+        post: operations["stream_cover_letter_api_cover_letter_stream_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/download": {
         parameters: {
             query?: never;
@@ -856,8 +876,16 @@ export interface components {
             message: string;
             /** Raw Text Length */
             raw_text_length: number;
+            /**
+             * Source
+             * @default heuristic
+             * @enum {string}
+             */
+            source?: "ai" | "heuristic";
             /** Success */
             success: boolean;
+            /** Warnings */
+            warnings?: string[];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -1554,6 +1582,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CoverLetterResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stream_cover_letter_api_cover_letter_stream_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoverLetterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -8,6 +8,7 @@ from fastapi.concurrency import run_in_threadpool
 from core.errors import AppError, ServiceUnavailableError
 from core.limiter import RENDER_LIMIT, limiter
 from schemas.pdf import ExtractPDFResponse
+from services.ai_import_service import structure_resume
 from services.pdf_extract_service import PDFExtractService
 
 logger = logging.getLogger(__name__)
@@ -52,9 +53,12 @@ async def extract_pdf(request: Request, file: UploadFile = File(...)) -> Extract
             "We couldn't read this PDF. Try exporting it again or use a text-based PDF."
         ) from error
 
+    imported = await run_in_threadpool(structure_resume, result["raw_text"], result["cv_data"])
     return ExtractPDFResponse(
         success=True,
-        cv_data=result["cv_data"],
+        cv_data=imported.cv_data,
         raw_text_length=result["raw_text_length"],
         message=f"Successfully extracted data from {file.filename}",
+        source=imported.source,
+        warnings=imported.warnings,
     )
