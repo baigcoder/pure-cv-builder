@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, CloudUpload, Command as CommandIcon, Download, Eye, FileCode2, FileText, History, Home, LayoutGrid, LayoutTemplate, Mail, Moon, Pencil, Redo2, RotateCcw, Search, Share2, Target, Undo2, X } from "lucide-react";
+import { ArrowRight, Check, ClipboardCheck, CloudUpload, Command as CommandIcon, Download, Eye, FileCode2, FileText, History, Home, LayoutGrid, LayoutTemplate, Mail, Moon, Pencil, Redo2, RotateCcw, Search, Share2, Target, Undo2, X } from "lucide-react";
 import styles from "./editor.module.css";
 import { Logo, Icons } from "@/components/Brand";
 import { TemplateCard } from "@/components/AppUI";
@@ -13,6 +13,7 @@ import { useTemplateThumbnails } from "@/hooks/useTemplateThumbnails";
 import { CommandPalette, useCommandPaletteShortcut, type Command } from "@/components/CommandPalette";
 import { EnhanceReview } from "@/components/editor/EnhanceReview";
 import { SharePanel } from "@/components/editor/SharePanel";
+import { ReviewSection } from "@/components/editor/ReviewSection";
 import { applyCVChanges, diffCV, type CVChange } from "@/lib/cvChanges";
 import { ThemeToggle, useThemePreference } from "@/components/ThemeToggle";
 import { useCloudResume, type CloudSyncStatus } from "@/hooks/useCloudResume";
@@ -78,6 +79,7 @@ const BASE_SECTIONS = {
     patents: { id: "patents", name: "Patents", icon: <Icons.patents /> },
     talks: { id: "talks", name: "Talks", icon: <Icons.talks /> },
     design: { id: "design", name: "Design", icon: <Icons.design /> },
+    review: { id: "review", name: "Review", icon: <ClipboardCheck size={18} /> },
     job_match: { id: "job_match", name: "Job Match", icon: <Target size={18} /> },
     cover_letter: { id: "cover_letter", name: "Cover Letter", icon: <Mail size={18} /> },
 };
@@ -89,6 +91,7 @@ const getEditorSectionIds = (themeId: string, design: DesignSettings): string[] 
     "profile",
     ...resolveSectionOrder(themeId, design).filter(sectionId => sectionId !== "summary"),
     "design",
+    "review",
     "job_match",
     "cover_letter",
 ];
@@ -120,7 +123,7 @@ function EditorContent() {
         canRedo,
     } = useCVDocument(initialTheme);
     const [activeSection, setActiveSection] = useState(
-        ["cover_letter", "job_match", "design"].includes(sectionOverride) ? sectionOverride : "profile",
+        ["cover_letter", "job_match", "design", "review"].includes(sectionOverride) ? sectionOverride : "profile",
     );
     const [isLoading, setIsLoading] = useState(false);
     const [editorMode, setEditorMode] = useState<'preview' | 'edit'>('edit');
@@ -436,7 +439,7 @@ function EditorContent() {
         return REPEATABLE_SECTIONS.includes(sectionId as RepeatableSection)
             && renderableData[sectionId as RepeatableSection].length > 0;
     });
-    const NON_CONTENT_SECTIONS = ["profile", "design", "job_match", "cover_letter"];
+    const NON_CONTENT_SECTIONS = ["profile", "design", "review", "job_match", "cover_letter"];
     const orderedContentSections = orderedSectionIds.filter(sectionId => !NON_CONTENT_SECTIONS.includes(sectionId));
     const activeSectionIndex = orderedContentSections.indexOf(activeSection);
     const missingBeforeActive = activeSectionIndex > -1
@@ -465,9 +468,10 @@ function EditorContent() {
         contentScore: atsResult.score,
         tip: atsResult.tips[0],
         totalWords: Object.keys(BASE_SECTIONS)
-            .filter(s => s !== "design" && s !== "cover_letter" && s !== "job_match")
+            .filter(s => s !== "design" && s !== "review" && s !== "cover_letter" && s !== "job_match")
             .reduce((sum, s) => sum + getSectionWordCount(s), 0),
         onEnhance: enhanceCVForATS,
+        onReview: () => goToSection("review"),
         enhancing: isEnhancingCV,
         disabled: isEnhancingCV || isGenerating,
         aiNote: aiAvailable === false ? aiStatusLabel : undefined,
@@ -881,6 +885,16 @@ function EditorContent() {
                                     section={activeSection}
                                     entries={cvData[activeSection]}
                                     onChange={(next) => updateEntryList(activeSection, next)}
+                                />
+                            )}
+
+                            {activeSection === "review" && (
+                                <ReviewSection
+                                    renderableData={renderableData}
+                                    theme={theme}
+                                    designSettings={designSettings}
+                                    setCVData={setCVData}
+                                    onOpenSection={goToSection}
                                 />
                             )}
 

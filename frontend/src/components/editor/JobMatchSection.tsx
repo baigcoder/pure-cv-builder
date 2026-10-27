@@ -307,9 +307,25 @@ export function JobMatchSection({ cvData, setCVData, coverLetter, setCoverLetter
                   {match.title_match ? <Check size={12} /> : <CircleAlert size={12} />}
                   {match.title_match ? "Title matches your headline" : "Title not in your headline or roles"}
                 </span>
-                {match.years_required != null && <span className={styles.fact}>{match.years_required}+ years asked</span>}
+                {match.years_required != null && (
+                  <span className={(match.cv_years ?? 0) >= match.years_required ? styles.factGood : styles.factWarn}>
+                    {(match.cv_years ?? 0) >= match.years_required ? <Check size={12} /> : <CircleAlert size={12} />}
+                    {match.years_required}+ years asked · you have {match.cv_years ?? 0}
+                  </span>
+                )}
+                {(match.required_total ?? 0) > 0 && (
+                  <span className={match.required_matched === match.required_total ? styles.factGood : styles.factWarn}>
+                    {match.required_matched}/{match.required_total} required skills
+                  </span>
+                )}
+                {match.seniority_required && (
+                  <span className={match.seniority_cv === match.seniority_required ? styles.factGood : styles.fact}>
+                    {match.seniority_required} level role
+                    {match.seniority_cv && match.seniority_cv !== match.seniority_required ? ` · your title reads ${match.seniority_cv}` : ""}
+                  </span>
+                )}
                 <span className={styles.fact}>
-                  {match.matched.length} matched · {match.missing.length} missing
+                  {match.matched.length} matched · {match.missing.length} missing · skills {match.skills_coverage ?? 0}%
                 </span>
               </div>
             </div>

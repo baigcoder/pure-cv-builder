@@ -81,6 +81,13 @@ export const downloadPDF = async (options: ExportOptions) => {
   downloadBlob(blob, safeFileName(options.cvData.name, "pdf"));
 };
 
+export type CVAnalysis = components["schemas"]["AnalysisResponse"];
+export type CVIssue = components["schemas"]["IssueOut"];
+
+/** Render the CV, read it back like an ATS, and check writing, consistency and page fit. */
+export const analyzeCV = (options: ExportOptions, signal?: AbortSignal) =>
+  postJSON<CVAnalysis>(`${options.apiUrl}/api/analyze`, buildRenderPayload(options, "pdf"), "Couldn't review the CV.", { signal });
+
 export const downloadDOCX = async (options: ExportOptions) => {
   const blob = await postForBlob(`${options.apiUrl}/api/download/docx`, buildRenderPayload(options, "pdf"), "Word export failed.");
   downloadBlob(blob, safeFileName(options.cvData.name, "docx"));

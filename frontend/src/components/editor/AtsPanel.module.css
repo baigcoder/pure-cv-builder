@@ -97,3 +97,14 @@
     text-align: center;
     color: var(--text-light);
 }
+
+.reviewLink {
+    align-self: center;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.reviewLink:hover {
+    text-decoration: underline;
+}

@@ -11,6 +11,8 @@ interface AtsPanelProps {
   /** Shown small under the button, e.g. "AI provider is not configured". */
   aiNote?: string;
   onEnhance: () => void;
+  /** Opens the full review (ATS read-back, writing and consistency checks). */
+  onReview?: () => void;
   enhancing: boolean;
   disabled: boolean;
   /** Dark sidebar styling vs. light card styling (mobile). */
@@ -34,7 +36,7 @@ function Meter({ label, score, tone }: { label: string; score: number; tone: str
 }
 
 /** CV checklist: how much of the content checklist the CV meets, the top tip, and suggested improvements. */
-export function AtsPanel({ contentScore, tip, totalWords, aiNote, onEnhance, enhancing, disabled, tone = "sidebar" }: AtsPanelProps) {
+export function AtsPanel({ contentScore, tip, totalWords, aiNote, onEnhance, onReview, enhancing, disabled, tone = "sidebar" }: AtsPanelProps) {
   return (
     <section className={`${styles.panel} ${tone === "card" ? styles.panelCard : ""}`} aria-label="CV checklist">
       <span className={styles.title}>CV checklist</span>
@@ -56,6 +58,11 @@ export function AtsPanel({ contentScore, tip, totalWords, aiNote, onEnhance, enh
       >
         {enhancing ? "Checking..." : "Suggest improvements"}
       </Button>
+      {onReview && (
+        <button type="button" className={styles.reviewLink} onClick={onReview}>
+          Full review
+        </button>
+      )}
       <span className={styles.words}>About {totalWords} words</span>
       {/* The narrow sidebar shows the note as the button tooltip instead. */}
       {aiNote && tone === "card" && <span className={styles.words}>{aiNote}</span>}

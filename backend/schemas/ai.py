@@ -90,6 +90,12 @@ class JobMatchResponse(BaseModel):
     years_required: Optional[int] = None
     title_match: bool
     target_title: str
+    skills_coverage: int = Field(default=0, ge=0, le=100)
+    required_matched: int = 0
+    required_total: int = 0
+    cv_years: Optional[float] = None
+    seniority_required: Optional[str] = None
+    seniority_cv: Optional[str] = None
 
 
 class BulletRef(BaseModel):

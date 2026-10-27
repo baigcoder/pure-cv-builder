@@ -8,6 +8,7 @@ than lines under "nice to have" headings.
 
 import re
 from dataclasses import dataclass, field
+from datetime import date
 from functools import lru_cache
 from typing import Literal
 
@@ -57,6 +58,62 @@ class JobMatch:
     title_match: bool
     target_title: str
     summary: str
+    # How the score is made up, so the user can see what to improve.
+    skills_coverage: int = 0
+    required_matched: int = 0
+    required_total: int = 0
+    cv_years: float | None = None
+    seniority_required: str | None = None
+    seniority_cv: str | None = None
+
+
+SENIORITY_LEVELS = [
+    ("intern", r"\b(intern|internship|trainee|apprentice)\b"),
+    ("junior", r"\b(junior|jr\.?|entry[- ]level|graduate|associate)\b"),
+    ("mid", r"\b(mid[- ]level|intermediate)\b"),
+    ("senior", r"\b(senior|sr\.?)\b"),
+    ("lead", r"\b(lead|staff|principal|head of|manager|director|architect)\b"),
+]
+
+
+def _seniority(text: str) -> str | None:
+    """The highest level named in the text, if any."""
+    found = [level for level, pattern in SENIORITY_LEVELS if re.search(pattern, text, re.IGNORECASE)]
+    return found[-1] if found else None
+
+
+def cv_years_of_experience(cv_data: dict, today: date | None = None) -> float | None:
+    """Total years across dated roles, counting overlapping periods once."""
+    today = today or date.today()
+    spans = []
+    for entry in cv_data.get("experience") or []:
+        if not isinstance(entry, dict):
+            continue
+        start = _month_index(str(entry.get("start_date") or ""), today)
+        end = _month_index(str(entry.get("end_date") or "present"), today)
+        if start is not None and end is not None and end >= start:
+            spans.append((start, end))
+    if not spans:
+        return None
+    total, current_start, current_end = 0, *sorted(spans)[0]
+    for start, end in sorted(spans)[1:]:
+        if start > current_end:
+            total += current_end - current_start
+            current_start, current_end = start, end
+        else:
+            current_end = max(current_end, end)
+    total += current_end - current_start
+    return round(total / 12, 1)
+
+
+def _month_index(value: str, today: date) -> int | None:
+    value = value.strip().lower()
+    if value in ("present", "current", "now"):
+        return today.year * 12 + today.month
+    match = re.match(r"^(\d{4})(?:-(\d{2}))?", value)
+    if not match:
+        return None
+    return int(match.group(1)) * 12 + int(match.group(2) or 1)
 
 
 def _alias_pattern(alias: str) -> str:
@@ -244,8 +301,21 @@ def analyze(cv_data: dict, job_description: str, target_role: str = "") -> JobMa
         f"{sections['headline']} {' '.join(str(e.get('position', '')) for e in cv_data.get('experience') or [] if isinstance(e, dict))}"
     )
 
-    score = round(coverage * 90 + (10 if title_match else 0)) if total else (10 if title_match else 0)
     years = [int(match) for match in YEARS_PATTERN.findall(job_description)]
+    years_required = max(years) if years else None
+    cv_years = cv_years_of_experience(cv_data)
+    # Experience counts for 10 points: full when the post names no minimum or the CV meets it.
+    if years_required is None:
+        experience_points = 10.0
+    else:
+        experience_points = 10.0 * min(1.0, (cv_years or 0) / years_required)
+    title_points = 10 if title_match else 0
+    score = round(coverage * 80 + title_points + experience_points) if total else round(title_points + experience_points)
+    required = [item for item in matched + missing if item.importance == "required"]
+    latest_title = next(
+        (str(e.get("position", "")) for e in cv_data.get("experience") or [] if isinstance(e, dict) and e.get("position")),
+        "",
+    )
 
     order = {"required": 0, "core": 1, "preferred": 2}
     sort_key = lambda item: (order[item.importance], -item.mentions, item.keyword.lower())  # noqa: E731
@@ -256,10 +326,16 @@ def analyze(cv_data: dict, job_description: str, target_role: str = "") -> JobMa
         score=max(0, min(100, score)),
         matched=matched,
         missing=missing,
-        years_required=max(years) if years else None,
+        years_required=years_required,
         title_match=title_match,
         target_title=target_title,
         summary=_summary(len(matched), len(missing), missing, total),
+        skills_coverage=round(coverage * 100),
+        required_matched=sum(1 for item in required if item in matched),
+        required_total=len(required),
+        cv_years=cv_years,
+        seniority_required=_seniority(target_title) or _seniority(job_description[:400]),
+        seniority_cv=_seniority(f"{sections['headline']} {latest_title}"),
     )
 
 

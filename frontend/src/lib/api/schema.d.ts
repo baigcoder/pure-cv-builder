@@ -101,6 +101,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Cv
+         * @description Render the CV, read it back like an ATS, and check writing, consistency and page fit.
+         */
+        post: operations["analyze_cv_api_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/applications": {
         parameters: {
             query?: never;
@@ -822,6 +842,23 @@ export interface components {
              */
             word_count?: number;
         };
+        /** AnalysisResponse */
+        AnalysisResponse: {
+            /** Issues */
+            issues: components["schemas"]["IssueOut"][];
+            /**
+             * Last Page Fill
+             * @description How full the last page is, from 0 to 1.
+             */
+            last_page_fill: number;
+            /** Page Count */
+            page_count: number;
+            /**
+             * Read Back
+             * @description Fields read back from the rendered PDF, as an ATS would.
+             */
+            read_back: components["schemas"]["FieldCheckOut"][];
+        };
         /** ApplicationCreate */
         ApplicationCreate: {
             /** Company */
@@ -1249,6 +1286,17 @@ export interface components {
             /** Warnings */
             warnings?: string[];
         };
+        /** FieldCheckOut */
+        FieldCheckOut: {
+            /** Expected */
+            expected: string;
+            /** Label */
+            label: string;
+            /** Ok */
+            ok: boolean;
+            /** Read */
+            read: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1266,6 +1314,49 @@ export interface components {
             bullet?: string;
             /** Id */
             id?: string | null;
+        };
+        /** IssueOut */
+        IssueOut: {
+            /** Bullet Index */
+            bullet_index?: number | null;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "parse" | "writing" | "consistency" | "layout";
+            /**
+             * Detail
+             * @default
+             */
+            detail?: string;
+            /** Entry Index */
+            entry_index?: number | null;
+            /**
+             * Fix
+             * @description A replacement for the quoted bullet, when one is safe to offer.
+             * @default
+             */
+            fix?: string;
+            /** Id */
+            id: string;
+            /** Message */
+            message: string;
+            /**
+             * Quote
+             * @description The bullet the issue is about, as written.
+             * @default
+             */
+            quote?: string;
+            /**
+             * Section
+             * @default
+             */
+            section?: string;
+            /**
+             * Severity
+             * @enum {string}
+             */
+            severity: "high" | "medium" | "low";
         };
         /** JobFetchRequest */
         JobFetchRequest: {
@@ -1298,12 +1389,33 @@ export interface components {
         };
         /** JobMatchResponse */
         JobMatchResponse: {
+            /** Cv Years */
+            cv_years?: number | null;
             /** Matched */
             matched: components["schemas"]["KeywordMatch"][];
             /** Missing */
             missing: components["schemas"]["KeywordMatch"][];
+            /**
+             * Required Matched
+             * @default 0
+             */
+            required_matched?: number;
+            /**
+             * Required Total
+             * @default 0
+             */
+            required_total?: number;
             /** Score */
             score: number;
+            /** Seniority Cv */
+            seniority_cv?: string | null;
+            /** Seniority Required */
+            seniority_required?: string | null;
+            /**
+             * Skills Coverage
+             * @default 0
+             */
+            skills_coverage?: number;
             /** Summary */
             summary: string;
             /** Target Title */
@@ -2066,6 +2178,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AISuggestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_cv_api_analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisResponse"];
                 };
             };
             /** @description Validation Error */

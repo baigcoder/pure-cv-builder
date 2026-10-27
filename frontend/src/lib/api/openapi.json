@@ -203,6 +203,44 @@
         "title": "AISuggestResponse",
         "type": "object"
       },
+      "AnalysisResponse": {
+        "properties": {
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/IssueOut"
+            },
+            "title": "Issues",
+            "type": "array"
+          },
+          "last_page_fill": {
+            "description": "How full the last page is, from 0 to 1.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Last Page Fill",
+            "type": "number"
+          },
+          "page_count": {
+            "title": "Page Count",
+            "type": "integer"
+          },
+          "read_back": {
+            "description": "Fields read back from the rendered PDF, as an ATS would.",
+            "items": {
+              "$ref": "#/components/schemas/FieldCheckOut"
+            },
+            "title": "Read Back",
+            "type": "array"
+          }
+        },
+        "required": [
+          "read_back",
+          "issues",
+          "page_count",
+          "last_page_fill"
+        ],
+        "title": "AnalysisResponse",
+        "type": "object"
+      },
       "ApplicationCreate": {
         "properties": {
           "company": {
@@ -1175,6 +1213,34 @@
         "title": "ExtractPDFResponse",
         "type": "object"
       },
+      "FieldCheckOut": {
+        "properties": {
+          "expected": {
+            "title": "Expected",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "read": {
+            "title": "Read",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "expected",
+          "read",
+          "ok"
+        ],
+        "title": "FieldCheckOut",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1209,6 +1275,89 @@
           }
         },
         "title": "HonorEntry",
+        "type": "object"
+      },
+      "IssueOut": {
+        "properties": {
+          "bullet_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bullet Index"
+          },
+          "category": {
+            "enum": [
+              "parse",
+              "writing",
+              "consistency",
+              "layout"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "detail": {
+            "default": "",
+            "title": "Detail",
+            "type": "string"
+          },
+          "entry_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Index"
+          },
+          "fix": {
+            "default": "",
+            "description": "A replacement for the quoted bullet, when one is safe to offer.",
+            "title": "Fix",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "quote": {
+            "default": "",
+            "description": "The bullet the issue is about, as written.",
+            "title": "Quote",
+            "type": "string"
+          },
+          "section": {
+            "default": "",
+            "title": "Section",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ],
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "severity",
+          "category",
+          "message"
+        ],
+        "title": "IssueOut",
         "type": "object"
       },
       "JobFetchRequest": {
@@ -1286,6 +1435,17 @@
       },
       "JobMatchResponse": {
         "properties": {
+          "cv_years": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cv Years"
+          },
           "matched": {
             "items": {
               "$ref": "#/components/schemas/KeywordMatch"
@@ -1300,10 +1460,49 @@
             "title": "Missing",
             "type": "array"
           },
+          "required_matched": {
+            "default": 0,
+            "title": "Required Matched",
+            "type": "integer"
+          },
+          "required_total": {
+            "default": 0,
+            "title": "Required Total",
+            "type": "integer"
+          },
           "score": {
             "maximum": 100.0,
             "minimum": 0.0,
             "title": "Score",
+            "type": "integer"
+          },
+          "seniority_cv": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seniority Cv"
+          },
+          "seniority_required": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seniority Required"
+          },
+          "skills_coverage": {
+            "default": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Skills Coverage",
             "type": "integer"
           },
           "summary": {
@@ -2895,6 +3094,48 @@
         "summary": "Ai Suggest",
         "tags": [
           "ai"
+        ]
+      }
+    },
+    "/api/analyze": {
+      "post": {
+        "description": "Render the CV, read it back like an ATS, and check writing, consistency and page fit.",
+        "operationId": "analyze_cv_api_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Analyze Cv",
+        "tags": [
+          "analyze"
         ]
       }
     },
