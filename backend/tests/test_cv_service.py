@@ -480,4 +480,16 @@ def test_themes_endpoint_lists_trending_presets_first() -> None:
     themes = TestClient(app).get("/api/themes").json()["themes"]
 
     assert [theme["id"] for theme in themes[: len(THEME_PRESETS)]] == list(THEME_PRESETS)
-    assert themes[0]["renderTheme"] == "modern"
+    assert themes[0]["renderTheme"] == "folio"
+
+
+def test_signature_preset_keeps_serif_name_and_ink_name_when_user_restyles() -> None:
+    design = CVService._build_yaml_structure(
+        {"name": "Jordan Rivera"}, "folio", {"fontFamily": "Lato", "primaryColor": "#2563EB"}, None
+    )["design"]
+
+    fonts = design["typography"]["font_family"]
+    assert fonts["body"] == "Lato"
+    assert fonts["name"] == "EB Garamond"
+    assert design["colors"]["section_titles"] == "#2563EB"
+    assert design["colors"]["name"] == "#1A1814"

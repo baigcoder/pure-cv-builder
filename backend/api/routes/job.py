@@ -6,8 +6,15 @@ from fastapi import APIRouter, Request
 from fastapi.concurrency import run_in_threadpool
 
 from core.limiter import AI_LIMIT, DEFAULT_LIMIT, limiter
-from schemas.ai import JobMatchRequest, JobMatchResponse, TailorBulletsRequest, TailorBulletsResponse
-from services import job_match_service, tailor_service
+from schemas.ai import (
+    JobFetchRequest,
+    JobFetchResponse,
+    JobMatchRequest,
+    JobMatchResponse,
+    TailorBulletsRequest,
+    TailorBulletsResponse,
+)
+from services import job_fetch_service, job_match_service, tailor_service
 
 router = APIRouter(prefix="/job", tags=["job"])
 
@@ -32,3 +39,11 @@ async def tailor_bullets(request: Request, payload: TailorBulletsRequest) -> Tai
         payload.max_bullets,
     )
     return TailorBulletsResponse(**asdict(result))
+
+
+@router.post("/fetch")
+@limiter.limit(AI_LIMIT)
+async def fetch_job(request: Request, payload: JobFetchRequest) -> JobFetchResponse:
+    """Read a job posting from its link: title, company, location and description."""
+    job = await run_in_threadpool(job_fetch_service.fetch_job, payload.url)
+    return JobFetchResponse(**asdict(job))

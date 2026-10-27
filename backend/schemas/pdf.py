@@ -12,3 +12,6 @@ class ExtractPDFResponse(BaseModel):
     message: str
     source: Literal["ai", "heuristic"] = "heuristic"
     warnings: list[str] = Field(default_factory=list)
+    detected_format: Literal["linkedin", "resume"] = Field(
+        default="resume", description="'linkedin' when the PDF is a LinkedIn profile export."
+    )

@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import styles from "@/components/AccountPages.module.css";
-import { Logo } from "@/components/Brand";
+import { Wordmark } from "@/components/Brand";
 import { useAuth } from "@/components/AuthProvider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -81,8 +81,7 @@ function LoginContent() {
     <div className={styles.page}>
       <header className={styles.topbar}>
         <Link href="/" className={styles.brand}>
-          <Logo width={28} height={28} />
-          ApplyForge
+          <Wordmark size={22} />
         </Link>
         <div className={styles.topbarActions}>
           <ThemeToggle />

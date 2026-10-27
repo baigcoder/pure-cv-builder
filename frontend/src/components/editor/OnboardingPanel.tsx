@@ -2,7 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { FileUp, PenLine, Sparkles, X } from "lucide-react";
+import { FileText, FileUp, PenLine, X } from "lucide-react";
 import styles from "./Onboarding.module.css";
 
 const DISMISSED_KEY = "applyforge:onboarding-dismissed";
@@ -68,7 +68,7 @@ export function OnboardingPanel({ onStartBlank, onLoadSample, onDismiss }: Onboa
           <span>Fill in your profile, then add experience and skills.</span>
         </button>
         <button type="button" className={styles.option} onClick={onLoadSample}>
-          <span className={styles.icon}><Sparkles size={20} /></span>
+          <span className={styles.icon}><FileText size={20} /></span>
           <strong>Explore with a sample</strong>
           <span>Load an example CV to try templates and tools. Undo with Ctrl+Z.</span>
         </button>

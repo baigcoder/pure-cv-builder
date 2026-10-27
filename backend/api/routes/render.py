@@ -18,6 +18,7 @@ from schemas.render import (
     YAMLResponse,
 )
 from services.cv_service import CVService
+from services.docx_service import build_docx
 from services.render_engine import run_render
 
 router = APIRouter(tags=["render"])
@@ -52,7 +53,7 @@ async def _render_file(render_request: RenderRequest) -> Response:
 @router.get("/themes")
 @limiter.limit(DEFAULT_LIMIT)
 async def get_themes(request: Request) -> ThemesResponse:
-    """List available CV themes and ApplyForge presets."""
+    """List available CV themes and Folio presets."""
     return ThemesResponse(themes=CVService.get_theme_metadata(), default="classic")
 
 
@@ -122,6 +123,20 @@ async def download_cv(request: Request, render_request: RenderRequest) -> Respon
     """Download the CV as a PDF."""
     render_request.format = "pdf"
     return await _render_file(render_request)
+
+
+@router.post("/download/docx", response_class=Response)
+@limiter.limit(RENDER_LIMIT)
+async def download_docx(request: Request, render_request: RenderRequest) -> Response:
+    """Download the CV as an editable, ATS-friendly Word document."""
+    data = await run_render(build_docx, **_render_kwargs(render_request))
+    name = (render_request.cv_data.name or "CV").strip().replace(" ", "_")
+    safe = "".join(ch for ch in name if ch.isalnum() or ch in "_-") or "CV"
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{safe}_CV.docx"'},
+    )
 
 
 @router.post("/yaml")

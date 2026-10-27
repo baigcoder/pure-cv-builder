@@ -121,3 +121,27 @@ class TailorBulletsResponse(BaseModel):
     suggestions: list[BulletSuggestion] = Field(default_factory=list)
     hints: list[BulletHint] = Field(default_factory=list)
     message: str = ""
+
+
+class RewriteBulletRequest(BaseModel):
+    text: str = Field(min_length=3, max_length=400)
+    mode: Literal["improve", "quantify", "shorten", "stronger"] = "improve"
+    role: str = Field(default="", max_length=120)
+    job_description: str = Field(default="", max_length=4000)
+
+
+class RewriteBulletResponse(BaseModel):
+    variants: list[str]
+    source: Literal["ai", "fallback"]
+
+
+class JobFetchRequest(BaseModel):
+    url: str = Field(min_length=8, max_length=500)
+
+
+class JobFetchResponse(BaseModel):
+    url: str
+    title: str
+    company: str
+    location: str
+    description: str

@@ -1,23 +1,28 @@
 import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/ToastProvider";
 import { AuthProvider } from "@/components/AuthProvider";
 import { THEME_INIT_SCRIPT } from "@/components/ThemeToggle";
 
+const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: ["normal", "italic"], variable: "--font-serif" });
+const sans = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
+
 export const metadata: Metadata = {
-  title: "ApplyForge | ATS-friendly CV builder",
-  description: "Build ATS-ready CVs, import resume PDFs, optimize live content, and draft tailored cover letters in one industrial application workspace.",
+  title: "Folio | The CV, typeset like it matters",
+  description: "Write, tailor and typeset a beautiful, ATS-friendly CV and matching cover letters. Free to start.",
   keywords: ["ATS CV builder", "resume optimizer", "cover letter generator", "RenderCV editor", "job application workspace"],
-  applicationName: "ApplyForge",
+  applicationName: "Folio",
   openGraph: {
-    title: "ApplyForge | ATS-friendly CV builder",
-    description: "A focused workspace for ATS CVs, PDF import, AI enhancement, and cover letters.",
+    title: "Folio | The CV, typeset like it matters",
+    description: "Beautifully typeset, ATS-friendly CVs and cover letters.",
     type: "website",
   },
   appleWebApp: {
     capable: true,
-    title: "ApplyForge",
+    title: "Folio",
     statusBarStyle: "black-translucent",
   },
   icons: {
@@ -31,8 +36,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f6f8" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1120" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f1ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#141210" },
   ],
 };
 
@@ -42,12 +47,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body>
         <ErrorBoundary>

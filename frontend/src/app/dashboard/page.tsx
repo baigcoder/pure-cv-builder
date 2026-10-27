@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FilePlus2, FileUp, Search, UploadCloud } from "lucide-react";
 import styles from "@/components/AccountPages.module.css";
-import { Logo } from "@/components/Brand";
+import { Wordmark } from "@/components/Brand";
 import { AccountMenu } from "@/components/AccountMenu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/components/AuthProvider";
@@ -149,11 +149,14 @@ export default function DashboardPage() {
     <div className={styles.page}>
       <header className={styles.topbar}>
         <Link href="/" className={styles.brand}>
-          <Logo width={28} height={28} />
-          ApplyForge
+          <Wordmark size={22} />
         </Link>
+        <nav className={styles.navTabs} aria-label="Workspace">
+          <Link href="/dashboard" aria-current="page">My CVs</Link>
+          <Link href="/applications">Applications</Link>
+        </nav>
         <div className={styles.topbarActions}>
-          <ThemeToggle />
+          <ThemeToggle className="btn btn-ghost btn-icon" />
           <AccountMenu showDashboardLink={false} />
         </div>
       </header>
@@ -173,7 +176,7 @@ export default function DashboardPage() {
         <main className={styles.dashboard}>
           <div className={styles.dashHeader}>
             <div>
-              <span className={styles.eyebrow}>Workspace</span>
+              <span className="label">Workspace</span>
               <h1>My CVs</h1>
               <p>
                 {resumes === null

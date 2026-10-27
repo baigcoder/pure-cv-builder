@@ -1,5 +1,5 @@
 /**
- * Typed access to the ApplyForge API.
+ * Typed access to the Folio API.
  *
  * `schema.d.ts` is generated from the backend's OpenAPI schema. Regenerate after
  * changing any backend model:

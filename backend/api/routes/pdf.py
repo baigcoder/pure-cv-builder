@@ -9,6 +9,7 @@ from core.errors import AppError, ServiceUnavailableError
 from core.limiter import RENDER_LIMIT, limiter
 from schemas.pdf import ExtractPDFResponse
 from services.ai_import_service import structure_resume
+from services.linkedin_import_service import parse_linkedin
 from services.pdf_extract_service import PDFExtractService
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,10 @@ async def extract_pdf(request: Request, file: UploadFile = File(...)) -> Extract
             "We couldn't read this PDF. Try exporting it again or use a text-based PDF."
         ) from error
 
+    # LinkedIn exports have a fixed layout; a dedicated parser reads them far better.
+    linkedin = parse_linkedin(result["raw_text"])
+    if linkedin:
+        result["cv_data"] = {**result["cv_data"], **{k: v for k, v in linkedin.items() if v}}
     imported = await run_in_threadpool(structure_resume, result["raw_text"], result["cv_data"])
     return ExtractPDFResponse(
         success=True,
@@ -61,4 +66,5 @@ async def extract_pdf(request: Request, file: UploadFile = File(...)) -> Extract
         message=f"Successfully extracted data from {file.filename}",
         source=imported.source,
         warnings=imported.warnings,
+        detected_format="linkedin" if linkedin else "resume",
     )

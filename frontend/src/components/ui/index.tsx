@@ -153,7 +153,8 @@ export function Card({ title, description, eyebrow, actions, padded = true, as: 
 export function SectionHeading({ eyebrow, title, description }: { eyebrow?: ReactNode; title: ReactNode; description?: ReactNode }) {
   return (
     <div className={styles.sectionHeading}>
-      {eyebrow && <span className={styles.eyebrow}>{eyebrow}</span>}
+      {/* A label that only repeats the title adds nothing. */}
+      {eyebrow && String(eyebrow).toLowerCase() !== String(title).toLowerCase() && <span className={styles.eyebrow}>{eyebrow}</span>}
       <h1>{title}</h1>
       {description && <p>{description}</p>}
     </div>

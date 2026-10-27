@@ -56,7 +56,7 @@ class ThumbnailItem(BaseModel):
 class ThumbnailsRequest(BaseModel):
     cv_data: CVData
     design_settings: Optional[DesignSettings] = None
-    items: list[ThumbnailItem] = Field(min_length=1, max_length=20)
+    items: list[ThumbnailItem] = Field(min_length=1, max_length=30)
 
 
 class Thumbnail(BaseModel):

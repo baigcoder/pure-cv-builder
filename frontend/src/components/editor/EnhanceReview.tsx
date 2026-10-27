@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
 import styles from "./EnhanceReview.module.css";
 import { Badge, Button } from "@/components/ui";
 import type { CVChange } from "@/lib/cvChanges";
@@ -63,7 +63,7 @@ export function EnhanceReview({ changes, suggestedKeywords, source, beforeScore,
         <header className={styles.header}>
           <div>
             <h2 id="enhance-review-title" className={styles.title}>
-              <Sparkles size={18} aria-hidden="true" /> Review suggested improvements
+              Review suggested improvements
             </h2>
             <p className={styles.subtitle}>
               {changes.length === 0
@@ -78,7 +78,7 @@ export function EnhanceReview({ changes, suggestedKeywords, source, beforeScore,
 
         {changes.length > 0 && (
           <div className={styles.score} aria-live="polite">
-            <span>ATS content score</span>
+            <span>Checklist score</span>
             <strong>
               {beforeScore}% <span aria-hidden="true">→</span> <span className={afterScore > beforeScore ? styles.up : ""}>{afterScore}%</span>
             </strong>

@@ -12,6 +12,9 @@ import logging
 import re
 from typing import Optional
 
+from services.pdf_layout import extract_layout
+from services.resume_entries import parse_contact, parse_education, parse_experience, parse_projects
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -59,6 +62,7 @@ _SECTION_ALIASES: dict[str, list[str]] = {
         "selected honors", "selected awards",
     ],
     "patents": ["patents", "patent"],
+    "contact": ["contact", "contact information", "contact info", "contact details", "personal details", "personal information"],
     "talks": ["talks", "invited talks", "presentations", "speaking"],
     "summary": [
         "summary", "professional summary", "profile", "objective",
@@ -261,44 +265,51 @@ class PDFExtractService:
     # Text extraction
     # ------------------------------------------------------------------
     @staticmethod
-    def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+    def extract_text_and_links(pdf_bytes: bytes) -> tuple[str, list[str]]:
+        """Visual-order text (see ``pdf_layout``) and the PDF's link targets."""
         if fitz is None:
             raise RuntimeError("PyMuPDF is not installed.")
-
         try:
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-            text_parts = []
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                text = page.get_text("text")
-                if text.strip():
-                    text_parts.append(text)
-            doc.close()
-
-            full_text = "\n\n".join(text_parts)
-            if not full_text.strip():
-                raise ValueError(
-                    "No readable text found in the PDF. "
-                    "The PDF may be image-based or scanned."
-                )
-            normalized_lines = [_clean_pdf_line(line) for line in full_text.splitlines()]
-            return "\n".join(normalized_lines).strip()
-        except (RuntimeError, ValueError):
-            raise
+            text, links = extract_layout(pdf_bytes)
         except Exception as e:
             logger.error("PDF text extraction failed: %s", e)
             raise ValueError("This PDF couldn't be read. It may be damaged or password-protected.") from e
+        if not text.strip():
+            raise ValueError(
+                "No readable text found in the PDF. "
+                "The PDF may be image-based or scanned."
+            )
+        return text, links
+
+    @staticmethod
+    def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+        return PDFExtractService.extract_text_and_links(pdf_bytes)[0]
 
     # ------------------------------------------------------------------
     # Main pipeline
     # ------------------------------------------------------------------
     @staticmethod
     def extract_from_pdf(pdf_bytes: bytes) -> dict:
-        raw_text = PDFExtractService.extract_text_from_pdf(pdf_bytes)
-        logger.info(f"Extracted {len(raw_text)} chars from PDF")
+        raw_text, links = PDFExtractService.extract_text_and_links(pdf_bytes)
+        logger.info("Extracted %d chars and %d links from PDF", len(raw_text), len(links))
 
         structured = PDFExtractService._parse_cv_text(raw_text)
-        logger.info(f"Parsed CV for: {structured.get('name', 'Unknown')}")
+
+        # Entries and contact details from the layout-aware parser, which reads
+        # header rows (title, company, location, dates) and whole bullets.
+        lines = raw_text.splitlines()
+        sections = PDFExtractService._split_into_sections(lines)
+        first_heading = next(
+            (i for i, line in enumerate(lines) if _heading_key(line) in _HEADING_MAP and len(line) < 60),
+            len(lines),
+        )
+        for key, parser in (("experience", parse_experience), ("education", parse_education), ("projects", parse_projects)):
+            parsed = parser(sections.get(key, []))
+            if parsed:
+                structured[key] = parsed
+        for key, value in parse_contact(lines[:first_heading] + ["", *sections.get("contact", [])], links).items():
+            if value:
+                structured[key] = value
 
         return {
             "cv_data": structured,

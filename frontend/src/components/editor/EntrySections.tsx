@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GripVertical, Plus, Sparkles, X } from "lucide-react";
+import { GripVertical, PenLine, Plus, X } from "lucide-react";
 import editorStyles from "@/app/editor/editor.module.css";
 import styles from "./EditorParts.module.css";
 import { EntryCard } from "./EntryCard";
@@ -299,7 +299,6 @@ export function SkillsSection({ entries, onChange, ai, headline }: EntrySectionP
         <AddEntryButton label="Add skill category" onClick={list.add} />
         <Button
           variant="secondary"
-          icon={<Sparkles size={15} />}
           loading={ai.busy}
           disabled={!headline}
           title={headline ? "Suggest skills for your headline" : "Add a headline first"}
@@ -388,7 +387,7 @@ function AIPolishButton({
         if (suggestion) onSuggest(suggestion);
       }}
     >
-      <Sparkles size={15} />
+      <PenLine size={15} />
     </button>
   );
 }

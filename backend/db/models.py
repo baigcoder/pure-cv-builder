@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, UniqueConstraint
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -73,3 +73,48 @@ class ResumeVersion(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
 
     resume: Mapped[Resume] = relationship(back_populates="versions")
+
+
+class ShareLink(Base):
+    """A public, read-only link to a resume. One per resume; disabling keeps the slug."""
+
+    __tablename__ = "share_links"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    resume_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("resumes.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    slug: Mapped[str] = mapped_column(String(32), nullable=False, unique=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    views: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    downloads: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # The section order the editor prints for this template, so the public page matches.
+    section_order: Mapped[list[str] | None] = mapped_column(JSONType, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    last_viewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    resume: Mapped[Resume] = relationship()
+
+
+class Application(Base):
+    """A job the user is applying for, optionally linked to the CV they sent."""
+
+    __tablename__ = "applications"
+    __table_args__ = (Index("ix_applications_owner_updated", "owner_id", "updated_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    owner_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    company: Mapped[str] = mapped_column(String(120), nullable=False)
+    role: Mapped[str] = mapped_column(String(120), nullable=False)
+    # "saved" | "applied" | "interview" | "offer" | "rejected"
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="saved")
+    job_url: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    job_description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    location: Mapped[str] = mapped_column(String(120), nullable=False, default="")
+    notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    resume_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("resumes.id", ondelete="SET NULL"), nullable=True
+    )
+    applied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utcnow)

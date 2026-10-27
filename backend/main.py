@@ -1,5 +1,5 @@
 """
-FastAPI backend for ApplyForge (RenderCV web application).
+FastAPI backend for Folio (RenderCV web application).
 
 Routes live in ``api/routes``; request/response models in ``schemas``;
 settings, rate limiting, and error handling in ``core``.
@@ -55,7 +55,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="ApplyForge API",
+    title="Folio API",
     description="Generate professional CVs and cover letters from structured data",
     version=API_VERSION,
     lifespan=lifespan,
@@ -131,7 +131,7 @@ async def favicon():
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "message": "ApplyForge API is running"}
+    return {"status": "ok", "message": "Folio API is running"}
 
 
 @app.get("/api/health")

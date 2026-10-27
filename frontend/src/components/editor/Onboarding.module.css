@@ -2,19 +2,18 @@
     position: relative;
     margin-bottom: 1.75rem;
     padding: 1.5rem;
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border);
-    background:
-        radial-gradient(circle at 100% 0%, var(--accent-light), transparent 22rem),
-        var(--panel);
-    box-shadow: var(--shadow-md);
+    border-top: 3px solid var(--accent);
+    background: var(--panel);
     animation: rise 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .panel h2 {
-    font-family: 'Outfit', sans-serif;
-    font-size: 1.4rem;
-    color: var(--primary);
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 400;
+    color: var(--text);
     margin-top: 0.2rem;
 }
 

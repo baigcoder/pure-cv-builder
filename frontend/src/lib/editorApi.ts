@@ -1,5 +1,6 @@
 import { CVData, CoverLetterDraft, DesignSettings } from "@/lib/cvBuilder";
 import { getDownloadSectionOrder, getRenderThemeId } from "@/lib/themes";
+import type { components } from "@/lib/api/schema";
 import {
   ApiError,
   parseApiError,
@@ -79,6 +80,23 @@ export const downloadPDF = async (options: ExportOptions) => {
   const blob = await postForBlob(`${options.apiUrl}/api/download`, buildRenderPayload(options, "pdf"), "PDF export failed.");
   downloadBlob(blob, safeFileName(options.cvData.name, "pdf"));
 };
+
+export const downloadDOCX = async (options: ExportOptions) => {
+  const blob = await postForBlob(`${options.apiUrl}/api/download/docx`, buildRenderPayload(options, "pdf"), "Word export failed.");
+  downloadBlob(blob, safeFileName(options.cvData.name, "docx"));
+};
+
+export type BulletRewriteMode = components["schemas"]["RewriteBulletRequest"]["mode"];
+
+export const rewriteBullet = (apiUrl: string, text: string, mode: BulletRewriteMode, role = "", jobDescription = "") =>
+  postJSON<components["schemas"]["RewriteBulletResponse"]>(
+    `${apiUrl}/api/ai/rewrite-bullet`,
+    { text, mode, role, job_description: jobDescription.slice(0, 4000) },
+    "Couldn't rewrite this bullet.",
+  );
+
+export const fetchJobFromUrl = (apiUrl: string, url: string) =>
+  postJSON<components["schemas"]["JobFetchResponse"]>(`${apiUrl}/api/job/fetch`, { url }, "Couldn't read that job link.");
 
 export const exportYAML = async (options: ExportOptions) => {
   const data = await postJSON<YAMLResponse>(

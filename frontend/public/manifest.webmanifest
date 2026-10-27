@@ -1,13 +1,13 @@
 {
-  "name": "ApplyForge",
-  "short_name": "ApplyForge",
-  "description": "Build ATS-ready CVs, import PDFs, optimize applications, and draft cover letters.",
+  "name": "Folio",
+  "short_name": "Folio",
+  "description": "Beautifully typeset, ATS-friendly CVs and cover letters.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f8fafc",
-  "theme_color": "#111827",
+  "background_color": "#f4f1ea",
+  "theme_color": "#1a1814",
   "icons": [
     {
       "src": "/logo.png",

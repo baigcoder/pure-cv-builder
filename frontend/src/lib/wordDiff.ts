@@ -22,6 +22,8 @@ export function diffWords(before: string, after: string): DiffPart[] {
   const parts: DiffPart[] = [];
   const push = (text: string, kind: DiffPart["kind"]) => {
     const last = parts[parts.length - 1];
+    // The final word of either text has no trailing space; keep words apart when more follows.
+    if (last && !/\s$/.test(last.text)) last.text += " ";
     if (last && last.kind === kind) last.text += text;
     else parts.push({ text, kind });
   };

@@ -12,12 +12,15 @@ from fastapi.concurrency import run_in_threadpool
 from core.errors import AppError, ServiceUnavailableError
 from core.limiter import AI_LIMIT, DEFAULT_LIMIT, limiter
 from schemas.ai import (
+    RewriteBulletRequest,
+    RewriteBulletResponse,
     AIEnhanceCVRequest,
     AIEnhanceCVResponse,
     AIStatusResponse,
     AISuggestRequest,
     AISuggestResponse,
 )
+from services import rewrite_service
 from services.ai_service import AIService
 
 logger = logging.getLogger(__name__)
@@ -81,3 +84,13 @@ async def ai_enhance_cv(request: Request, enhance_request: AIEnhanceCVRequest) -
         current_score=enhance_request.current_score,
     )
     return AIEnhanceCVResponse(**result)
+
+
+@router.post("/rewrite-bullet")
+@limiter.limit(AI_LIMIT)
+async def rewrite_bullet(request: Request, payload: RewriteBulletRequest) -> RewriteBulletResponse:
+    """Up to three rewrites of one bullet (improve, quantify, shorten or a stronger verb)."""
+    result = await run_in_threadpool(
+        rewrite_service.rewrite, payload.text, payload.mode, payload.role, payload.job_description
+    )
+    return RewriteBulletResponse(variants=result.variants, source=result.source)

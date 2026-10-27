@@ -91,7 +91,7 @@
 }
 
 .ringLabel strong {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-display);
     font-size: 1.75rem;
     color: var(--primary);
 }
@@ -175,7 +175,7 @@
 
 /* Blocks */
 .block h2 {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-display);
     font-size: 1.02rem;
     color: var(--primary);
 }
@@ -403,4 +403,9 @@
 
 .lastGroup {
     margin-bottom: 0;
+}
+
+.linkRow {
+  display: flex;
+  gap: 0.5rem;
 }

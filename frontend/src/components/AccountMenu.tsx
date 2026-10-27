@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LayoutGrid, LogIn, LogOut } from "lucide-react";
+import { BriefcaseBusiness, LayoutGrid, LogIn, LogOut } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 
 /** Header links for accounts. Renders nothing when accounts aren't configured. */
@@ -24,10 +24,16 @@ export function AccountMenu({ showDashboardLink = true }: { showDashboardLink?: 
   return (
     <>
       {showDashboardLink && (
-        <Link href="/dashboard" className="btn btn-secondary" title="My CVs" aria-label="My CVs">
-          <LayoutGrid size={16} />
-          <span className="btn-label">My CVs</span>
-        </Link>
+        <>
+          <Link href="/dashboard" className="btn btn-secondary" title="My CVs" aria-label="My CVs">
+            <LayoutGrid size={16} />
+            <span className="btn-label">My CVs</span>
+          </Link>
+          <Link href="/applications" className="btn btn-secondary" title="Applications" aria-label="Applications">
+            <BriefcaseBusiness size={16} />
+            <span className="btn-label">Applications</span>
+          </Link>
+        </>
       )}
       <button
         type="button"

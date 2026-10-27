@@ -1,7 +1,7 @@
 "use client";
 
 import type { SetStateAction } from "react";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import styles from "./Design.module.css";
 import editorStyles from "@/app/editor/editor.module.css";
 import type { CVData, DesignSettings } from "@/lib/cvBuilder";
@@ -58,8 +58,8 @@ export function DesignSection({ thumbnails, theme, onThemeChange: setTheme, reco
                 description="Thumbnails show your own CV in each template."
                 actions={
                     theme !== recommendedTheme.id && (
-                        <Button size="sm" variant="secondary" icon={<Sparkles size={14} />} onClick={() => setTheme(recommendedTheme.id)}>
-                            Use best match
+                        <Button size="sm" variant="secondary"  onClick={() => setTheme(recommendedTheme.id)}>
+                            Use suggested
                         </Button>
                     )
                 }
@@ -89,11 +89,7 @@ export function DesignSection({ thumbnails, theme, onThemeChange: setTheme, reco
                                 <span className={styles.templateInfo}>
                                     <span className={styles.templateName}>{t.name}</span>
                                     <span className={styles.templateBadges}>
-                                        {recommendedTheme.id === t.id ? (
-                                            <Badge tone="accent">Best match</Badge>
-                                        ) : (
-                                            <Badge tone={t.atsScore >= 90 ? "success" : "neutral"}>{t.atsScore}% ATS</Badge>
-                                        )}
+                                        {recommendedTheme.id === t.id && <Badge tone="accent">Suggested</Badge>}
                                     </span>
                                 </span>
                             </button>

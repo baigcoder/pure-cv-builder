@@ -244,7 +244,7 @@ class CVService:
 
     @classmethod
     def resolve_theme(cls, theme: str) -> str:
-        """Map ApplyForge preset aliases to real RenderCV built-in themes."""
+        """Map Folio preset aliases to real RenderCV built-in themes."""
         if theme in THEME_PRESETS:
             return THEME_PRESETS[theme]["base"]
         return cls.THEME_ALIASES.get(theme, theme)
@@ -773,18 +773,16 @@ class CVService:
 
         primary_color = clean_string(design_settings.get("primaryColor"))
         if primary_color:
-            design["colors"] = {
-                "name": primary_color,
-                "headline": primary_color,
-                "connections": primary_color,
-                "section_titles": primary_color,
-                "links": primary_color,
-            }
+            accent_targets = (preset or {}).get(
+                "accent_targets", ["name", "headline", "connections", "section_titles", "links"]
+            )
+            design["colors"] = {target: primary_color for target in accent_targets}
 
         typography: dict = {}
         font_family = clean_string(design_settings.get("fontFamily"))
         if font_family:
-            typography["font_family"] = font_family
+            font_targets = (preset or {}).get("font_targets")
+            typography["font_family"] = {target: font_family for target in font_targets} if font_targets else font_family
         if design_settings.get("fontSizePt"):
             typography["font_size"] = {"body": f"{float(design_settings['fontSizePt']):g}pt"}
         if design_settings.get("lineSpacingEm"):

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Check, CloudUpload, Command as CommandIcon, Download, Eye, FileCode2, History, Home, LayoutGrid, LayoutTemplate, Mail, Moon, Pencil, Redo2, RotateCcw, Search, Sparkles, Target, Undo2, X } from "lucide-react";
+import { ArrowRight, Check, CloudUpload, Command as CommandIcon, Download, Eye, FileCode2, FileText, History, Home, LayoutGrid, LayoutTemplate, Mail, Moon, Pencil, Redo2, RotateCcw, Search, Share2, Target, Undo2, X } from "lucide-react";
 import styles from "./editor.module.css";
 import { Logo, Icons } from "@/components/Brand";
 import { TemplateCard } from "@/components/AppUI";
@@ -12,6 +12,7 @@ import { useCVDocument } from "@/hooks/useCVDocument";
 import { useTemplateThumbnails } from "@/hooks/useTemplateThumbnails";
 import { CommandPalette, useCommandPaletteShortcut, type Command } from "@/components/CommandPalette";
 import { EnhanceReview } from "@/components/editor/EnhanceReview";
+import { SharePanel } from "@/components/editor/SharePanel";
 import { applyCVChanges, diffCV, type CVChange } from "@/lib/cvChanges";
 import { ThemeToggle, useThemePreference } from "@/components/ThemeToggle";
 import { useCloudResume, type CloudSyncStatus } from "@/hooks/useCloudResume";
@@ -55,6 +56,7 @@ import {
     toRenderableCVData,
 } from "@/lib/cvBuilder";
 import {
+    downloadDOCX,
     downloadPDF as downloadPDFFile,
     exportYAML,
     requestCVEnhancement,
@@ -62,7 +64,7 @@ import {
     requestAIStatus,
 } from "@/lib/editorApi";
 import { API_URL } from "@/lib/config";
-import { THEME_DATA, getTemplateFitScore, getTheme, recommendTemplate } from "@/lib/themes";
+import { THEME_DATA, getDownloadSectionOrder, getTheme, recommendTemplate } from "@/lib/themes";
 
 // Base sections with icons (will be reordered based on theme)
 const BASE_SECTIONS = {
@@ -102,7 +104,7 @@ function EditorContent() {
     const auth = useAuth();
     const themeOverride = searchParams.get("theme") || "";
     const sectionOverride = searchParams.get("section") || "";
-    const initialTheme = themeOverride || "classic";
+    const initialTheme = themeOverride || "folio";
 
     const {
         cvData,
@@ -117,7 +119,9 @@ function EditorContent() {
         canUndo,
         canRedo,
     } = useCVDocument(initialTheme);
-    const [activeSection, setActiveSection] = useState(sectionOverride === "cover_letter" ? "cover_letter" : "profile");
+    const [activeSection, setActiveSection] = useState(
+        ["cover_letter", "job_match", "design"].includes(sectionOverride) ? sectionOverride : "profile",
+    );
     const [isLoading, setIsLoading] = useState(false);
     const [editorMode, setEditorMode] = useState<'preview' | 'edit'>('edit');
     const [isAISuggesting, setIsAISuggesting] = useState(false);
@@ -178,6 +182,7 @@ function EditorContent() {
     const isRestored = resumeId ? cloud.isLoaded : draft.isRestored;
     const lastSavedAt = resumeId ? cloud.lastSavedAt : draft.lastSavedAt;
     const [historyOpen, setHistoryOpen] = useState(searchParams.get("history") === "1");
+    const [shareOpen, setShareOpen] = useState(false);
     const [paletteOpen, setPaletteOpen] = useState(false);
     const onboarding = useOnboardingDismissed();
     useCommandPaletteShortcut(setPaletteOpen);
@@ -291,7 +296,7 @@ function EditorContent() {
 
     const enhanceCVForATS = async () => {
         if (!cvData.name.trim() && !cvData.summary.trim() && cvData.projects.length === 0 && cvData.skills.length === 0) {
-            setAtsEnhanceError("Add profile, skills, or projects first so the optimizer has real CV material.");
+            setAtsEnhanceError("Add your profile, skills or projects first so there is something to improve.");
             return;
         }
 
@@ -312,7 +317,7 @@ function EditorContent() {
             const changes = diffCV(cvData, normalizeCVData(result.cv_data));
             const keywords = result.market_keywords ?? [];
             if (changes.length === 0 && keywords.length === 0) {
-                setAtsEnhanceNotice("No changes suggested: your CV already covers what Enhance looks for.");
+                setAtsEnhanceNotice("No changes to suggest: your CV already covers the checklist.");
             } else {
                 setEnhanceReview({ changes, keywords, source: result.source, beforeScore });
             }
@@ -321,7 +326,7 @@ function EditorContent() {
             }
         } catch (error) {
             console.error("CV enhancement failed:", error);
-            setAtsEnhanceError(error instanceof Error ? error.message : "CV enhancement failed.");
+            setAtsEnhanceError(error instanceof Error ? error.message : "Couldn't get suggestions. Please try again.");
         } finally {
             setIsEnhancingCV(false);
         }
@@ -366,6 +371,19 @@ function EditorContent() {
         }
     };
 
+    const downloadWord = async () => {
+        setIsLoading(true);
+        setExportError(null);
+        try {
+            await downloadDOCX({ apiUrl: API_URL, cvData: renderableData, theme, designSettings });
+        } catch (error) {
+            console.error("Word export failed:", error);
+            setExportError("Word export failed. Try again in a moment.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const downloadYAML = async () => {
         setIsLoading(true);
         setExportError(null);
@@ -389,8 +407,8 @@ function EditorContent() {
     };
 
     const currentThemeData = getTheme(theme);
+    const shareSectionOrder = useMemo(() => getDownloadSectionOrder(theme), [theme]);
     const recommendedTheme = useMemo(() => recommendTemplate(cvData), [cvData]);
-    const templateFit = useMemo(() => getTemplateFitScore(theme, cvData), [theme, cvData]);
     const orderedSectionIds = getEditorSectionIds(theme, designSettings);
     const hasTargetJob = coverLetter.jobDescription.trim().length >= 40;
     const getEditorSectionProgress = (sectionId: string): number => {
@@ -441,13 +459,11 @@ function EditorContent() {
         onboarding.dismiss();
     };
     const showOnboarding = isRestored && !onboarding.dismissed && activeSection === "profile" && !hasRenderableContent(renderableData);
-    // Sidebar and mobile ATS panels share one set of props.
+    // Sidebar and mobile checklist panels share one set of props.
     const atsResult = calculateATSScore();
     const atsPanelProps = {
         contentScore: atsResult.score,
-        templateScore: templateFit.score,
         tip: atsResult.tips[0],
-        templateTip: templateFit.tip,
         totalWords: Object.keys(BASE_SECTIONS)
             .filter(s => s !== "design" && s !== "cover_letter" && s !== "job_match")
             .reduce((sum, s) => sum + getSectionWordCount(s), 0),
@@ -488,10 +504,14 @@ function EditorContent() {
             };
         }),
         { id: "download-pdf", label: "Download PDF", group: "Actions", icon: <Download size={16} />, run: () => void downloadPDF() },
+        { id: "download-docx", label: "Download Word (.docx)", group: "Actions", icon: <FileText size={16} />, keywords: "docx word export", run: () => void downloadWord() },
+        ...(resumeId && auth.user
+            ? [{ id: "share", label: "Share a link to this CV", group: "Actions", icon: <Share2 size={16} />, keywords: "public link recruiter", run: () => setShareOpen(true) }]
+            : []),
         // Only offered on an empty CV so it can't overwrite real content.
         ...(hasRenderableContent(renderableData)
             ? []
-            : [{ id: "sample", label: "Load the sample CV", group: "Actions", icon: <Sparkles size={16} />, keywords: "example demo try", run: loadSampleCV }]),
+            : [{ id: "sample", label: "Load the sample CV", group: "Actions", icon: <FileText size={16} />, keywords: "example demo try", run: loadSampleCV }]),
         { id: "home", label: "Go to home page", group: "Actions", icon: <LayoutGrid size={16} />, keywords: "exit landing", run: () => router.push("/") },
         { id: "export-yaml", label: "Export RenderCV YAML", group: "Actions", icon: <FileCode2 size={16} />, run: () => void downloadYAML() },
         {
@@ -528,7 +548,7 @@ function EditorContent() {
             label: `Use template: ${t.name}${t.id === theme ? " (current)" : ""}`,
             group: "Templates",
             icon: <LayoutTemplate size={16} />,
-            keywords: `${t.tags.join(" ")} ${t.atsScore}% ats`,
+            keywords: `${t.tags.join(" ")} ${t.bestFor}`,
             run: () => chooseTemplate(t.id),
         })),
     ];
@@ -559,6 +579,14 @@ function EditorContent() {
                     </div>
                 </div>
             )}
+            {shareOpen && resumeId && auth.user && (
+                <SharePanel
+                    resumeId={resumeId}
+                    getAccessToken={auth.getAccessToken}
+                    sectionOrder={shareSectionOrder}
+                    onClose={() => setShareOpen(false)}
+                />
+            )}
             {resumeId && auth.user && (
                 <VersionHistoryPanel
                     open={historyOpen}
@@ -572,7 +600,7 @@ function EditorContent() {
             )}
             <header className={styles.header}>
                 <div className={styles.logoArea}>
-                    <Link href={resumeId ? "/dashboard" : "/"} aria-label="ApplyForge home" className={styles.logoLink}>
+                    <Link href={resumeId ? "/dashboard" : "/"} aria-label="Folio home" className={styles.logoLink}>
                         <Logo width={28} height={28} />
                     </Link>
                     {resumeId ? (
@@ -605,7 +633,7 @@ function EditorContent() {
                         </div>
                     ) : (
                         <div className={styles.docTitleWrap}>
-                            <span className={styles.brandWord}>ApplyForge</span>
+                            <span className={styles.brandWord}>Folio</span>
                             {draftStatusLabel && (
                                 <span className={`${styles.cloudStatus} ${styles[`cloudStatus_${draftStatusTone}`] ?? ""}`} role="status">
                                     {draftStatusLabel}
@@ -648,10 +676,18 @@ function EditorContent() {
                         )}
                     </button>
                     {resumeId ? (
-                        <button onClick={() => setHistoryOpen(true)} className="btn btn-secondary" title="Version history" aria-label="Version history">
-                            <History size={16} />
-                            <span className="btn-label">History</span>
-                        </button>
+                        <>
+                            <button onClick={() => setHistoryOpen(true)} className="btn btn-secondary" title="Version history" aria-label="Version history">
+                                <History size={16} />
+                                <span className="btn-label">History</span>
+                            </button>
+                            {auth.user && (
+                                <button onClick={() => setShareOpen(true)} className="btn btn-secondary" title="Share a link" aria-label="Share a link">
+                                    <Share2 size={16} />
+                                    <span className="btn-label">Share</span>
+                                </button>
+                            )}
+                        </>
                     ) : (
                         <>
                             <button onClick={startNewDraft} className="btn btn-secondary" title="Start a new CV" aria-label="Start a new CV">
@@ -690,6 +726,10 @@ function EditorContent() {
                             </Link>
                         </>
                     )}
+                    <button onClick={downloadWord} className={`btn btn-secondary ${styles.hideOnMobile}`} disabled={isLoading} title="Download an editable Word document" aria-label="Download Word">
+                        <FileText size={16} />
+                        <span className="btn-label">Word</span>
+                    </button>
                     <button onClick={downloadPDF} className="btn btn-primary" disabled={isLoading}>
                         <Download size={16} />
                         {isLoading ? "Exporting..." : "PDF"}
@@ -702,16 +742,15 @@ function EditorContent() {
                 <main className={`${styles.main} ${styles.templateGalleryMain}`}>
                     <div className={styles.templateGalleryShell}>
                         <div className={styles.templateGalleryHeader}>
-                            <span className={styles.summaryEyebrow}>Design system</span>
-                            <h1>Choose Your Template</h1>
-                            <p>Select a parser-safe format for the role, seniority, and review path.</p>
+                            <span className={styles.summaryEyebrow}>Templates</span>
+                            <h1>Choose a template</h1>
+                            <p>Every template is single-column and ATS-safe. Your words stay put when you switch.</p>
                             <button
                                 type="button"
                                 className={styles.templateRecommendBtn}
                                 onClick={() => chooseTemplate(recommendedTheme.id)}
                             >
-                                <Sparkles size={14} />
-                                Use best ATS template: {recommendedTheme.name}
+                                Suggested for your CV: {recommendedTheme.name}
                             </button>
                         </div>
 
@@ -722,8 +761,8 @@ function EditorContent() {
                                     name={t.name}
                                     image={templateThumbnails[t.id] ?? t.image}
                                     tags={t.tags}
-                                    badge={recommendedTheme.id === t.id ? "Best ATS match" : `${t.atsScore}% ATS`}
-                                    meta={t.atsRationale}
+                                    badge={recommendedTheme.id === t.id ? "Suggested" : undefined}
+                                    meta={t.description}
                                     selected={theme === t.id}
                                     onClick={() => chooseTemplate(t.id)}
                                 />
@@ -735,8 +774,8 @@ function EditorContent() {
                                 onClick={() => setEditorMode('edit')}
                                 className="btn btn-primary btn-lg"
                             >
-                                <Pencil size={20} />
-                                Edit Your CV
+                                <Pencil size={18} />
+                                Back to editing
                             </button>
                         </div>
                     </div>
@@ -750,10 +789,13 @@ function EditorContent() {
                             <span className={styles.summaryEyebrow}>Template</span>
                             <strong>{currentThemeData.name}</strong>
                             <p>{currentThemeData.description}</p>
+                            <button type="button" className={styles.changeTemplate} onClick={() => setEditorMode("preview")}>
+                                Change template <ArrowRight size={13} />
+                            </button>
                             <div className={styles.progressTrack}>
                                 <span style={{ width: `${Math.min(100, Math.round((completedSectionIds.length / orderedSectionIds.length) * 100))}%` }} />
                             </div>
-                            <small>{completedSectionIds.length} of {orderedSectionIds.length} steps started</small>
+                            <small>{completedSectionIds.length} of {orderedSectionIds.length} sections started</small>
                         </div>
                         {orderedSectionIds.map(sectionId => BASE_SECTIONS[sectionId as keyof typeof BASE_SECTIONS]).map(s => {
                             const progress = getEditorSectionProgress(s.id);
@@ -949,7 +991,7 @@ function EditorContent() {
 
 export default function EditorPage() {
     return (
-        <Suspense fallback={<div>Loading ApplyForge...</div>}>
+        <Suspense fallback={<div>Loading Folio...</div>}>
             <EditorContent />
         </Suspense>
     );

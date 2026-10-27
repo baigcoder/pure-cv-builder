@@ -1,14 +1,12 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import {  } from "lucide-react";
 import styles from "./AtsPanel.module.css";
 import { Button } from "@/components/ui";
 
 interface AtsPanelProps {
   contentScore: number;
-  templateScore: number;
   tip?: string;
-  templateTip?: string;
   totalWords: number;
   /** Shown small under the button, e.g. "AI provider is not configured". */
   aiNote?: string;
@@ -35,30 +33,28 @@ function Meter({ label, score, tone }: { label: string; score: number; tone: str
   );
 }
 
-/** ATS readiness: content and template-fit scores, the top tip, and one-click enhancement. */
-export function AtsPanel({ contentScore, templateScore, tip, templateTip, totalWords, aiNote, onEnhance, enhancing, disabled, tone = "sidebar" }: AtsPanelProps) {
+/** CV checklist: how much of the content checklist the CV meets, the top tip, and suggested improvements. */
+export function AtsPanel({ contentScore, tip, totalWords, aiNote, onEnhance, enhancing, disabled, tone = "sidebar" }: AtsPanelProps) {
   return (
-    <section className={`${styles.panel} ${tone === "card" ? styles.panelCard : ""}`} aria-label="ATS readiness">
-      <span className={styles.title}>ATS readiness</span>
+    <section className={`${styles.panel} ${tone === "card" ? styles.panelCard : ""}`} aria-label="CV checklist">
+      <span className={styles.title}>CV checklist</span>
       <Meter label="Content" score={contentScore} tone={toneFor(contentScore, 80, 60)} />
-      <Meter label="Template fit" score={templateScore} tone={toneFor(templateScore, 92, 82)} />
-      {(tip || templateTip) && <p className={styles.tip}>{tip || templateTip}</p>}
+      {tip && <p className={styles.tip}>{tip}</p>}
       <Button
         variant="primary"
         size="sm"
         fullWidth
-        icon={<Sparkles size={14} />}
         loading={enhancing}
         disabled={disabled}
         onClick={onEnhance}
         title={
           tone === "sidebar" && aiNote
-            ? `${aiNote} Enhance uses local improvements instead.`
-            : "Strengthen wording, headline, summary and skills for ATS using your role and market keywords"
+            ? `${aiNote} Suggestions use built-in rules instead.`
+            : "Suggest edits to your headline, summary and bullets. You review each one before it changes anything."
         }
         className={styles.enhance}
       >
-        {enhancing ? "Enhancing..." : "Enhance CV"}
+        {enhancing ? "Checking..." : "Suggest improvements"}
       </Button>
       <span className={styles.words}>About {totalWords} words</span>
       {/* The narrow sidebar shows the note as the button tooltip instead. */}

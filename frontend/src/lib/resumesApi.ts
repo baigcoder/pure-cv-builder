@@ -13,6 +13,12 @@ export type VersionDetail = Schemas["VersionDetail"];
 export type ResumeCreate = Schemas["ResumeCreate"];
 export type ResumeUpdate = Schemas["ResumeUpdate"];
 export type ResumeThumbnail = Schemas["Thumbnail"];
+export type ShareStatus = Schemas["ShareStatus"];
+export type PublicCV = Schemas["PublicCV"];
+export type Application = Schemas["ApplicationOut"];
+export type ApplicationCreate = Schemas["ApplicationCreate"];
+export type ApplicationUpdate = Schemas["ApplicationUpdate"];
+export type ApplicationStatus = Application["status"];
 
 export type TokenGetter = () => Promise<string | null>;
 
@@ -111,4 +117,46 @@ export const resumesApi = {
       { method: "POST" },
       "Couldn't restore that version.",
     ),
+
+  share: (getToken: TokenGetter, id: string) =>
+    request<ShareStatus>(getToken, `/resumes/${id}/share`, {}, "Couldn't load sharing settings."),
+
+  setShare: (getToken: TokenGetter, id: string, enabled: boolean, sectionOrder?: string[]) =>
+    request<ShareStatus>(
+      getToken,
+      `/resumes/${id}/share`,
+      { method: "PUT", json: { enabled, section_order: sectionOrder } },
+      "Couldn't update sharing.",
+    ),
 };
+
+export const applicationsApi = {
+  list: (getToken: TokenGetter) =>
+    request<Schemas["ApplicationListResponse"]>(getToken, "/applications", {}, "Couldn't load your applications."),
+
+  create: (getToken: TokenGetter, body: ApplicationCreate) =>
+    request<Application>(getToken, "/applications", { method: "POST", json: body }, "Couldn't add the application."),
+
+  update: (getToken: TokenGetter, id: string, body: ApplicationUpdate) =>
+    request<Application>(getToken, `/applications/${id}`, { method: "PATCH", json: body }, "Couldn't update the application."),
+
+  remove: (getToken: TokenGetter, id: string) =>
+    request<void>(getToken, `/applications/${id}`, { method: "DELETE" }, "Couldn't delete the application."),
+
+  tailor: (getToken: TokenGetter, id: string, baseResumeId: string) =>
+    request<Schemas["TailoredResumeResponse"]>(
+      getToken,
+      `/applications/${id}/tailor`,
+      { method: "POST", json: { base_resume_id: baseResumeId } },
+      "Couldn't create a tailored CV.",
+    ),
+};
+
+/** A shared CV, readable without signing in. */
+export const fetchPublicCV = async (slug: string): Promise<PublicCV> => {
+  const response = await fetch(`${API_URL}/api/public/cv/${encodeURIComponent(slug)}`);
+  if (!response.ok) throw await parseApiError(response, "Couldn't load this CV.");
+  return (await response.json()) as PublicCV;
+};
+
+export const publicCVPdfUrl = (slug: string) => `${API_URL}/api/public/cv/${encodeURIComponent(slug)}/pdf`;

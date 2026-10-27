@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState, type SetStateAction } from "react";
-import { Check, CircleAlert, Plus, Sparkles, Target, Wand2, X } from "lucide-react";
+import { Check, CircleAlert, Link2, Plus, Target, Wand2, X } from "lucide-react";
+import { Button, SectionHeading } from "@/components/ui";
+import { API_URL } from "@/lib/config";
+import { fetchJobFromUrl } from "@/lib/editorApi";
 import editorStyles from "@/app/editor/editor.module.css";
 import styles from "./JobMatch.module.css";
 import { CoverLetterDraft, CVData, getEmptyEntry, getString, getStringList } from "@/lib/cvBuilder";
@@ -123,6 +126,29 @@ export function JobMatchSection({ cvData, setCVData, coverLetter, setCoverLetter
 
   const updateTarget = (patch: Partial<CoverLetterDraft>) => setCoverLetter((previous) => ({ ...previous, ...patch }));
 
+  const [jobUrl, setJobUrl] = useState("");
+  const [fetchingJob, setFetchingJob] = useState(false);
+  const [fetchNote, setFetchNote] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+
+  const fetchJob = async () => {
+    setFetchingJob(true);
+    setFetchNote(null);
+    try {
+      const job = await fetchJobFromUrl(API_URL, jobUrl.trim());
+      setCoverLetter((previous) => ({
+        ...previous,
+        targetRole: job.title || previous.targetRole,
+        company: job.company || previous.company,
+        jobDescription: job.description,
+      }));
+      setFetchNote({ tone: "ok", text: `Read ${job.title || "the job"}${job.company ? ` at ${job.company}` : ""}. Check the text below.` });
+    } catch (err) {
+      setFetchNote({ tone: "error", text: err instanceof Error ? err.message : "Couldn't read that job link." });
+    } finally {
+      setFetchingJob(false);
+    }
+  };
+
   const addToSkills = (item: KeywordMatch) => {
     const row = SKILL_ROW[item.category];
     if (!row) return;
@@ -199,13 +225,34 @@ export function JobMatchSection({ cvData, setCVData, coverLetter, setCoverLetter
 
   return (
     <div className="animate-fade">
-      <h1 className={editorStyles.sectionTitle}>Match a job.</h1>
-      <p className={styles.lead}>
-        Paste a job post to see which of its keywords your CV covers, what&apos;s missing, and where to add it. The same
-        job powers your cover letter.
-      </p>
+      <SectionHeading
+        eyebrow="Job match"
+        title="Match a job"
+        description="Paste a job link or the job post to see which keywords your CV covers, what's missing, and where to add it. The same job powers your cover letter."
+      />
 
       <div className={styles.targetCard}>
+        <div className="form-group">
+          <label className="form-label" htmlFor="job-url">Job link</label>
+          <div className={styles.linkRow}>
+            <input
+              id="job-url"
+              className="form-input"
+              placeholder="https://jobs.example.com/senior-engineer"
+              value={jobUrl}
+              onChange={(event) => setJobUrl(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && jobUrl.trim() && void fetchJob()}
+            />
+            <Button variant="secondary" icon={<Link2 size={15} />} loading={fetchingJob} disabled={!jobUrl.trim()} onClick={fetchJob}>
+              Fetch job
+            </Button>
+          </div>
+          {fetchNote && (
+            <span className={fetchNote.tone === "error" ? styles.error : styles.hint} role={fetchNote.tone === "error" ? "alert" : "status"}>
+              {fetchNote.text}
+            </span>
+          )}
+        </div>
         <div className={editorStyles.twoColumnGrid}>
           <div className="form-group">
             <label className="form-label" htmlFor="job-role">Target role</label>
@@ -341,7 +388,7 @@ export function JobMatchSection({ cvData, setCVData, coverLetter, setCoverLetter
                     <span>{entryTitle(item.section, item.entry_index)}</span>
                     {(item.keywords_added ?? []).map((keyword) => (
                       <span key={keyword} className={`${styles.chip} ${styles.chipAdded}`}>
-                        <Sparkles size={11} /> {keyword}
+                        <Plus size={11} /> {keyword}
                       </span>
                     ))}
                   </div>

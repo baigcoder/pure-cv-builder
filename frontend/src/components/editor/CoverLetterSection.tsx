@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Copy, Download, FileText, Sparkles, TriangleAlert, X } from "lucide-react";
+import { Check, Copy, Download, FileText, PenLine, TriangleAlert, X } from "lucide-react";
 import editorStyles from "@/app/editor/editor.module.css";
 import styles from "./CoverLetter.module.css";
 import { Badge, Button, Card, CharCounter, Field, SectionHeading } from "@/components/ui";
@@ -218,7 +218,7 @@ export function CoverLetterSection({ cvData, renderableData, coverLetter, setCov
                     />
                 </Field>
                 <div className={styles.generateRow}>
-                    <Button variant="primary" icon={<Sparkles size={16} />} loading={status === "generating"} disabled={busy} onClick={() => generate(false)}>
+                    <Button variant="primary" icon={<PenLine size={16} />} loading={status === "generating"} disabled={busy} onClick={() => generate(false)}>
                         {status === "generating" ? "Writing..." : hasLetter ? "Rewrite letter" : "Write my letter"}
                     </Button>
                     <Button variant="ghost" icon={<FileText size={16} />} disabled={busy} onClick={() => generate(true)} title="Write a general letter from your CV without a job ad">

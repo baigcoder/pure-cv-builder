@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import {  } from "lucide-react";
 import styles from "@/app/editor/editor.module.css";
 import type { CVData } from "@/lib/cvBuilder";
 import { Button, Card, CharCounter, Field, SectionHeading } from "@/components/ui";
@@ -64,7 +64,7 @@ export function ProfileSection({ cvData, onFieldChange: updateField, fieldErrors
                     <Button
                         size="sm"
                         variant="ghost"
-                        icon={<Sparkles size={14} />}
+                        
                         loading={ai.busy}
                         disabled={!cvData.name.trim()}
                         onClick={suggestHeadline}
@@ -130,7 +130,7 @@ export function ProfileSection({ cvData, onFieldChange: updateField, fieldErrors
                     />
                 </Field>
                 <div className={styles.fieldActions}>
-                    <Button size="sm" variant="ghost" icon={<Sparkles size={14} />} loading={ai.busy} onClick={improveSummary}>
+                    <Button size="sm" variant="ghost"  loading={ai.busy} onClick={improveSummary}>
                         {cvData.summary.trim() ? "Polish with AI" : "Draft with AI"}
                     </Button>
                 </div>

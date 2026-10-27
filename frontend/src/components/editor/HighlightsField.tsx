@@ -1,9 +1,11 @@
 "use client";
 
-import { GripVertical, Plus, Sparkles, X } from "lucide-react";
+import { useState } from "react";
+import { GripVertical, PenLine, Plus, X } from "lucide-react";
 import styles from "./EditorParts.module.css";
 import { SortableList } from "./SortableList";
 import type { AIHelper } from "./types";
+import { BulletRewrite } from "./BulletRewrite";
 
 interface HighlightsFieldProps {
   label: string;
@@ -20,6 +22,7 @@ interface HighlightsFieldProps {
 export function HighlightsField({ label, values, onChange, addLabel, multiline, placeholder, ai }: HighlightsFieldProps) {
   // Bullets are plain controlled strings, so their position is a sufficient key.
   const items = values.map((value, index) => ({ key: String(index), value }));
+  const [rewriting, setRewriting] = useState<number | null>(null);
 
   const update = (index: number, value: string) => {
     const next = [...values];
@@ -35,6 +38,7 @@ export function HighlightsField({ label, values, onChange, addLabel, multiline, 
         getId={(item) => item.key}
         onReorder={(next) => onChange(next.map((item) => item.value))}
         renderItem={(item, index, handle) => (
+          <div>
           <div className={styles.row}>
             <button type="button" className={styles.handle} aria-label={`Drag bullet ${index + 1}`} {...handle}>
               <GripVertical size={14} />
@@ -62,15 +66,13 @@ export function HighlightsField({ label, values, onChange, addLabel, multiline, 
                 type="button"
                 className={styles.iconBtn}
                 data-tone="accent"
-                title="AI polish"
-                aria-label={`Polish bullet ${index + 1} with AI`}
-                disabled={ai.busy || !item.value.trim()}
-                onClick={async () => {
-                  const suggestion = await ai.suggest(item.value, ai.type, ai.context);
-                  if (suggestion) update(index, suggestion);
-                }}
+                title="Rewrite suggestions"
+                aria-label={`Rewrite bullet ${index + 1}`}
+                aria-expanded={rewriting === index}
+                disabled={item.value.trim().length < 3}
+                onClick={() => setRewriting(rewriting === index ? null : index)}
               >
-                <Sparkles size={15} />
+                <PenLine size={15} />
               </button>
             )}
             <button
@@ -81,6 +83,18 @@ export function HighlightsField({ label, values, onChange, addLabel, multiline, 
             >
               <X size={15} />
             </button>
+          </div>
+          {ai && rewriting === index && (
+            <BulletRewrite
+              text={item.value}
+              context={ai.context}
+              onUse={(text) => {
+                update(index, text);
+                setRewriting(null);
+              }}
+              onClose={() => setRewriting(null)}
+            />
+          )}
           </div>
         )}
       />

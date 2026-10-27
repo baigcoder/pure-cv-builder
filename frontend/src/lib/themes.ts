@@ -31,6 +31,66 @@ export const THEME_SECTION_ORDER: Record<SectionOrderType, string[]> = {
 
 export const THEME_DATA: ThemeMeta[] = [
   {
+    id: "folio",
+    name: "Folio",
+    renderTheme: "folio",
+    image: "/theme-folio.png",
+    previewImage: "/theme-folio.png",
+    description: "Folio's signature: a classic serif name over a clean sans body, with hairline rules.",
+    bestFor: "Almost any role; a confident, modern default",
+    sectionOrderType: "recruiter",
+    tags: ["Signature", "ATS-Safe"],
+    atsScore: 96,
+    atsRationale: "Single column, standard headings and plain-text contact details.",
+    recommendedFor: ["software", "product", "design", "marketing", "operations", "finance"],
+    defaults: { fontFamily: "Source Sans 3", primaryColor: "#C2410C" },
+  },
+  {
+    id: "atelier",
+    name: "Atelier",
+    renderTheme: "atelier",
+    image: "/theme-atelier.png",
+    previewImage: "/theme-atelier.png",
+    description: "Quiet, airy and monochrome, with small section labels and no rules.",
+    bestFor: "Design, product, architecture and creative roles",
+    sectionOrderType: "portfolio",
+    tags: ["Signature", "Minimal"],
+    atsScore: 95,
+    atsRationale: "Rule-free single column with standard section names.",
+    recommendedFor: ["design", "product", "creative", "architecture", "ux"],
+    defaults: { fontFamily: "Open Sauce Sans", primaryColor: "#1A1814" },
+  },
+  {
+    id: "signal",
+    name: "Signal",
+    renderTheme: "signal",
+    image: "/theme-signal.png",
+    previewImage: "/theme-signal.png",
+    description: "A bold name, heavy section rules and an accent-coloured headline.",
+    bestFor: "Sales, marketing, leadership and customer-facing roles",
+    sectionOrderType: "recruiter",
+    tags: ["Signature", "Bold"],
+    atsScore: 94,
+    atsRationale: "Decorative weight only; content stays single-column with standard headings.",
+    recommendedFor: ["sales", "marketing", "leadership", "growth", "consulting"],
+    defaults: { fontFamily: "Source Sans 3", primaryColor: "#C2410C" },
+  },
+  {
+    id: "scholar",
+    name: "Scholar",
+    renderTheme: "scholar",
+    image: "/theme-scholar.png",
+    previewImage: "/theme-scholar.png",
+    description: "A bookish all-serif layout with small capitals, made for long academic records.",
+    bestFor: "Academia, research, PhD and fellowship applications",
+    sectionOrderType: "academic",
+    tags: ["Signature", "Academic"],
+    atsScore: 91,
+    atsRationale: "Conventional single-column academic structure with standard headings.",
+    recommendedFor: ["academic", "research", "phd", "fellowship", "science"],
+    defaults: { fontFamily: "XCharter", primaryColor: "#1A1814" },
+  },
+  {
     id: "modern",
     name: "Modern Minimal",
     renderTheme: "modern",
@@ -39,7 +99,7 @@ export const THEME_DATA: ThemeMeta[] = [
     description: "Clean sans-serif layout with airy spacing and hairline section rules.",
     bestFor: "Tech, product, design and most modern roles",
     sectionOrderType: "standard",
-    tags: ["Trending", "ATS-Safe"],
+    tags: ["Modern", "ATS-Safe"],
     atsScore: 95,
     atsRationale: "Single column, standard headings, plain text links and no decorative elements.",
     recommendedFor: ["software", "product", "design", "marketing", "startup"],
@@ -54,7 +114,7 @@ export const THEME_DATA: ThemeMeta[] = [
     description: "Refined serif typography with a centred header for senior roles.",
     bestFor: "Leadership, finance, legal, consulting",
     sectionOrderType: "recruiter",
-    tags: ["Trending", "Senior"],
+    tags: ["Modern", "Senior"],
     atsScore: 92,
     atsRationale: "Conventional single-column flow; serif type parses as plain text.",
     recommendedFor: ["senior", "director", "executive", "finance", "legal", "consulting"],
@@ -69,7 +129,7 @@ export const THEME_DATA: ThemeMeta[] = [
     description: "Confident geometric type with a strong accent colour and accent rules.",
     bestFor: "Marketing, sales, creative and customer-facing roles",
     sectionOrderType: "standard",
-    tags: ["Trending", "Bold"],
+    tags: ["Modern", "Bold"],
     atsScore: 93,
     atsRationale: "Colour is decorative only; structure stays single-column with standard headings.",
     recommendedFor: ["marketing", "sales", "creative", "brand", "growth"],
@@ -84,7 +144,7 @@ export const THEME_DATA: ThemeMeta[] = [
     description: "Lightweight, rule-free layout that lets project work stand out.",
     bestFor: "Startups, engineers with strong projects, early-career builders",
     sectionOrderType: "portfolio",
-    tags: ["Trending", "Projects"],
+    tags: ["Modern", "Projects"],
     atsScore: 94,
     atsRationale: "No tables or lines to confuse parsers; clear headings and spacing.",
     recommendedFor: ["startup", "projects", "engineering", "new grad"],
@@ -99,7 +159,7 @@ export const THEME_DATA: ThemeMeta[] = [
     description: "Timeless book-style serif with small-caps headings.",
     bestFor: "Academia, research, publishing and policy",
     sectionOrderType: "academic",
-    tags: ["Trending", "Serif"],
+    tags: ["Modern", "Serif"],
     atsScore: 90,
     atsRationale: "Readable single column; small caps render as regular text for parsers.",
     recommendedFor: ["academic", "research", "publishing", "policy", "writing"],
@@ -114,7 +174,7 @@ export const THEME_DATA: ThemeMeta[] = [
     description: "Tight spacing and smaller type to fit a full career on one page.",
     bestFor: "Experienced candidates who need everything on one page",
     sectionOrderType: "recruiter",
-    tags: ["Trending", "One page"],
+    tags: ["Modern", "One page"],
     atsScore: 95,
     atsRationale: "Dense but strictly single-column with standard section names.",
     recommendedFor: ["experienced", "one page", "engineering", "operations"],
@@ -324,41 +384,20 @@ export const recommendTemplate = (cvData: CVData): ThemeMeta => {
   const text = profileText(cvData);
 
   if (publicationCount >= 2 || /research|publication|fellowship|phd|thesis|laboratory/.test(text)) {
-    return getTheme("sb2nov");
+    return getTheme("scholar");
   }
 
   if (completeWork.length >= 2) {
-    return getTheme("sheets");
+    return getTheme("folio");
   }
 
   if (projectCount >= 1 || educationCount >= 1 || /student|graduate|intern|junior|software|developer|engineer/.test(text)) {
     return getTheme("jake");
   }
 
-  if (/product|manager|lead|strategy|operations|consulting/.test(text)) {
-    return getTheme("classic");
+  if (/product|manager|lead|strategy|operations|consulting|sales|marketing/.test(text)) {
+    return getTheme("signal");
   }
 
   return getTheme("jake");
-};
-
-export const getTemplateFitScore = (themeId: string, cvData: CVData): { score: number; tip: string } => {
-  const theme = getTheme(themeId);
-  const recommended = recommendTemplate(cvData);
-  const text = profileText(cvData);
-  const hasResearch = cvData.publications.some(hasEntryText) || /research|publication|fellowship|phd/.test(text);
-  const hasWorkDepth = cvData.experience.filter((entry) => entry.company && entry.position).length >= 2;
-  const hasProjectDepth = cvData.projects.some(hasEntryText);
-  let score = theme.atsScore;
-
-  if (theme.id === recommended.id) score += 2;
-  if (theme.sectionOrderType === "academic" && !hasResearch) score -= 4;
-  if (theme.sectionOrderType === "recruiter" && !hasWorkDepth) score -= 3;
-  if (theme.sectionOrderType === "early_tech" && (hasProjectDepth || !hasWorkDepth)) score += 1;
-  if (theme.atsScore < 85 && recommended.atsScore >= 94) score -= 3;
-
-  return {
-    score: Math.max(60, Math.min(100, Math.round(score))),
-    tip: theme.id === recommended.id ? "Best ATS match for this CV content." : theme.atsRationale,
-  };
 };

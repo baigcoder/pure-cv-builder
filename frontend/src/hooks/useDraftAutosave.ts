@@ -72,8 +72,8 @@ export const useDraftAutosave = ({
           };
           if (imported.cvData) {
             const normalizedCV = normalizeCVData(imported.cvData);
-            const importedTheme = initialTheme || imported.theme || "classic";
-            const importedDesignSettings = DEFAULT_DESIGN_SETTINGS;
+            const importedTheme = initialTheme || imported.theme || "folio";
+            const importedDesignSettings = getTemplateDesign(importedTheme, DEFAULT_DESIGN_SETTINGS);
             const importedCoverLetter = DEFAULT_COVER_LETTER_DRAFT;
             const savedAt = new Date().toISOString();
             const importedDraft: DraftState = {
@@ -110,7 +110,7 @@ export const useDraftAutosave = ({
         const parsed = JSON.parse(rawDraft) as Partial<DraftState>;
         setCVData(normalizeCVData(parsed.cvData));
         const restoredDesign = normalizeDesignSettings(parsed.designSettings);
-        setTheme(initialTheme || parsed.theme || "classic");
+        setTheme(initialTheme || parsed.theme || "folio");
         // A template picked from the landing page brings its own font and colour.
         setDesignSettings(initialTheme && initialTheme !== parsed.theme ? getTemplateDesign(initialTheme, restoredDesign) : restoredDesign);
         setCoverLetter({
@@ -161,8 +161,8 @@ export const useDraftAutosave = ({
   const resetDraft = () => {
     window.localStorage.removeItem(DRAFT_STORAGE_KEY);
     setCVData(DEFAULT_CV_DATA);
-    setTheme(initialTheme || "classic");
-    setDesignSettings(getTemplateDesign(initialTheme || "classic", DEFAULT_DESIGN_SETTINGS));
+    setTheme(initialTheme || "folio");
+    setDesignSettings(getTemplateDesign(initialTheme || "folio", DEFAULT_DESIGN_SETTINGS));
     setCoverLetter(DEFAULT_COVER_LETTER_DRAFT);
     setLastSavedAt(null);
     setDraftStatus("saved");
