@@ -24,9 +24,30 @@ export interface CVData {
   talks: Entry[];
 }
 
+export type SectionId =
+  | "summary"
+  | "experience"
+  | "education"
+  | "skills"
+  | "projects"
+  | "publications"
+  | "honors"
+  | "patents"
+  | "talks";
+
 export interface DesignSettings {
   primaryColor: string;
   fontFamily: string;
+  /** Unset values fall back to the theme's own defaults. */
+  pageSize?: "a4" | "us-letter";
+  marginCm?: number;
+  fontSizePt?: number;
+  lineSpacingEm?: number;
+  sectionSpacingCm?: number;
+  showFooter?: boolean;
+  /** Custom section order for this CV; overrides the theme order when set. */
+  sectionOrder?: SectionId[];
+  hiddenSections?: SectionId[];
 }
 
 export interface CoverLetterDraft {
@@ -35,6 +56,9 @@ export interface CoverLetterDraft {
   hiringManager: string;
   jobDescription: string;
   tone: string;
+  length: "short" | "standard" | "detailed";
+  /** What the letter should emphasise, e.g. why this company. */
+  highlights: string;
   letter: string;
   source: "" | "ai" | "template";
 }
@@ -77,12 +101,24 @@ export const DEFAULT_DESIGN_SETTINGS: DesignSettings = {
   fontFamily: "Source Sans 3",
 };
 
+/**
+ * Saved design settings from the API or a browser draft. The API returns unset
+ * options as `null`; the editor treats "unset" as `undefined` (theme default).
+ */
+export const normalizeDesignSettings = (value: unknown): DesignSettings => {
+  const source = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const defined = Object.fromEntries(Object.entries(source).filter(([, item]) => item !== null && item !== undefined));
+  return { ...DEFAULT_DESIGN_SETTINGS, ...defined } as DesignSettings;
+};
+
 export const DEFAULT_COVER_LETTER_DRAFT: CoverLetterDraft = {
   targetRole: "",
   company: "",
   hiringManager: "",
   jobDescription: "",
   tone: "professional",
+  length: "standard",
+  highlights: "",
   letter: "",
   source: "",
 };
@@ -113,6 +149,18 @@ export const getStringList = (value: string | string[] | undefined): string[] =>
 export const getString = (value: string | string[] | undefined): string => {
   return typeof value === "string" ? value : "";
 };
+
+/** Stable client-side key for an entry (drag-and-drop, React keys). Never rendered. */
+export const newEntryId = (): string =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `e-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+/** An entry's user-entered values (everything except its client-side id). */
+export const entryContentValues = (entry: Entry): Array<string | string[] | undefined> =>
+  Object.entries(entry)
+    .filter(([key]) => key !== "id")
+    .map(([, value]) => value);
 
 export const getEmptyEntry = (section: RepeatableSection): Entry => {
   const entries: Record<RepeatableSection, Entry> = {
@@ -163,7 +211,7 @@ export const getEmptyEntry = (section: RepeatableSection): Entry => {
     talks: { id: "", reversed_number: "" },
   };
 
-  return { ...entries[section] };
+  return { ...entries[section], id: newEntryId() };
 };
 
 const toStringValue = (value: unknown): string => {
@@ -192,7 +240,9 @@ const normalizeEntry = (section: RepeatableSection, value: unknown): Entry => {
   const entry = getEmptyEntry(section);
 
   Object.keys(entry).forEach((key) => {
-    if (key === "highlights") {
+    if (key === "id") {
+      entry.id = toStringValue(source.id) || entry.id;
+    } else if (key === "highlights") {
       entry[key] = toStringList(source[key]);
     } else {
       entry[key] = toStringValue(source[key]);
@@ -281,7 +331,7 @@ export const countWords = (text: string): number => {
 };
 
 const entryText = (entry: Entry): string => {
-  return Object.values(entry)
+  return entryContentValues(entry)
     .flatMap((value) => (Array.isArray(value) ? value : [value]))
     .filter((value): value is string => typeof value === "string")
     .join(" ");
@@ -334,7 +384,7 @@ export const calculateSectionProgress = (cvData: CVData, sectionId: string): num
   const list = cvData[section];
   if (!list || list.length === 0) return 0;
   if (list.some((entry) => hasRenderableEntry(section, entry))) return 100;
-  if (list.some((entry) => Object.values(entry).some(isFilled))) return 50;
+  if (list.some((entry) => entryContentValues(entry).some(isFilled))) return 50;
   return 0;
 };
 

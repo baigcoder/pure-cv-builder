@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import pytest
 import yaml
 from fastapi.testclient import TestClient
 
@@ -10,6 +11,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from main import app
 from services.cv_service import CVService
+from services.theme_presets import THEME_PRESETS
 
 
 def sample_cv_data() -> dict:
@@ -333,3 +335,161 @@ def test_yaml_endpoint_maps_ats_template_alias_to_rendercv_theme() -> None:
     assert response.status_code == 200
     yaml_payload = yaml.safe_load(response.json()["yaml"])
     assert yaml_payload["design"]["theme"] == "engineeringresumes"
+
+
+def test_design_settings_map_to_rendercv_design_and_section_layout() -> None:
+    from schemas.cv import DesignSettings
+
+    design = DesignSettings(
+        pageSize="a4",
+        marginCm=1.2,
+        fontSizePt=10.5,
+        lineSpacingEm=0.7,
+        sectionSpacingCm=0.4,
+        showFooter=False,
+        sectionOrder=["skills", "summary", "experience"],
+        hiddenSections=["projects", "not-a-section"],
+    ).model_dump()
+    cv = {
+        "name": "Layout User",
+        "summary": "Summary text",
+        "skills": [{"label": "Languages", "details": "Python"}],
+        "experience": [{"company": "Co", "position": "Dev", "start_date": "2020-01"}],
+        "projects": [{"name": "Hidden project"}],
+    }
+
+    result = CVService._build_yaml_structure(cv, "classic", design, ["experience", "skills"])
+
+    assert design["hiddenSections"] == ["projects"]
+    assert list(result["cv"]["sections"]) == ["skills", "Summary", "experience"]
+    assert result["design"]["page"] == {
+        "size": "a4",
+        "top_margin": "1.2cm",
+        "bottom_margin": "1.2cm",
+        "left_margin": "1.2cm",
+        "right_margin": "1.2cm",
+        "show_footer": False,
+    }
+    assert result["design"]["typography"] == {"font_size": {"body": "10.5pt"}, "line_spacing": "0.7em"}
+    assert result["design"]["section_titles"] == {"space_above": "0.4cm"}
+
+
+def test_theme_order_keeps_summary_first_without_custom_order() -> None:
+    cv = {"name": "Order User", "summary": "Summary", "skills": [{"label": "L", "details": "D"}]}
+
+    result = CVService._build_yaml_structure(cv, "classic", {"hiddenSections": []}, ["skills", "summary"])
+
+    assert list(result["cv"]["sections"]) == ["Summary", "skills"]
+
+
+def test_out_of_range_design_values_are_rejected() -> None:
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/yaml",
+        json={"cv_data": {"name": "X"}, "design_settings": {"fontSizePt": 40}},
+    )
+
+    assert response.status_code == 422
+    assert "design_settings.fontSizePt" in response.json()["fields"]
+
+
+def test_render_cache_distinguishes_section_order(monkeypatch) -> None:
+    import services.cv_service as cv_service
+    from services.render_engine import render_cache
+
+    render_cache.clear()
+    compiled: list[str] = []
+
+    def fake_compile(source: str, output_format: str, ppi=None):
+        compiled.append(source)
+        return [source.encode("utf-8")]
+
+    monkeypatch.setattr(cv_service, "_compile_typst", fake_compile)
+    cv = {"name": "Cache User", "summary": "S", "skills": [{"label": "L", "details": "D"}]}
+
+    first = CVService.render_preview_pages(cv_data=cv, design_settings={"sectionOrder": ["summary", "skills"]})
+    second = CVService.render_preview_pages(cv_data=cv, design_settings={"sectionOrder": ["skills", "summary"]})
+    repeat = CVService.render_preview_pages(cv_data=cv, design_settings={"sectionOrder": ["skills", "summary"]})
+
+    assert len(compiled) == 2
+    assert first.pages != second.pages
+    assert repeat.cached is True
+
+
+def test_concurrent_renders_do_not_corrupt_yaml_parsing() -> None:
+    """RenderCV's shared ruamel parser must not be used by two threads at once."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from services.render_engine import render_cache
+
+    render_cache.clear()
+    themes = ["classic", "sb2nov", "engineeringresumes", "moderncv", "harvard", "ember", "ink", "opal"]
+    cv = {
+        "name": "Concurrent User",
+        "summary": "Summary " * 20,
+        "experience": [
+            {"company": f"Co {i}", "position": "Engineer", "start_date": "2020-01", "highlights": ["Did things"] * 3}
+            for i in range(4)
+        ],
+        "skills": [{"label": "Languages", "details": "Python, SQL"}],
+    }
+
+    def render(index: int) -> bytes:
+        theme = themes[index % len(themes)]
+        return CVService.render_thumbnail(cv_data={**cv, "headline": f"Run {index}"}, theme=theme)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(render, range(24)))
+
+    assert all(result.startswith(b"\x89PNG") for result in results)
+
+
+@pytest.mark.parametrize("preset_id", list(THEME_PRESETS))
+def test_every_trending_preset_renders_a_pdf(preset_id: str) -> None:
+    cv = {
+        "name": "Jordan Rivera",
+        "headline": "Senior Engineer",
+        "email": "jordan@example.com",
+        "summary": "Builds reliable products.",
+        "experience": [{"company": "Northwind", "position": "Engineer", "start_date": "2021-03", "end_date": "present", "highlights": ["Led a rebuild"]}],
+        "skills": [{"label": "Languages", "details": "TypeScript, Python"}],
+    }
+
+    pdf, _ = CVService.render_cv(cv_data=cv, output_format="pdf", theme=preset_id)
+
+    assert pdf.startswith(b"%PDF")
+
+
+def test_preset_supplies_defaults_but_user_design_wins() -> None:
+    cv = {"name": "Jordan Rivera"}
+
+    defaults = CVService._build_yaml_structure(cv, "executive", None, None)["design"]
+    custom = CVService._build_yaml_structure(cv, "executive", {"fontFamily": "Roboto", "primaryColor": "#ff0000"}, None)["design"]
+
+    assert defaults["theme"] == "classic"
+    assert defaults["typography"]["font_family"] == "EB Garamond"
+    assert defaults["header"]["alignment"] == "center"
+    assert custom["typography"]["font_family"] == "Roboto"
+    assert custom["colors"]["name"] == "#ff0000"
+    # The preset's layout recipe survives user overrides.
+    assert custom["section_titles"]["type"] == "centered_with_full_line"
+
+
+def test_themes_endpoint_lists_trending_presets_first() -> None:
+    themes = TestClient(app).get("/api/themes").json()["themes"]
+
+    assert [theme["id"] for theme in themes[: len(THEME_PRESETS)]] == list(THEME_PRESETS)
+    assert themes[0]["renderTheme"] == "folio"
+
+
+def test_signature_preset_keeps_serif_name_and_ink_name_when_user_restyles() -> None:
+    design = CVService._build_yaml_structure(
+        {"name": "Jordan Rivera"}, "folio", {"fontFamily": "Lato", "primaryColor": "#2563EB"}, None
+    )["design"]
+
+    fonts = design["typography"]["font_family"]
+    assert fonts["body"] == "Lato"
+    assert fonts["name"] == "EB Garamond"
+    assert design["colors"]["section_titles"] == "#2563EB"
+    assert design["colors"]["name"] == "#1A1814"

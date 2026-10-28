@@ -1,0 +1,115 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--canvas-bg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 1.5rem;
+}
+
+.who {
+  min-width: 0;
+}
+
+.name {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  letter-spacing: -0.02em;
+}
+
+.headline {
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+}
+
+.nameSkeleton {
+  display: block;
+  width: 260px;
+  height: 40px;
+  border-radius: var(--radius);
+}
+
+.desk {
+  flex: 1;
+  padding: 0 1.5rem 3rem;
+}
+
+.pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.sheet {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--paper);
+  box-shadow: var(--shadow-page);
+}
+
+.sheetSkeleton {
+  aspect-ratio: 8.5 / 11;
+}
+
+.more {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.message {
+  max-width: 420px;
+  margin: 4rem auto;
+  text-align: center;
+}
+
+.message h2 {
+  font-size: 2rem;
+}
+
+.message p {
+  margin-top: 0.75rem;
+  color: var(--text-muted);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--text-sm);
+  font-weight: 550;
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 1.5rem;
+  }
+
+  .desk {
+    padding: 0 0.75rem 2rem;
+  }
+}

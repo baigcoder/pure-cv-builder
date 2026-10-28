@@ -1,0 +1,194 @@
+/* Shared UI primitives. Buttons and inputs reuse the global .btn / .form-*
+   classes so existing markup and these components look identical. */
+
+.spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Field */
+.field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.1rem;
+    min-width: 0;
+}
+
+.labelRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.required {
+    color: var(--error);
+    margin-left: 0.15rem;
+}
+
+.optional {
+    font-weight: 400;
+    color: var(--text-light);
+    margin-left: 0.3rem;
+    font-size: var(--text-xs);
+}
+
+.hint {
+    margin-top: 0.35rem;
+    font-size: var(--text-xs);
+    color: var(--text-light);
+    line-height: 1.4;
+}
+
+.counter {
+    font-size: var(--text-xs);
+    color: var(--text-light);
+    font-variant-numeric: tabular-nums;
+}
+
+.counterWarn {
+    color: var(--warning);
+}
+
+.counterOver {
+    color: var(--error);
+}
+
+/* Card */
+.card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.cardPadded {
+    padding: 1.35rem 1.5rem 1.5rem;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.cardTitle {
+    font-family: var(--font-body);
+    font-size: var(--text-md);
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    color: var(--text);
+}
+
+.cardDescription {
+    margin-top: 0.15rem;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    line-height: 1.45;
+}
+
+.eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-label);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+/* Section heading (editor pages) */
+.sectionHeading {
+    margin-bottom: 1.75rem;
+}
+
+.sectionHeading h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 3vw, 2.5rem);
+    font-weight: 400;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-top: 0.5rem;
+}
+
+.sectionHeading p {
+    margin-top: 0.35rem;
+    font-size: var(--text-base);
+    color: var(--text-muted);
+    max-width: 60ch;
+    line-height: 1.5;
+}
+
+/* Badge */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-label);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    background: var(--surface-strong);
+    color: var(--text-muted);
+}
+
+.badge_accent {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.badge_success {
+    background: var(--success-light);
+    color: var(--success);
+}
+
+.badge_warning {
+    background: var(--warning-light);
+    color: var(--warning);
+}
+
+.badge_danger {
+    background: var(--error-light);
+    color: var(--error);
+}
+
+.badge_solid {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-fg);
+}
+
+/* Keyboard hint */
+.kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.3rem;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: var(--surface);
+    font-family: var(--font-label);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}

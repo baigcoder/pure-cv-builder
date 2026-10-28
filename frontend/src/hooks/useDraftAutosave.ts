@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { getTemplateDesign } from "@/lib/themes";
 import {
   CVData,
   CoverLetterDraft,
@@ -11,6 +12,7 @@ import {
   IMPORTED_CV_STORAGE_KEY,
   SyncStatus,
   normalizeCVData,
+  normalizeDesignSettings,
 } from "@/lib/cvBuilder";
 
 export const DRAFT_STORAGE_KEY = "purecv:draft:v1";
@@ -34,6 +36,8 @@ interface UseDraftAutosaveOptions {
   setDesignSettings: (settings: DesignSettings) => void;
   setCoverLetter: (data: CoverLetterDraft) => void;
   initialTheme: string;
+  /** False when the editor is bound to a saved resume (cloud mode). */
+  enabled?: boolean;
 }
 
 export const useDraftAutosave = ({
@@ -46,12 +50,14 @@ export const useDraftAutosave = ({
   setDesignSettings,
   setCoverLetter,
   initialTheme,
+  enabled = true,
 }: UseDraftAutosaveOptions) => {
   const [isRestored, setIsRestored] = useState(false);
   const [draftStatus, setDraftStatus] = useState<SyncStatus>("saved");
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     try {
       // Check for imported PDF data first (from /upload page)
       const importedRaw =
@@ -66,8 +72,8 @@ export const useDraftAutosave = ({
           };
           if (imported.cvData) {
             const normalizedCV = normalizeCVData(imported.cvData);
-            const importedTheme = initialTheme || imported.theme || "classic";
-            const importedDesignSettings = DEFAULT_DESIGN_SETTINGS;
+            const importedTheme = initialTheme || imported.theme || "folio";
+            const importedDesignSettings = getTemplateDesign(importedTheme, DEFAULT_DESIGN_SETTINGS);
             const importedCoverLetter = DEFAULT_COVER_LETTER_DRAFT;
             const savedAt = new Date().toISOString();
             const importedDraft: DraftState = {
@@ -103,11 +109,10 @@ export const useDraftAutosave = ({
       if (rawDraft) {
         const parsed = JSON.parse(rawDraft) as Partial<DraftState>;
         setCVData(normalizeCVData(parsed.cvData));
-        setTheme(initialTheme || parsed.theme || "classic");
-        setDesignSettings({
-          ...DEFAULT_DESIGN_SETTINGS,
-          ...(parsed.designSettings || {}),
-        });
+        const restoredDesign = normalizeDesignSettings(parsed.designSettings);
+        setTheme(initialTheme || parsed.theme || "folio");
+        // A template picked from the landing page brings its own font and colour.
+        setDesignSettings(initialTheme && initialTheme !== parsed.theme ? getTemplateDesign(initialTheme, restoredDesign) : restoredDesign);
         setCoverLetter({
           ...DEFAULT_COVER_LETTER_DRAFT,
           ...(parsed.coverLetter || {}),
@@ -119,7 +124,7 @@ export const useDraftAutosave = ({
     } finally {
       setIsRestored(true);
     }
-  }, [initialTheme, setCoverLetter, setCVData, setDesignSettings, setTheme]);
+  }, [enabled, initialTheme, setCoverLetter, setCVData, setDesignSettings, setTheme]);
 
   const draftKey = useMemo(
     () => JSON.stringify({ cvData, theme, designSettings, coverLetter }),
@@ -156,8 +161,8 @@ export const useDraftAutosave = ({
   const resetDraft = () => {
     window.localStorage.removeItem(DRAFT_STORAGE_KEY);
     setCVData(DEFAULT_CV_DATA);
-    setTheme(initialTheme || "classic");
-    setDesignSettings(DEFAULT_DESIGN_SETTINGS);
+    setTheme(initialTheme || "folio");
+    setDesignSettings(getTemplateDesign(initialTheme || "folio", DEFAULT_DESIGN_SETTINGS));
     setCoverLetter(DEFAULT_COVER_LETTER_DRAFT);
     setLastSavedAt(null);
     setDraftStatus("saved");

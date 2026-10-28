@@ -3,20 +3,33 @@
 from __future__ import annotations
 
 from datetime import date
+import logging
 import re
 from typing import Any
 
 import fitz
 
+from services import job_match_service
+from services.cv_service import _compile_typst
+
+logger = logging.getLogger(__name__)
+
+
+def _typst_str(value: str) -> str:
+    """A Typst string literal; rendered as plain text, so no markup can be injected."""
+    return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
 
 class CoverLetterService:
     """Build ATS-friendly cover letters from CV data and job descriptions."""
 
-    TONE_LABELS: dict[str, str] = {
-        "professional": "professional and confident",
-        "warm": "warm and personable",
-        "concise": "concise and direct",
-        "executive": "executive and strategic",
+    # Closing paragraph per tone; {goal} is the company's or team's goals.
+    TONE_CLOSINGS: dict[str, str] = {
+        "professional": "Thank you for considering my application. I would welcome the chance to discuss how I can contribute to {goal}.",
+        "warm": "Thank you for taking the time to read my application. I would love to talk about how I could help with {goal}.",
+        "concise": "I would welcome a short conversation about how I can contribute to {goal}.",
+        "executive": "I would welcome a conversation about how I can help drive {goal} in this role.",
+        "enthusiastic": "I would be excited to talk about how I can help with {goal}, and I look forward to hearing from you.",
     }
     COUNTRY_HINTS: tuple[str, ...] = (
         "Pakistan",
@@ -95,14 +108,20 @@ class CoverLetterService:
             A complete plain-text cover letter with greeting and sign-off.
         """
         name = cls.clean_text(cv_data.get("name")) or "Your Name"
-        headline = cls.clean_text(cv_data.get("headline"))
+        # "Registered Nurse | Critical Care" -> "Registered Nurse": the role reads well in a sentence.
+        headline = re.split(r"\s*[|\u2022\u00b7\u2013\u2014]\s*", cls.clean_text(cv_data.get("headline")))[0]
         summary = cls.clean_text(cv_data.get("summary"))
         greeting = cls.clean_text(hiring_manager) or "Hiring Team"
-        tone_label = cls.TONE_LABELS.get(tone, cls.TONE_LABELS["professional"])
+        closing = cls.TONE_CLOSINGS.get(tone, cls.TONE_CLOSINGS["professional"])
         clean_role = cls.sanitize_role(target_role)
         clean_company = cls.sanitize_company(company)
         skills = cls.extract_skill_terms(cv_data)
-        keywords = cls.extract_keywords(job_description)
+        # Only skills that are in both the job ad and the CV: true, and relevant.
+        shared = [
+            item.keyword
+            for item in (job_match_service.analyze(cv_data, job_description, target_role).matched if job_description else [])
+            if item.category not in ("soft", "certification")  # held, not "done day to day"
+        ]
         strongest_experience = cls.extract_strongest_experience(cv_data)
         project = cls.extract_project(cv_data)
         location = cls.clean_text(cv_data.get("location"))
@@ -112,26 +131,22 @@ class CoverLetterService:
         company_reference = cls.company_reference(clean_company)
         company_goal = f"{clean_company}'s goals" if clean_company else "your team's goals"
         company_target = clean_company or "your team"
-        skill_phrase = ", ".join(skills[:5]) or "full-stack delivery, product thinking, and reliable execution"
-        keyword_phrase = ", ".join(keywords[:5])
-        value_sentence = (
-            summary
-            or f"My background centers on {skill_phrase}, with a practical focus on shipping reliable software."
-        )
-        keyword_sentence = (
-            f"The role's focus on {keyword_phrase} connects directly with my hands-on work in {skill_phrase}. "
-            if keyword_phrase
-            else f"My strongest fit is in {skill_phrase}, backed by hands-on project delivery and careful execution. "
-        )
+        skill_phrase = cls.join_list(skills[:5])
+        value_sentence = summary or (f"My background is in {skill_phrase}." if skill_phrase else "")
+        if shared:
+            keyword_sentence = f"The role's emphasis on {cls.join_list([cls.lower_phrase(s) for s in shared[:5]])} matches what I do day to day. "
+        elif skill_phrase:
+            keyword_sentence = f"My strongest fit is in {skill_phrase}. "
+        else:
+            keyword_sentence = ""
 
         paragraphs = [
             (
                 f"Dear {greeting},"
             ),
             (
-                f"I am applying for {role_phrase} {company_reference}. "
-                f"As {headline or 'a results-focused professional'}, I bring a {tone_label} approach to "
-                f"turning requirements into shipped, useful software. {value_sentence}"
+                f"{role_phrase[0].upper()}{role_phrase[1:]} {company_reference} lines up closely with the work I do best"
+                f"{f' as {cls.with_article(headline)}' if headline else ''}. {value_sentence}"
             ),
             (
                 keyword_sentence
@@ -140,13 +155,9 @@ class CoverLetterService:
                 f"{strongest_experience}"
             ),
             (
-                f"I would bring the same disciplined execution to {company_target}: clear communication, reliable delivery, "
-                f"and a habit of turning ambiguous requirements into shipped work. {project}"
+                f"I would bring the same care and consistency to {company_target}. {project}"
             ),
-            (
-                f"Thank you for reviewing my application. I would welcome the opportunity to discuss how my background "
-                f"can support {company_goal} for this role."
-            ),
+            closing.format(goal=company_goal),
             f"Sincerely,\n{name}",
         ]
 
@@ -154,6 +165,83 @@ class CoverLetterService:
 
     @classmethod
     def render_pdf(
+        cls,
+        cv_data: dict[str, Any],
+        letter_text: str,
+        design_settings: dict[str, Any] | None = None,
+        company: str = "",
+        hiring_manager: str = "",
+    ) -> bytes:
+        """Typeset the letter to match the CV's font and accent colour.
+
+        Shrinks the type a step at a time until it fits on one page. Falls
+        back to a plain PDF if Typst can't render it.
+        """
+        design = design_settings or {}
+        font = cls.clean_text(design.get("fontFamily")) or "Source Sans 3"
+        accent = str(design.get("primaryColor") or "")
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", accent):
+            accent = "#1F2937"
+        try:
+            pdf = b""
+            for size in (11, 10.5, 10, 9.5):
+                pdf = _compile_typst(
+                    cls.typst_source(cv_data, letter_text, font, accent, size, company, hiring_manager), "pdf"
+                )
+                with fitz.open(stream=pdf, filetype="pdf") as doc:
+                    if doc.page_count == 1:
+                        break
+            return pdf
+        except Exception:
+            logger.exception("Typeset cover letter failed; using the plain renderer")
+            return cls.render_plain_pdf(cv_data, letter_text)
+
+    @classmethod
+    def typst_source(
+        cls,
+        cv_data: dict[str, Any],
+        letter_text: str,
+        font: str,
+        accent: str,
+        size: float,
+        company: str = "",
+        hiring_manager: str = "",
+    ) -> str:
+        """Typst markup for the letter. All user text goes in string literals, never markup."""
+        name = cls.clean_text(cv_data.get("name")) or "Cover Letter"
+        headline = cls.clean_text(cv_data.get("headline"))
+        contact = cls.build_contact_line(cv_data).replace(" | ", "  \u2022  ")
+        recipient = [
+            line
+            for line in (
+                cls.clean_text(hiring_manager) if cls.clean_text(hiring_manager).lower() not in {"", "hiring team", "hiring manager"} else "",
+                cls.sanitize_company(company),
+            )
+            if line
+        ]
+        parts = [
+            f'#set page(paper: "us-letter", margin: (x: 2.1cm, y: 1.9cm))',
+            f'#set text(font: {_typst_str(font)}, size: {size}pt, fill: rgb("#1f2937"))',
+            '#set par(justify: true, leading: 0.72em, spacing: 1.3em)',
+            f'#text(size: 2.1em, weight: "bold", fill: rgb("{accent}"))[#{_typst_str(name)}]',
+        ]
+        if headline:
+            parts.append(f'#v(-0.35em)\n#text(size: 1.05em, fill: rgb("{accent}"))[#{_typst_str(headline)}]')
+        if contact:
+            parts.append(f'#v(-0.2em)\n#text(size: 0.86em, fill: rgb("#4b5563"))[#{_typst_str(contact)}]')
+        parts.append(f'#v(-0.1em)\n#line(length: 100%, stroke: 0.7pt + rgb("{accent}"))\n#v(0.9em)')
+        parts.append(f"#{_typst_str(date.today().strftime('%B %d, %Y').replace(' 0', ' '))}")
+        if recipient:
+            parts.append("#v(0.5em)\n" + " #linebreak() ".join(f"#{_typst_str(line)}" for line in recipient))
+        parts.append("#v(0.6em)")
+        for paragraph in cls.normalize_letter_spacing(letter_text).split("\n\n"):
+            lines = [line.strip() for line in paragraph.split("\n") if line.strip()]
+            if lines:
+                parts.append(" #linebreak() ".join(f"#{_typst_str(line)}" for line in lines))
+        return "\n\n".join(parts) + "\n"
+
+    @classmethod
+    def render_plain_pdf(
         cls,
         cv_data: dict[str, Any],
         letter_text: str,
@@ -239,6 +327,13 @@ class CoverLetterService:
         return "" if text.lower() in cls.GENERIC_COMPANY_NAMES else text
 
     @staticmethod
+    def with_article(phrase: str) -> str:
+        """'Senior Engineer' -> 'a Senior Engineer'; leaves phrases that already have one."""
+        if re.match(r"(?i)(a|an|the)\s", phrase):
+            return phrase
+        return f"{'an' if phrase[:1].lower() in 'aeiou' else 'a'} {phrase}"
+
+    @staticmethod
     def company_reference(company: str) -> str:
         """Format the company reference for an opening sentence."""
         return f"at {company}" if company else "with your team"
@@ -267,10 +362,8 @@ class CoverLetterService:
         for entry in cv_data.get("skills", []) or []:
             if not isinstance(entry, dict):
                 continue
-            label = cls.clean_phrase(entry.get("label"))
+            # Group labels ("Clinical", "Languages") describe the list; they aren't skills themselves.
             details = cls.clean_phrase(entry.get("details"))
-            if label and label.lower() not in cls.SKILL_CATEGORY_LABELS:
-                terms.append(label)
             if details:
                 terms.extend(part.strip() for part in re.split(r"[,;/|]", details) if part.strip())
         return cls.unique_terms(terms)[:8]
@@ -302,7 +395,7 @@ class CoverLetterService:
                 if first_highlight:
                     return f"In my work as {position} at {company}, a key result was: {first_highlight}."
                 return f"My experience as {position} at {company} has strengthened my ability to deliver in similar environments."
-        return "My CV shows repeated ownership across planning, execution, and measurable product delivery."
+        return "My CV sets out the roles and results behind this."
 
     @classmethod
     def extract_project(cls, cv_data: dict[str, Any]) -> str:
@@ -315,7 +408,7 @@ class CoverLetterService:
             if name and summary:
                 return f"A representative project is {name}: {summary}."
             if name:
-                return f"A representative project is {name}, which reflects my ability to turn ideas into usable results."
+                return f"A representative project is {name}."
         return ""
 
     @classmethod
@@ -355,10 +448,26 @@ class CoverLetterService:
     def location_sentence(cls, location: str, country: str) -> str:
         """Build a short sentence that uses location without overclaiming."""
         if location and country:
-            return f"Based in {location}, I understand the expectations of teams hiring in {country} and remote-first markets. "
+            return f"I'm based in {location}. "
         if location:
-            return f"Based in {location}, I bring location-aware communication and collaboration habits. "
+            return f"I'm based in {location}. "
         return ""
+
+    @staticmethod
+    def join_list(items: list[str]) -> str:
+        """'a', 'a and b', 'a, b and c'."""
+        items = [item for item in items if item]
+        if len(items) <= 2:
+            return " and ".join(items)
+        return f"{', '.join(items[:-1])} and {items[-1]}"
+
+    @staticmethod
+    def lower_phrase(phrase: str) -> str:
+        """Lowercase ordinary skill names; keep acronyms and product names ('Epic', 'GAAP')."""
+        words = phrase.split()
+        if all(word[:1].isupper() and word[1:].islower() for word in words) and len(words) > 1:
+            return phrase.lower()
+        return phrase
 
     @staticmethod
     def unique_terms(values: list[str]) -> list[str]:

@@ -57,7 +57,7 @@ class ErrorBoundary extends Component<Props, State> {
                         style={{
                             maxWidth: "500px",
                             textAlign: "center",
-                            background: "white",
+                            background: "var(--panel)",
                             borderRadius: "16px",
                             padding: "3rem",
                             boxShadow: "0 10px 40px rgba(0,0,0,0.1)",

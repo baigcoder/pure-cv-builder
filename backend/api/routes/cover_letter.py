@@ -1,0 +1,234 @@
+"""Cover letter generation and PDF export routes."""
+
+import json
+import logging
+from collections.abc import Iterator
+
+from fastapi import APIRouter, Request
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import Response, StreamingResponse
+
+from core.errors import ServiceUnavailableError
+from core.limiter import AI_LIMIT, RENDER_LIMIT, limiter
+from schemas.cover_letter import CoverLetterRequest, CoverLetterResponse
+from services import grounding
+from services.ai_service import AIService, clean_plain_text
+from services.cover_letter_service import CoverLetterService
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/cover-letter", tags=["cover-letter"])
+
+TEMPLATE_CHUNK_WORDS = 12
+
+
+def _fallback_letter(cv_dict: dict, cover_letter) -> str:
+    return CoverLetterService.build_fallback_letter(
+        cv_data=cv_dict,
+        target_role=cover_letter.target_role,
+        company=cover_letter.company,
+        hiring_manager=cover_letter.hiring_manager,
+        job_description=cover_letter.job_description,
+        tone=cover_letter.tone,
+    )
+
+
+@router.post("/generate")
+@limiter.limit(AI_LIMIT)
+async def generate_cover_letter(
+    request: Request,
+    cover_letter_request: CoverLetterRequest,
+) -> CoverLetterResponse:
+    """Generate a tailored cover letter from CV data and a job description."""
+    cv_dict = cover_letter_request.cv_data.model_dump()
+    cover_letter = cover_letter_request.cover_letter
+    ai_only = cover_letter_request.ai_only
+
+    if ai_only and not AIService.is_configured():
+        raise ServiceUnavailableError(
+            "AI cover letter generation is not configured. Set GROQ_API_KEY to enable AI generation."
+        )
+
+    letter_text = ""
+    if AIService.is_configured():
+        prompt = AIService.cover_letter_prompt(
+            cv_dict,
+            cover_letter.target_role,
+            cover_letter.company,
+            cover_letter.hiring_manager,
+            cover_letter.job_description,
+            cover_letter.tone,
+            cover_letter.length,
+            cover_letter.highlights,
+        )
+        letter_text = await run_in_threadpool(
+            AIService.generate_cover_letter,
+            cv_data=cv_dict,
+            target_role=cover_letter.target_role,
+            company=cover_letter.company,
+            hiring_manager=cover_letter.hiring_manager,
+            job_description=cover_letter.job_description,
+            tone=cover_letter.tone,
+            length=cover_letter.length,
+            highlights=cover_letter.highlights,
+        )
+        sources = _letter_sources(cv_dict, cover_letter)
+        invented = grounding.check(letter_text, *sources) if letter_text else None
+        if invented:
+            letter_text = await run_in_threadpool(_corrected_letter, prompt, invented, sources)
+
+    source = "ai"
+    if not letter_text.strip():
+        if ai_only:
+            raise ServiceUnavailableError("AI cover letter generation is temporarily unavailable. Please try again.")
+        letter_text = _fallback_letter(cv_dict, cover_letter)
+        source = "template"
+
+    letter_text = CoverLetterService.normalize_letter_spacing(letter_text)
+    return CoverLetterResponse(
+        letter=letter_text,
+        source=source,
+        word_count=CoverLetterService.word_count(letter_text),
+    )
+
+
+def _letter_sources(cv_dict: dict, cover_letter) -> tuple[str, ...]:
+    """What a letter may draw facts from: the CV and the user's own notes, not the job ad."""
+    return (json.dumps(cv_dict, ensure_ascii=False), cover_letter.highlights, cover_letter.company, cover_letter.target_role)
+
+
+MAX_LETTER_RETRIES = 2
+
+
+def _corrected_letter(prompt: str, invented, sources: tuple[str, ...]) -> str:
+    """Retries that name what to leave out; returns "" if none is grounded.
+
+    Each retry lists every unsupported claim seen so far, because the model
+    tends to repeat whatever the job ad asks for.
+    """
+    if not invented:
+        return ""
+    claims = {"skills": set(invented.skills), "numbers": set(invented.numbers)}
+    for _ in range(MAX_LETTER_RETRIES):
+        named = grounding.Ungrounded(numbers=sorted(claims["numbers"]), skills=sorted(claims["skills"]))
+        correction = (
+            f"\n\nYour previous draft claimed {named.describe()}, which the CV does not support. "
+            "Write the letter again without them. Use only facts from the CV snapshot and the emphasis."
+        )
+        candidate = clean_plain_text(
+            AIService.call_provider(prompt=prompt + correction, max_tokens=AIService.max_tokens_for_task("cover_letter"), temperature=0.4)
+        )
+        if not candidate or AIService.validate_text("cover_letter", candidate):
+            continue
+        still = grounding.check(candidate, *sources)
+        if not still:
+            return candidate
+        claims["skills"] |= set(still.skills)
+        claims["numbers"] |= set(still.numbers)
+    return ""
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _stream_letter(cv_dict: dict, cover_letter, ai_only: bool) -> Iterator[str]:
+    """Server-sent events: ``delta`` text chunks, then ``done`` with the final letter.
+
+    Streams from the AI provider when configured. If that yields nothing usable,
+    sends ``reset`` and streams the template letter instead, unless ``ai_only``.
+    """
+    source = "template"
+    letter = ""
+
+    if AIService.is_configured():
+        prompt = AIService.cover_letter_prompt(
+            cv_dict,
+            cover_letter.target_role,
+            cover_letter.company,
+            cover_letter.hiring_manager,
+            cover_letter.job_description,
+            cover_letter.tone,
+            cover_letter.length,
+            cover_letter.highlights,
+        )
+        parts: list[str] = []
+        for delta in AIService.stream_provider(prompt, max_tokens=AIService.max_tokens_for_task("cover_letter")):
+            parts.append(delta)
+            yield _sse("delta", {"text": delta})
+        candidate = clean_plain_text("".join(parts))
+        sources = _letter_sources(cv_dict, cover_letter)
+        invented = grounding.check(candidate, *sources) if candidate else None
+        if candidate and not AIService.validate_text("cover_letter", candidate) and not invented:
+            letter, source = candidate, "ai"
+        elif parts:
+            logger.info("Streamed cover letter rejected (%s); retrying", invented.describe() if invented else "validation")
+            yield _sse("reset", {})
+            retry = _corrected_letter(prompt, invented, sources)
+            if retry:
+                letter, source = retry, "ai"
+                words = letter.split(" ")
+                for start in range(0, len(words), TEMPLATE_CHUNK_WORDS):
+                    chunk = " ".join(words[start:start + TEMPLATE_CHUNK_WORDS])
+                    yield _sse("delta", {"text": chunk + (" " if start + TEMPLATE_CHUNK_WORDS < len(words) else "")})
+
+    if not letter:
+        if ai_only:
+            yield _sse("error", {"detail": "AI cover letter generation is temporarily unavailable. Please try again."})
+            return
+        letter = _fallback_letter(cv_dict, cover_letter)
+        words = letter.split(" ")
+        for start in range(0, len(words), TEMPLATE_CHUNK_WORDS):
+            chunk = " ".join(words[start:start + TEMPLATE_CHUNK_WORDS])
+            yield _sse("delta", {"text": chunk + (" " if start + TEMPLATE_CHUNK_WORDS < len(words) else "")})
+
+    letter = CoverLetterService.normalize_letter_spacing(letter)
+    yield _sse("done", {"letter": letter, "source": source, "word_count": CoverLetterService.word_count(letter)})
+
+
+@router.post("/stream", response_class=StreamingResponse)
+@limiter.limit(AI_LIMIT)
+async def stream_cover_letter(request: Request, cover_letter_request: CoverLetterRequest) -> StreamingResponse:
+    """Generate a cover letter as server-sent events (``delta``, ``reset``, ``done``, ``error``)."""
+    if cover_letter_request.ai_only and not AIService.is_configured():
+        raise ServiceUnavailableError(
+            "AI cover letter generation is not configured. Set GROQ_API_KEY to enable AI generation."
+        )
+    return StreamingResponse(
+        _stream_letter(
+            cover_letter_request.cv_data.model_dump(),
+            cover_letter_request.cover_letter,
+            cover_letter_request.ai_only,
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.post("/download", response_class=Response)
+@limiter.limit(RENDER_LIMIT)
+async def download_cover_letter(
+    request: Request,
+    cover_letter_request: CoverLetterRequest,
+) -> Response:
+    """Download the edited cover letter as an ATS-friendly PDF."""
+    cv_dict = cover_letter_request.cv_data.model_dump()
+    cover_letter = cover_letter_request.cover_letter
+    letter_text = cover_letter.letter or _fallback_letter(cv_dict, cover_letter)
+    pdf_bytes = await run_in_threadpool(
+        CoverLetterService.render_pdf,
+        cv_data=cv_dict,
+        letter_text=CoverLetterService.normalize_letter_spacing(letter_text),
+        design_settings=(
+            cover_letter_request.design_settings.model_dump() if cover_letter_request.design_settings else None
+        ),
+        company=cover_letter.company,
+        hiring_manager=cover_letter.hiring_manager,
+    )
+    safe_name = (cv_dict.get("name") or "Cover_Letter").replace(" ", "_")
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}_Cover_Letter.pdf"'},
+    )

@@ -5,21 +5,108 @@ Wraps RenderCV core functionality for web API use.
 Uses the rendercv CLI for rendering since the PyPI package is CLI-based.
 """
 
-import tempfile
-import shutil
-import subprocess
-import sys
+import datetime
+import logging
 import re
-import os
-from pathlib import Path
-import yaml
+import threading
+from dataclasses import dataclass
+from typing import Any
+
 import pydantic
 import pydantic_extra_types.phone_numbers as pydantic_phone_numbers
+import rendercv_fonts
+import typst
+import yaml
+from rendercv.exception import RenderCVUserError, RenderCVUserValidationError
+from rendercv.renderer.pdf_png import get_package_path
+from rendercv.renderer.templater.templater import render_full_template
 from rendercv.schema.models.design.built_in_design import available_themes
+from rendercv.schema.rendercv_model_builder import build_rendercv_dictionary_and_model
+
+from core.config import get_settings
+from core.errors import RenderFailedError, RenderValidationError
+from services.render_engine import render_cache
+from services.theme_presets import THEME_PRESETS, merge
+
+logger = logging.getLogger(__name__)
 
 _PHONE_VALIDATOR = pydantic.TypeAdapter[pydantic_phone_numbers.PhoneNumber](
     pydantic_phone_numbers.PhoneNumber
 )
+
+# RenderCV section keys mapped back to the editor's section ids for error fields.
+_RENDERCV_TO_EDITOR_SECTION = {
+    "Summary": "summary",
+    "selected_honors": "honors",
+    "invited_talks": "talks",
+}
+
+_compiler_local = threading.local()
+
+# RenderCV parses YAML with one module-level ruamel parser, which is not
+# thread-safe: concurrent renders corrupt its state. Validation is fast, so
+# serialise only that step; Typst compilation still runs in parallel.
+_rendercv_parse_lock = threading.Lock()
+
+# Gallery thumbnails: enough to recognise a layout, ~10x smaller than previews.
+THUMBNAIL_PPI = 48
+
+
+@dataclass(frozen=True)
+class PreviewPages:
+    pages: list[bytes]
+    page_count: int
+    cached: bool
+
+
+def _get_compiler() -> typst.Compiler:
+    """One Typst compiler per render thread; building one loads every font."""
+    compiler = getattr(_compiler_local, "compiler", None)
+    if compiler is None:
+        compiler = typst.Compiler(
+            font_paths=list(rendercv_fonts.paths_to_font_folders),
+            package_path=get_package_path(),
+        )
+        _compiler_local.compiler = compiler
+    return compiler
+
+
+def _compile_typst(typst_source: str, output_format: str, ppi: float | None = None) -> bytes | list[bytes]:
+    """Compile Typst source to PDF bytes or a list of PNG page bytes."""
+    try:
+        output = _get_compiler().compile(input=typst_source.encode("utf-8"), format=output_format, ppi=ppi)
+    except typst.TypstError as error:
+        logger.error("Typst compilation failed: %s", error.message)
+        raise RenderFailedError("The CV could not be rendered with this theme. Try another theme or font.") from error
+
+    if output_format == "pdf":
+        if not isinstance(output, bytes):
+            raise RenderFailedError("The renderer returned no PDF.")
+        return output
+
+    pages = output if isinstance(output, list) else [output]
+    pages = [page for page in pages if page]
+    if not pages:
+        raise RenderFailedError("The renderer returned no pages.")
+    return pages
+
+
+def _validation_fields(error: RenderCVUserValidationError) -> dict[str, str]:
+    """Map RenderCV schema locations to editor field keys.
+
+    ("cv", "phone") -> "phone"; ("cv", "sections", "experience", 0, "start_date")
+    -> "experience.0.start_date"; design errors keep a "design." prefix.
+    """
+    fields: dict[str, str] = {}
+    for item in error.validation_errors:
+        location = [str(part) for part in (item.schema_location or ())]
+        if len(location) >= 2 and location[0] == "cv" and location[1] == "sections" and len(location) >= 3:
+            location = [_RENDERCV_TO_EDITOR_SECTION.get(location[2], location[2]), *location[3:]]
+        elif location and location[0] == "cv":
+            location = location[1:]
+        key = ".".join(location) or "cv"
+        fields.setdefault(key, item.message)
+    return fields
 
 
 class CVService:
@@ -157,19 +244,30 @@ class CVService:
 
     @classmethod
     def resolve_theme(cls, theme: str) -> str:
-        """Map ApplyForge preset aliases to real RenderCV built-in themes."""
+        """Map Folio preset aliases to real RenderCV built-in themes."""
+        if theme in THEME_PRESETS:
+            return THEME_PRESETS[theme]["base"]
         return cls.THEME_ALIASES.get(theme, theme)
     
     @classmethod
     def get_themes(cls) -> list[str]:
         """Return list of available themes."""
-        return [*cls.THEME_ALIASES.keys(), *cls.AVAILABLE_THEMES]
+        return [*THEME_PRESETS.keys(), *cls.THEME_ALIASES.keys(), *cls.AVAILABLE_THEMES]
 
     @classmethod
     def get_theme_metadata(cls) -> list[dict]:
         """Return metadata for all available built-in themes."""
+        presets = [
+            {
+                "id": preset_id,
+                **preset["meta"],
+                "previewImage": f"/theme-{preset_id}.png",
+                "renderTheme": preset_id,
+            }
+            for preset_id, preset in THEME_PRESETS.items()
+        ]
         theme_ids = [*cls.THEME_ALIASES.keys(), *cls.AVAILABLE_THEMES]
-        return [
+        return presets + [
             {
                 "id": theme_id,
                 **cls.THEME_METADATA.get(
@@ -192,91 +290,84 @@ class CVService:
         cv_data: dict,
         output_format: str = "png",
         theme: str = "classic",
-        design_settings: dict = None,
-        section_order: list = None,
+        design_settings: dict | None = None,
+        section_order: list[str] | None = None,
     ) -> tuple[bytes, str]:
-        """
-        Render CV from structured data.
-        
-        Args:
-            cv_data: Dictionary containing CV data (name, sections, etc.)
-            output_format: 'pdf' or 'png'
-            theme: Theme name
-            design_settings: Optional design customization (colors, fonts)
-            
+        """Render the CV as a PDF, or as a PNG of the first page.
+
         Returns:
-            Tuple of (file_bytes, filename)
+            Tuple of (file_bytes, filename).
         """
-        # Create temporary directory for rendering
-        temp_dir = Path(tempfile.mkdtemp(prefix="rendercv_"))
-        
+        full_data = cls._build_yaml_structure(cv_data, theme, design_settings, section_order)
+        name = (cv_data.get("name") or "CV").replace(" ", "_")
+
+        if output_format == "pdf":
+            pdf_bytes, _ = cls._compile_cached(full_data, "pdf")
+            return pdf_bytes, f"{name}_CV.pdf"
+
+        pages, _ = cls._compile_cached(full_data, "png")
+        return pages[0], f"{name}_CV.png"
+
+    @classmethod
+    def render_preview_pages(
+        cls,
+        cv_data: dict,
+        theme: str = "classic",
+        design_settings: dict | None = None,
+        section_order: list[str] | None = None,
+    ) -> "PreviewPages":
+        """Render every page as PNG bytes, capped at PREVIEW_MAX_PAGES."""
+        full_data = cls._build_yaml_structure(cv_data, theme, design_settings, section_order)
+        pages, cached = cls._compile_cached(full_data, "png")
+        max_pages = get_settings().preview_max_pages
+        return PreviewPages(pages=pages[:max_pages], page_count=len(pages), cached=cached)
+
+    @classmethod
+    def render_thumbnail(
+        cls,
+        cv_data: dict,
+        theme: str = "classic",
+        design_settings: dict | None = None,
+        section_order: list[str] | None = None,
+        ppi: float = THUMBNAIL_PPI,
+    ) -> bytes:
+        """First page as a small PNG, for template galleries."""
+        full_data = cls._build_yaml_structure(cv_data, theme, design_settings, section_order)
+        pages, _ = cls._compile_cached(full_data, "png", ppi=ppi)
+        return pages[0]
+
+    @classmethod
+    def _compile_cached(cls, full_data: dict, output_format: str, ppi: float | None = None) -> tuple[Any, bool]:
+        """Compile RenderCV data, reusing a previous result for identical input.
+
+        Today's date is part of the key because RenderCV resolves "present"
+        and the last-updated note against the current date.
+        """
+        key = render_cache.key_for(full_data, output_format, ppi, datetime.date.today().isoformat())
+        cached = render_cache.get(key)
+        if cached is not None:
+            return cached, True
+
+        typst_source = cls._typst_source(full_data)
+        result = _compile_typst(typst_source, output_format, ppi)
+        render_cache.set(key, result)
+        return result, False
+
+    @staticmethod
+    def _typst_source(full_data: dict) -> str:
+        """Validate data with RenderCV and render its Typst template."""
+        yaml_text = yaml.dump(full_data, allow_unicode=True, default_flow_style=False, sort_keys=False)
         try:
-            # Build full YAML structure
-            full_data = cls._build_yaml_structure(
-                cv_data,
-                theme,
-                design_settings,
-                section_order,
-            )
-            
-            # Write YAML file - sort_keys=False is CRITICAL to preserve section order!
-            yaml_path = temp_dir / "cv.yaml"
-            with open(yaml_path, "w", encoding="utf-8") as f:
-                yaml.dump(full_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
-            
-            # Use rendercv CLI via python -m to render
-            output_dir = temp_dir / "output"
-            render_env = {
-                **os.environ,
-                "PYTHONIOENCODING": "utf-8",
-            }
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "rendercv",
-                    "render",
-                    str(yaml_path),
-                    "--output-folder",
-                    str(output_dir),
-                    "--quiet",
-                ],
-                capture_output=True,
-                text=True,
-                env=render_env,
-                timeout=120
-            )
-            
-            if result.returncode != 0:
-                # Read the generated YAML for debugging
-                yaml_content = yaml_path.read_text()[:500] if yaml_path.exists() else "YAML file not found"
-                raise ValueError(f"RenderCV failed (code {result.returncode}): stdout={result.stdout[:2000]}, stderr={result.stderr[:500]}, yaml={yaml_content}")
-            
-            name = cv_data.get('name', 'CV').replace(' ', '_')
-            
-            # RenderCV creates output in a subdirectory - check multiple locations
-            search_dirs = [output_dir, temp_dir]
-            
-            # Find generated files
-            if output_format == "pdf":
-                for search_dir in search_dirs:
-                    pdf_files = list(search_dir.glob("**/*.pdf"))
-                    if pdf_files:
-                        return pdf_files[0].read_bytes(), f"{name}_CV.pdf"
-            else:
-                for search_dir in search_dirs:
-                    png_files = sorted(search_dir.glob("**/*.png"))
-                    if png_files:
-                        return png_files[0].read_bytes(), f"{name}_CV.png"
-            
-            # Debug: list all files in temp_dir for troubleshooting
-            all_files = list(temp_dir.glob("**/*"))
-            file_list = [str(f.relative_to(temp_dir)) for f in all_files if f.is_file()]
-            raise ValueError(f"Failed to generate output. Files found: {file_list}, stdout: {result.stdout[:500]}")
-            
-        finally:
-            # Cleanup temp directory
-            shutil.rmtree(temp_dir, ignore_errors=True)
+            with _rendercv_parse_lock:
+                _, model = build_rendercv_dictionary_and_model(yaml_text)
+        except RenderCVUserValidationError as error:
+            raise RenderValidationError(
+                "Some CV fields have values the renderer can't use.",
+                fields=_validation_fields(error),
+            ) from error
+        except RenderCVUserError as error:
+            raise RenderValidationError(error.message or "The CV content could not be rendered.") from error
+        return render_full_template(model, "typst")
 
     @classmethod
     def generate_yaml(
@@ -642,19 +733,24 @@ class CVService:
             "invited_talks": "invited_talks",
         }
 
+        design_settings = design_settings or {}
+
+        for hidden_id in design_settings.get("hiddenSections") or []:
+            available_sections.pop(section_key_map.get(hidden_id, hidden_id), None)
+
+        # A CV's own section order wins over the theme's order. Only a custom
+        # order may move the summary; theme orders always keep it first.
+        custom_order = design_settings.get("sectionOrder") or None
+        ordered_section_ids = custom_order or section_order or []
+
         ordered_sections = {}
-        if "Summary" in available_sections:
+        summary_listed = custom_order is not None and "summary" in custom_order
+        if "Summary" in available_sections and not summary_listed:
             ordered_sections["Summary"] = available_sections["Summary"]
 
-        ordered_section_ids = section_order or []
-        ordered_rendercv_keys = [
-            section_key_map.get(section_id, section_id)
-            for section_id in ordered_section_ids
-        ]
-
-        for index, section_id in enumerate(ordered_section_ids):
+        for section_id in ordered_section_ids:
             rendercv_key = section_key_map.get(section_id, section_id)
-            if rendercv_key == "Summary":
+            if rendercv_key == "Summary" and not summary_listed:
                 continue
             if rendercv_key in available_sections and rendercv_key not in ordered_sections:
                 ordered_sections[rendercv_key] = available_sections[rendercv_key]
@@ -667,26 +763,50 @@ class CVService:
         if ordered_sections:
             cv_section["sections"] = ordered_sections
         
+        preset = THEME_PRESETS.get(theme)
+        if preset:
+            # Preset font/colour apply unless the CV sets its own.
+            design_settings = {**preset["defaults"], **{k: v for k, v in design_settings.items() if v not in (None, "")}}
         design = {
             "theme": cls.resolve_theme(theme),
         }
 
-        design_settings = design_settings or {}
         primary_color = clean_string(design_settings.get("primaryColor"))
         if primary_color:
-            design["colors"] = {
-                "name": primary_color,
-                "headline": primary_color,
-                "connections": primary_color,
-                "section_titles": primary_color,
-                "links": primary_color,
-            }
+            accent_targets = (preset or {}).get(
+                "accent_targets", ["name", "headline", "connections", "section_titles", "links"]
+            )
+            design["colors"] = {target: primary_color for target in accent_targets}
 
+        typography: dict = {}
         font_family = clean_string(design_settings.get("fontFamily"))
         if font_family:
-            design["typography"] = {
-                "font_family": font_family,
-            }
+            font_targets = (preset or {}).get("font_targets")
+            typography["font_family"] = {target: font_family for target in font_targets} if font_targets else font_family
+        if design_settings.get("fontSizePt"):
+            typography["font_size"] = {"body": f"{float(design_settings['fontSizePt']):g}pt"}
+        if design_settings.get("lineSpacingEm"):
+            typography["line_spacing"] = f"{float(design_settings['lineSpacingEm']):g}em"
+        if typography:
+            design["typography"] = typography
+
+        page: dict = {}
+        if design_settings.get("pageSize"):
+            page["size"] = design_settings["pageSize"]
+        if design_settings.get("marginCm"):
+            margin = f"{float(design_settings['marginCm']):g}cm"
+            page.update(top_margin=margin, bottom_margin=margin, left_margin=margin, right_margin=margin)
+        if design_settings.get("showFooter") is not None:
+            page["show_footer"] = bool(design_settings["showFooter"])
+        if page:
+            design["page"] = page
+
+        if design_settings.get("sectionSpacingCm"):
+            design["section_titles"] = {"space_above": f"{float(design_settings['sectionSpacingCm']):g}cm"}
+
+        if preset:
+            # The preset recipe is the base; the CV's own choices override it.
+            design = merge(preset["design"], design)
         
         # Build final structure
         return {

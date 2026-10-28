@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AlertCircle, CheckCircle2, Info, Sparkles, TriangleAlert } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, PenLine, TriangleAlert } from "lucide-react";
 import styles from "./AppUI.module.css";
 
 interface SectionHeaderProps {
@@ -13,7 +13,6 @@ export function SectionHeader({ eyebrow, title, description }: SectionHeaderProp
     <div className={styles.sectionHeader}>
       {eyebrow && (
         <div className={styles.eyebrow}>
-          <Sparkles size={14} />
           {eyebrow}
         </div>
       )}
@@ -121,7 +120,7 @@ export function AIActionButton({
 }) {
   return (
     <button type="button" className={styles.aiAction} disabled={disabled} onClick={onClick} title={title}>
-      <Sparkles size={14} />
+      <PenLine size={14} />
       {children}
     </button>
   );

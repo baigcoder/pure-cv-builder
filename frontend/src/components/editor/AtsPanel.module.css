@@ -1,0 +1,110 @@
+/* ATS readiness. Sidebar tone is flush with the paper column; card tone sits in the form. */
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    color: var(--text);
+}
+
+.panelCard {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+}
+
+.title {
+    font-family: var(--font-label);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.meter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.meterTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.meterTop strong {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 400;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.track {
+    height: 3px;
+    background: var(--border);
+    overflow: hidden;
+}
+
+.fill {
+    display: block;
+    height: 100%;
+    transition: width 0.5s var(--ease);
+}
+
+.fill_good {
+    background: var(--success);
+}
+
+.fill_ok {
+    background: var(--warning);
+}
+
+.fill_low {
+    background: var(--error);
+}
+
+.score_good {
+    color: var(--success);
+}
+
+.score_ok {
+    color: var(--warning);
+}
+
+.score_low {
+    color: var(--error);
+}
+
+.tip {
+    font-size: var(--text-xs);
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+.enhance {
+    margin-top: 0.15rem;
+}
+
+.words {
+    font-family: var(--font-label);
+    font-size: 0.625rem;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.reviewLink {
+    align-self: center;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.reviewLink:hover {
+    text-decoration: underline;
+}

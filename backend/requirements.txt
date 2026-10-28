@@ -14,3 +14,13 @@ rendercv[full]>=1.0.0
 
 # PDF text extraction
 PyMuPDF>=1.24.0
+
+# Accounts and saved CVs (Supabase Postgres + Supabase Auth JWTs)
+SQLAlchemy>=2.0.36
+alembic>=1.14
+psycopg[binary]>=3.2
+PyJWT[crypto]>=2.10
+httpx>=0.27
+
+# Word (.docx) export
+python-docx>=1.1
