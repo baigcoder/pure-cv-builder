@@ -11,8 +11,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - OPENCODE_API_KEY=${OPENCODE_API_KEY}
-      - OPENCODE_BASE_URL=${OPENCODE_BASE_URL:-https://opencode.ai/zen/v1}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - GROQ_MODEL=${GROQ_MODEL:-openai/gpt-oss-120b}
       - CORS_ORIGINS=http://localhost:3000
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO

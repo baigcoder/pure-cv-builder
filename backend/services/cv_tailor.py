@@ -19,14 +19,13 @@ import logging
 import re
 from dataclasses import dataclass, field
 
-from services import tailor_service
+from services import grounding, tailor_service
 from services.ai_service import AIService, clean_plain_text, parse_json_object, word_count
 from services.job_match_service import _title_words, analyze, find_skills
 from services.skills_lexicon import SKILLS
 
 logger = logging.getLogger(__name__)
 
-NUMBER = re.compile(r"\d[\d.,]*")
 
 
 @dataclass
@@ -77,9 +76,10 @@ def _headline(cv: dict, target_title: str, matched: list[str]) -> str | None:
 
 def _grounded(rewrite: str, cv_text: str) -> bool:
     """No new numbers and no skills the CV doesn't already show."""
-    if set(NUMBER.findall(rewrite)) - set(NUMBER.findall(cv_text)):
-        return False
-    return set(find_skills(rewrite)) <= set(find_skills(cv_text))
+    invented = grounding.check(rewrite, cv_text)
+    if invented:
+        logger.info("Tailoring rewrite rejected; it added %s", invented.describe())
+    return not invented
 
 
 def _ai_summary(cv: dict, job_description: str, target_title: str, matched: list[str]) -> str | None:
@@ -143,7 +143,8 @@ def tailor_cv(cv_data: dict, job_description: str, target_role: str = "") -> Tai
         cv_text = _cv_text(cv_data)
         applied = 0
         for suggestion in bullets.suggestions:
-            if not _grounded(suggestion["suggestion"], cv_text + " " + " ".join(item.keyword for item in before.missing)):
+            # Strict: a bullet may echo the job's wording, but not claim a skill the CV doesn't show.
+            if not _grounded(suggestion["suggestion"], cv_text):
                 continue
             entries = tailored.get(suggestion["section"]) or []
             entry = entries[suggestion["entry_index"]] if suggestion["entry_index"] < len(entries) else None

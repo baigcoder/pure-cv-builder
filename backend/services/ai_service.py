@@ -18,6 +18,7 @@ from pydantic import ValidationError
 
 from core.config import get_settings  # noqa: F401  (loads .env before reading provider vars)
 from schemas.cv import CVData
+from services import grounding
 
 logger = logging.getLogger(__name__)
 
@@ -54,19 +55,38 @@ SUPPORTED_TASKS: tuple[AITask, ...] = (
     "cover_letter",
 )
 
-OPENCODE_API_KEY = os.getenv("OPENCODE_API_KEY")
-OPENCODE_BASE_URL = os.getenv("OPENCODE_BASE_URL", "https://opencode.ai/zen/v1")
-OPENCODE_MODEL = os.getenv("OPENCODE_MODEL", "nemotron-3-super-free")
-OPENCODE_TIMEOUT = float(os.getenv("OPENCODE_TIMEOUT", "8.0"))
+# Groq serves an OpenAI-compatible API, so the OpenAI client talks to it directly.
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+GROQ_TIMEOUT = float(os.getenv("GROQ_TIMEOUT", "15.0"))
+# gpt-oss models reason before answering, and reasoning tokens count against max_tokens.
+# "low" keeps answers fast and leaves room for the reply in the app's small token budgets.
+GROQ_REASONING_EFFORT = os.getenv("GROQ_REASONING_EFFORT", "low")
+
+
+# Reasoning tokens count against max_tokens, so reasoning models get this much extra room
+# on top of each call's answer budget; otherwise a long prompt can leave no room to answer.
+REASONING_HEADROOM = 1024
+
+
+def _model_options(max_tokens: int) -> dict:
+    """Token budget and extra request fields for the configured model."""
+    if "gpt-oss" in GROQ_MODEL:
+        options: dict = {"max_tokens": max_tokens + REASONING_HEADROOM}
+        if GROQ_REASONING_EFFORT:
+            options["extra_body"] = {"reasoning_effort": GROQ_REASONING_EFFORT}
+        return options
+    return {"max_tokens": max_tokens}
 
 client = (
     OpenAI(
-        api_key=OPENCODE_API_KEY,
-        base_url=OPENCODE_BASE_URL,
-        timeout=OPENCODE_TIMEOUT,
+        api_key=GROQ_API_KEY,
+        base_url=GROQ_BASE_URL,
+        timeout=GROQ_TIMEOUT,
         max_retries=0,
     )
-    if OPENCODE_API_KEY
+    if GROQ_API_KEY
     else None
 )
 
@@ -296,9 +316,9 @@ class AIService:
         """Return public AI capability metadata for the frontend."""
         return {
             "configured": AIService.is_configured(),
-            "provider": "OpenAI-compatible",
-            "base_url": OPENCODE_BASE_URL,
-            "model": OPENCODE_MODEL,
+            "provider": "Groq",
+            "base_url": GROQ_BASE_URL,
+            "model": GROQ_MODEL,
             "supported_tasks": list(SUPPORTED_TASKS),
             "fallback_available": True,
         }
@@ -318,6 +338,13 @@ class AIService:
             )
             cleaned = clean_plain_text(generated)
             warnings = AIService.validate_text(task, cleaned)
+            # Rewrites may not add numbers or skills that weren't in what the user gave us.
+            # The skills task is the exception: suggesting new skills is its job.
+            if cleaned and not warnings and task != "skills":
+                invented = grounding.check(cleaned, trimmed_text, trimmed_context)
+                if invented:
+                    logger.info("AI %s suggestion added %s; using fallback", task, invented.describe())
+                    warnings = ["AI added facts that aren't in your CV."]
             if cleaned and not warnings:
                 return AITextResult(text=cleaned, source="ai", warnings=[])
 
@@ -348,11 +375,16 @@ class AIService:
                 except ValidationError:
                     logger.warning("AI enhancement returned CV data that does not match the schema")
             if parsed and validated_cv is not None:
+                reverted = AIService._revert_ungrounded(cv_data, validated_cv)
                 return {
                     "cv_data": validated_cv,
                     "source": "ai",
                     "changes": [str(item) for item in parsed.get("changes", []) if str(item).strip()][:8],
-                    "warnings": [],
+                    "warnings": (
+                        [f"Kept your wording in {reverted} place{'s' if reverted != 1 else ''} where the AI added facts that aren't in your CV."]
+                        if reverted
+                        else []
+                    ),
                     "market_keywords": [str(item) for item in parsed.get("market_keywords", []) if str(item).strip()][:12],
                 }
 
@@ -360,6 +392,44 @@ class AIService:
         fallback["source"] = "fallback"
         fallback["warnings"] = ["AI provider unavailable or returned unusable structured CV data."]
         return fallback
+
+    @staticmethod
+    def _revert_ungrounded(original: dict[str, Any], improved: dict[str, Any]) -> int:
+        """Put back the original text wherever the AI's version adds numbers or skills. Returns how many."""
+        source = json.dumps(original, ensure_ascii=False)
+        reverted = 0
+        for key in ("headline", "summary"):
+            if improved.get(key) != original.get(key) and not grounding.is_grounded(str(improved.get(key) or ""), source):
+                improved[key] = original.get(key, "")
+                reverted += 1
+        for section in ("experience", "projects", "education", "skills"):
+            old_entries = original.get(section) or []
+            for index, entry in enumerate(improved.get(section) or []):
+                old = old_entries[index] if index < len(old_entries) and isinstance(old_entries[index], dict) else None
+                if not isinstance(entry, dict):
+                    continue
+                if old is None:
+                    # A whole new entry can't be checked against anything; drop its text.
+                    if not grounding.is_grounded(json.dumps(entry, ensure_ascii=False), source):
+                        entry.clear()
+                        reverted += 1
+                    continue
+                for field_name, value in list(entry.items()):
+                    if field_name == "highlights" and isinstance(value, list):
+                        old_list = old.get("highlights") or []
+                        for i, bullet in enumerate(value):
+                            before = old_list[i] if i < len(old_list) else ""
+                            if bullet != before and not grounding.is_grounded(str(bullet), source):
+                                value[i] = before
+                                reverted += 1
+                        entry["highlights"] = [b for b in value if str(b).strip()]
+                    elif isinstance(value, str) and value != old.get(field_name) and not grounding.is_grounded(value, source):
+                        entry[field_name] = old.get(field_name, "")
+                        reverted += 1
+        for section in ("experience", "projects", "education", "skills"):
+            if isinstance(improved.get(section), list):
+                improved[section] = [e for e in improved[section] if e]
+        return reverted
 
     @staticmethod
     def build_ats_enhancement_prompt(
@@ -595,13 +665,17 @@ Return one JSON object only with this exact shape:
                     {"role": "system", "content": system or DEFAULT_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
-                model=OPENCODE_MODEL,
+                model=GROQ_MODEL,
                 temperature=temperature,
-                max_tokens=max_tokens,
+                **_model_options(max_tokens),
             )
-            return chat_completion.choices[0].message.content or ""
+            choice = chat_completion.choices[0]
+            if not choice.message.content:
+                logger.warning("AI provider returned no text (finish_reason=%s)", choice.finish_reason)
+            return choice.message.content or ""
         except Exception as error:
-            logger.warning("AI provider call failed: %s", error.__class__.__name__)
+            # The provider's message (e.g. "model does not exist") makes misconfiguration obvious.
+            logger.warning("AI provider call failed: %s: %s", error.__class__.__name__, str(error)[:200])
             return ""
 
     @staticmethod
@@ -619,10 +693,10 @@ Return one JSON object only with this exact shape:
                     {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},
                 ],
-                model=OPENCODE_MODEL,
+                model=GROQ_MODEL,
                 temperature=temperature,
-                max_tokens=max_tokens,
                 stream=True,
+                **_model_options(max_tokens),
             )
             for chunk in stream:
                 if not chunk.choices:
@@ -631,7 +705,7 @@ Return one JSON object only with this exact shape:
                 if delta:
                     yield delta
         except Exception as error:
-            logger.warning("AI provider stream failed: %s", error.__class__.__name__)
+            logger.warning("AI provider stream failed: %s: %s", error.__class__.__name__, str(error)[:200])
 
     @staticmethod
     def improve_summary(current_summary: str, job_title: str = "") -> str:
@@ -730,7 +804,10 @@ Rules:
 - {low}-{high} words in total. Plain text only: no markdown, bullets, brackets or placeholders.
 - Tone: {tone_guide}
 - Use only facts from the CV snapshot and the emphasis above. Never invent employers, metrics, degrees,
-  visas or work authorisation.
+  visas or work authorisation, and never state how many years of experience the candidate has unless
+  the CV says so.
+- Mention only tools and skills that appear in the CV snapshot or the emphasis. If the job asks for
+  something the CV doesn't show, leave it out rather than claiming it.
 - Weave in the job description's key skills and terms naturally, using its exact wording where truthful.
 - Avoid cliches: "passionate", "team player", "hard-working", "go-getter", "think outside the box",
   "I believe I would be a great fit", "To whom it may concern".

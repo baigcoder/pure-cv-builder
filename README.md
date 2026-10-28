@@ -143,10 +143,11 @@ Do not rename those keys unless a migration is added.
 | --- | --- | --- |
 | `CORS_ORIGINS` | No | Comma-separated list of allowed frontend origins. |
 | `LOG_LEVEL` | No | Backend log level. |
-| `OPENCODE_API_KEY` | No | Enables OpenAI-compatible AI generation. |
-| `OPENCODE_BASE_URL` | No | AI provider base URL. |
-| `OPENCODE_MODEL` | No | AI model name. |
-| `OPENCODE_TIMEOUT` | No | AI request timeout in seconds. |
+| `GROQ_API_KEY` | No | Enables AI writing features through Groq ([get a key](https://console.groq.com/keys)). Without it, built-in rules are used. |
+| `GROQ_MODEL` | No | Groq model name. Defaults to `openai/gpt-oss-120b`. |
+| `GROQ_REASONING_EFFORT` | No | Reasoning effort for gpt-oss models (`low`, `medium`, `high`). Defaults to `low`. |
+| `GROQ_BASE_URL` | No | Override the API base URL. Defaults to Groq's OpenAI-compatible endpoint. |
+| `GROQ_TIMEOUT` | No | AI request timeout in seconds. Defaults to 15. |
 | `CORS_ORIGIN_REGEX` | No | Extra allowed origins as a regex. Defaults to Vercel previews. |
 | `RATE_LIMIT_ENABLED` | No | `false` disables rate limiting (tests do this). |
 | `RATE_LIMIT_PREVIEW` / `_RENDER` / `_AI` / `_DEFAULT` | No | Limits such as `60/minute`. |

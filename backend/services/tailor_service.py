@@ -170,6 +170,10 @@ def tailor(cv_data: dict, job_description: str, requested_keywords: list[str], m
 
     if not suggestions:
         logger.info("AI tailoring returned no usable rewrites; returning guidance")
+        guidance.message = (
+            "None of your bullets clearly show the job's missing keywords, so there's nothing to reword honestly. "
+            + ("The bullets below are the closest fits if the keyword is true for that work." if hints else "Consider adding a bullet for that work.")
+        )
         return guidance
     return TailorResult(
         "ai",

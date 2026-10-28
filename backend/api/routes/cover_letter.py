@@ -11,6 +11,7 @@ from fastapi.responses import Response, StreamingResponse
 from core.errors import ServiceUnavailableError
 from core.limiter import AI_LIMIT, RENDER_LIMIT, limiter
 from schemas.cover_letter import CoverLetterRequest, CoverLetterResponse
+from services import grounding
 from services.ai_service import AIService, clean_plain_text
 from services.cover_letter_service import CoverLetterService
 
@@ -45,11 +46,21 @@ async def generate_cover_letter(
 
     if ai_only and not AIService.is_configured():
         raise ServiceUnavailableError(
-            "AI cover letter generation is not configured. Set OPENCODE_API_KEY to enable AI generation."
+            "AI cover letter generation is not configured. Set GROQ_API_KEY to enable AI generation."
         )
 
     letter_text = ""
     if AIService.is_configured():
+        prompt = AIService.cover_letter_prompt(
+            cv_dict,
+            cover_letter.target_role,
+            cover_letter.company,
+            cover_letter.hiring_manager,
+            cover_letter.job_description,
+            cover_letter.tone,
+            cover_letter.length,
+            cover_letter.highlights,
+        )
         letter_text = await run_in_threadpool(
             AIService.generate_cover_letter,
             cv_data=cv_dict,
@@ -61,6 +72,10 @@ async def generate_cover_letter(
             length=cover_letter.length,
             highlights=cover_letter.highlights,
         )
+        sources = _letter_sources(cv_dict, cover_letter)
+        invented = grounding.check(letter_text, *sources) if letter_text else None
+        if invented:
+            letter_text = await run_in_threadpool(_corrected_letter, prompt, invented, sources)
 
     source = "ai"
     if not letter_text.strip():
@@ -75,6 +90,27 @@ async def generate_cover_letter(
         source=source,
         word_count=CoverLetterService.word_count(letter_text),
     )
+
+
+def _letter_sources(cv_dict: dict, cover_letter) -> tuple[str, ...]:
+    """What a letter may draw facts from: the CV and the user's own notes, not the job ad."""
+    return (json.dumps(cv_dict, ensure_ascii=False), cover_letter.highlights, cover_letter.company, cover_letter.target_role)
+
+
+def _corrected_letter(prompt: str, invented, sources: tuple[str, ...]) -> str:
+    """One retry that names what to leave out; returns "" if it still isn't grounded."""
+    if not invented:
+        return ""
+    correction = (
+        f"\n\nYour previous draft claimed {invented.describe()}, which the CV does not support. "
+        "Write the letter again without them. Use only facts from the CV snapshot and the emphasis."
+    )
+    candidate = clean_plain_text(
+        AIService.call_provider(prompt=prompt + correction, max_tokens=AIService.max_tokens_for_task("cover_letter"), temperature=0.4)
+    )
+    if candidate and not AIService.validate_text("cover_letter", candidate) and grounding.is_grounded(candidate, *sources):
+        return candidate
+    return ""
 
 
 def _sse(event: str, data: dict) -> str:
@@ -106,11 +142,20 @@ def _stream_letter(cv_dict: dict, cover_letter, ai_only: bool) -> Iterator[str]:
             parts.append(delta)
             yield _sse("delta", {"text": delta})
         candidate = clean_plain_text("".join(parts))
-        if candidate and not AIService.validate_text("cover_letter", candidate):
+        sources = _letter_sources(cv_dict, cover_letter)
+        invented = grounding.check(candidate, *sources) if candidate else None
+        if candidate and not AIService.validate_text("cover_letter", candidate) and not invented:
             letter, source = candidate, "ai"
         elif parts:
-            logger.info("Streamed cover letter failed validation; falling back to template")
+            logger.info("Streamed cover letter rejected (%s); retrying", invented.describe() if invented else "validation")
             yield _sse("reset", {})
+            retry = _corrected_letter(prompt, invented, sources)
+            if retry:
+                letter, source = retry, "ai"
+                words = letter.split(" ")
+                for start in range(0, len(words), TEMPLATE_CHUNK_WORDS):
+                    chunk = " ".join(words[start:start + TEMPLATE_CHUNK_WORDS])
+                    yield _sse("delta", {"text": chunk + (" " if start + TEMPLATE_CHUNK_WORDS < len(words) else "")})
 
     if not letter:
         if ai_only:
@@ -132,7 +177,7 @@ async def stream_cover_letter(request: Request, cover_letter_request: CoverLette
     """Generate a cover letter as server-sent events (``delta``, ``reset``, ``done``, ``error``)."""
     if cover_letter_request.ai_only and not AIService.is_configured():
         raise ServiceUnavailableError(
-            "AI cover letter generation is not configured. Set OPENCODE_API_KEY to enable AI generation."
+            "AI cover letter generation is not configured. Set GROQ_API_KEY to enable AI generation."
         )
     return StreamingResponse(
         _stream_letter(
