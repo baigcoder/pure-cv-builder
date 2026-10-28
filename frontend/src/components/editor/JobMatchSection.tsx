@@ -41,7 +41,9 @@ const SKILL_ROW: Partial<Record<Category, { label: string; matches: string[] }>>
   cloud: { label: "Cloud & DevOps", matches: ["cloud", "devops", "infra"] },
   devops: { label: "Cloud & DevOps", matches: ["devops", "cloud", "infra"] },
   ai: { label: "AI & ML", matches: ["ai", "ml", "machine"] },
-  tool: { label: "Tools", matches: ["tool"] },
+  tool: { label: "Tools", matches: ["tool", "software"] },
+  domain: { label: "Core skills", matches: ["core", "professional", "key skill", "skills"] },
+  certification: { label: "Certifications", matches: ["certif", "licen"] },
 };
 
 const SECTION_LABEL: Record<string, string> = {

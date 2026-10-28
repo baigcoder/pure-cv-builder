@@ -6,7 +6,7 @@ matches "react.js" or "ReactJS" in a CV. Keep aliases lowercase.
 
 from typing import Literal
 
-SkillCategory = Literal["language", "framework", "data", "cloud", "devops", "ai", "practice", "soft", "tool"]
+SkillCategory = Literal["language", "framework", "data", "cloud", "devops", "ai", "practice", "soft", "tool", "domain", "certification"]
 
 # canonical name -> (category, aliases)
 SKILLS: dict[str, tuple[SkillCategory, tuple[str, ...]]] = {
@@ -107,7 +107,7 @@ SKILLS: dict[str, tuple[SkillCategory, tuple[str, ...]]] = {
     "Prometheus": ("devops", ("prometheus",)),
     "Grafana": ("devops", ("grafana",)),
     "Datadog": ("devops", ("datadog",)),
-    "Observability": ("devops", ("observability", "monitoring", "logging")),
+    "Observability": ("devops", ("observability", "application monitoring", "infrastructure monitoring", "logging and monitoring")),
     "Microservices": ("devops", ("microservices", "microservice", "service-oriented architecture")),
     "Infrastructure as Code": ("devops", ("infrastructure as code", "iac")),
     # AI
@@ -137,7 +137,7 @@ SKILLS: dict[str, tuple[SkillCategory, tuple[str, ...]]] = {
     "A/B Testing": ("practice", ("a/b testing", "ab testing", "experimentation")),
     "Product Management": ("practice", ("product management", "roadmap", "product roadmap")),
     "Project Management": ("practice", ("project management",)),
-    "Technical Documentation": ("practice", ("technical documentation", "documentation", "technical writing")),
+    "Technical Documentation": ("practice", ("technical documentation", "technical writing", "api documentation")),
     "Incident Response": ("practice", ("incident response", "on-call", "on call")),
     # Soft skills
     "Leadership": ("soft", ("leadership", "lead a team", "led teams", "team lead")),
@@ -162,6 +162,15 @@ SKILLS: dict[str, tuple[SkillCategory, tuple[str, ...]]] = {
 # rest of", "spring 2024"). They only match when capitalised like a proper
 # noun or written in capitals, e.g. "Go", "REST", "Spring", "Node".
 AMBIGUOUS_ALIASES = {"go", "rest", "spring", "express", "node", "lambda", "shell", "swift", "rust", "dart", "spark"}
+
+# Healthcare, sales, finance, education, HR, operations, hospitality, legal and office
+# skills live in their own module so this file stays a readable tech list.
+from services.skills_professions import PROFESSION_AMBIGUOUS, PROFESSION_SKILLS  # noqa: E402
+
+for _name, _entry in PROFESSION_SKILLS.items():
+    assert _name not in SKILLS, f"duplicate skill: {_name}"
+    SKILLS[_name] = _entry  # type: ignore[assignment]
+AMBIGUOUS_ALIASES |= PROFESSION_AMBIGUOUS
 
 # Skills that imply a broader one: "AWS Lambda" in a job post also asks for
 # AWS, and Lambda on a CV shows AWS experience. Kept deliberately small.

@@ -9,6 +9,7 @@ from typing import Any
 
 import fitz
 
+from services import job_match_service
 from services.cv_service import _compile_typst
 
 logger = logging.getLogger(__name__)
@@ -107,16 +108,20 @@ class CoverLetterService:
             A complete plain-text cover letter with greeting and sign-off.
         """
         name = cls.clean_text(cv_data.get("name")) or "Your Name"
-        headline = cls.clean_text(cv_data.get("headline"))
+        # "Registered Nurse | Critical Care" -> "Registered Nurse": the role reads well in a sentence.
+        headline = re.split(r"\s*[|\u2022\u00b7\u2013\u2014]\s*", cls.clean_text(cv_data.get("headline")))[0]
         summary = cls.clean_text(cv_data.get("summary"))
         greeting = cls.clean_text(hiring_manager) or "Hiring Team"
         closing = cls.TONE_CLOSINGS.get(tone, cls.TONE_CLOSINGS["professional"])
         clean_role = cls.sanitize_role(target_role)
         clean_company = cls.sanitize_company(company)
         skills = cls.extract_skill_terms(cv_data)
-        # The job title and company repeat through an ad but aren't skills.
-        own_words = set(re.findall(r"[a-z0-9+#]+", f"{target_role} {company}".lower()))
-        keywords = [term for term in cls.extract_keywords(job_description) if term.lower() not in own_words]
+        # Only skills that are in both the job ad and the CV: true, and relevant.
+        shared = [
+            item.keyword
+            for item in (job_match_service.analyze(cv_data, job_description, target_role).matched if job_description else [])
+            if item.category not in ("soft", "certification")  # held, not "done day to day"
+        ]
         strongest_experience = cls.extract_strongest_experience(cv_data)
         project = cls.extract_project(cv_data)
         location = cls.clean_text(cv_data.get("location"))
@@ -126,17 +131,14 @@ class CoverLetterService:
         company_reference = cls.company_reference(clean_company)
         company_goal = f"{clean_company}'s goals" if clean_company else "your team's goals"
         company_target = clean_company or "your team"
-        skill_phrase = ", ".join(skills[:5]) or "full-stack delivery, product thinking, and reliable execution"
-        keyword_phrase = ", ".join(keywords[:5])
-        value_sentence = (
-            summary
-            or f"My background centers on {skill_phrase}, with a practical focus on shipping reliable software."
-        )
-        keyword_sentence = (
-            f"The role's focus on {keyword_phrase} connects directly with my hands-on work in {skill_phrase}. "
-            if keyword_phrase
-            else f"My strongest fit is in {skill_phrase}, backed by hands-on project delivery and careful execution. "
-        )
+        skill_phrase = cls.join_list(skills[:5])
+        value_sentence = summary or (f"My background is in {skill_phrase}." if skill_phrase else "")
+        if shared:
+            keyword_sentence = f"The role's emphasis on {cls.join_list([cls.lower_phrase(s) for s in shared[:5]])} matches what I do day to day. "
+        elif skill_phrase:
+            keyword_sentence = f"My strongest fit is in {skill_phrase}. "
+        else:
+            keyword_sentence = ""
 
         paragraphs = [
             (
@@ -153,8 +155,7 @@ class CoverLetterService:
                 f"{strongest_experience}"
             ),
             (
-                f"I would bring the same disciplined execution to {company_target}: clear communication, reliable delivery, "
-                f"and a habit of turning ambiguous requirements into shipped work. {project}"
+                f"I would bring the same care and consistency to {company_target}. {project}"
             ),
             closing.format(goal=company_goal),
             f"Sincerely,\n{name}",
@@ -361,10 +362,8 @@ class CoverLetterService:
         for entry in cv_data.get("skills", []) or []:
             if not isinstance(entry, dict):
                 continue
-            label = cls.clean_phrase(entry.get("label"))
+            # Group labels ("Clinical", "Languages") describe the list; they aren't skills themselves.
             details = cls.clean_phrase(entry.get("details"))
-            if label and label.lower() not in cls.SKILL_CATEGORY_LABELS:
-                terms.append(label)
             if details:
                 terms.extend(part.strip() for part in re.split(r"[,;/|]", details) if part.strip())
         return cls.unique_terms(terms)[:8]
@@ -396,7 +395,7 @@ class CoverLetterService:
                 if first_highlight:
                     return f"In my work as {position} at {company}, a key result was: {first_highlight}."
                 return f"My experience as {position} at {company} has strengthened my ability to deliver in similar environments."
-        return "My CV shows repeated ownership across planning, execution, and measurable product delivery."
+        return "My CV sets out the roles and results behind this."
 
     @classmethod
     def extract_project(cls, cv_data: dict[str, Any]) -> str:
@@ -409,7 +408,7 @@ class CoverLetterService:
             if name and summary:
                 return f"A representative project is {name}: {summary}."
             if name:
-                return f"A representative project is {name}, which reflects my ability to turn ideas into usable results."
+                return f"A representative project is {name}."
         return ""
 
     @classmethod
@@ -449,10 +448,26 @@ class CoverLetterService:
     def location_sentence(cls, location: str, country: str) -> str:
         """Build a short sentence that uses location without overclaiming."""
         if location and country:
-            return f"Based in {location}, I understand the expectations of teams hiring in {country} and remote-first markets. "
+            return f"I'm based in {location}. "
         if location:
-            return f"Based in {location}, I bring location-aware communication and collaboration habits. "
+            return f"I'm based in {location}. "
         return ""
+
+    @staticmethod
+    def join_list(items: list[str]) -> str:
+        """'a', 'a and b', 'a, b and c'."""
+        items = [item for item in items if item]
+        if len(items) <= 2:
+            return " and ".join(items)
+        return f"{', '.join(items[:-1])} and {items[-1]}"
+
+    @staticmethod
+    def lower_phrase(phrase: str) -> str:
+        """Lowercase ordinary skill names; keep acronyms and product names ('Epic', 'GAAP')."""
+        words = phrase.split()
+        if all(word[:1].isupper() and word[1:].islower() for word in words) and len(words) > 1:
+            return phrase.lower()
+        return phrase
 
     @staticmethod
     def unique_terms(values: list[str]) -> list[str]:

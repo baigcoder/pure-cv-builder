@@ -1451,7 +1451,7 @@ export interface components {
              * Category
              * @enum {string}
              */
-            category: "language" | "framework" | "data" | "cloud" | "devops" | "ai" | "practice" | "soft" | "tool";
+            category: "language" | "framework" | "data" | "cloud" | "devops" | "ai" | "practice" | "soft" | "tool" | "domain" | "certification";
             /** Found In */
             found_in?: ("summary" | "headline" | "skills" | "experience" | "projects" | "education" | "other")[];
             /**

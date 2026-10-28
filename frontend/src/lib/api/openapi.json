@@ -1552,7 +1552,9 @@
               "ai",
               "practice",
               "soft",
-              "tool"
+              "tool",
+              "domain",
+              "certification"
             ],
             "title": "Category",
             "type": "string"

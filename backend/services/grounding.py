@@ -14,6 +14,7 @@ import re
 from dataclasses import dataclass, field
 
 from services.job_match_service import find_skills
+from services.skills_lexicon import SKILLS
 
 _NUMBER = re.compile(r"(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?:\s*(k|m|bn|b|million|billion|thousand)\b)?(?![\d])", re.I)
 _SCALE = {"k": 1e3, "thousand": 1e3, "m": 1e6, "million": 1e6, "b": 1e9, "bn": 1e9, "billion": 1e9}
@@ -28,7 +29,8 @@ def numbers(text: str) -> set[float]:
 
 
 def skills(text: str) -> set[str]:
-    return set(find_skills(text or ""))
+    """Checkable skills in ``text``. Soft skills ("communication") are judgements, not facts, so they're left out."""
+    return {name for name in find_skills(text or "") if SKILLS[name][0] != "soft"}
 
 
 @dataclass

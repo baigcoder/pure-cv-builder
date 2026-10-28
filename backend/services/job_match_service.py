@@ -24,7 +24,8 @@ IMPORTANCE_WEIGHT: dict[Importance, int] = {"required": 3, "core": 2, "preferred
 ALIAS_ONLY = {"Go", "C", "R"}
 
 REQUIRED_HEADINGS = re.compile(
-    r"\b(requirements?|required|must[- ]haves?|qualifications|what you(?:'ll)? (?:need|bring)|"
+    r"\b(requirements?|required|must[- ]haves?|qualifications|what you(?:'ll)? (?:need|bring)|essential|"
+    r"you(?: will|'ll)? need|we(?:'re| are) looking for|key (?:requirements|skills)|"
     r"you (?:have|bring|should have)|minimum|basic qualifications|who you are|skills)\b",
     re.IGNORECASE,
 )
@@ -182,10 +183,28 @@ def find_skills(text: str) -> dict[str, int]:
     return counts
 
 
-def _classify_lines(job_description: str) -> list[tuple[str, Importance]]:
-    """Tag each job-post line by the heading it falls under."""
+def _expand_shorthand(text: str) -> str:
+    """'accounts payable and receivable' -> 'accounts payable and accounts receivable'."""
+    return re.sub(
+        r"\b([A-Za-z]+) ([A-Za-z]+) (and|or) ([a-z]+)(?=\s*(?:[,;.)]|$))",
+        lambda m: f"{m.group(1)} {m.group(2)} {m.group(3)} {m.group(1)} {m.group(4)}"
+        if m.group(1).lower() not in _PHRASE_STOP_WORDS
+        else m.group(0),
+        text,
+    )
+
+
+_PHRASE_STOP_WORDS = {"a", "an", "the", "and", "or", "of", "in", "on", "for", "with", "to", "at", "by", "as", "strong", "excellent", "good"}
+
+
+def _classify_lines(job_description: str) -> list[tuple[str, Importance, bool]]:
+    """Tag job-post text by the heading it falls under, as (text, importance, from_list).
+
+    Comma- or semicolon-separated lines are split into items, each judged on its
+    own, so "CPA preferred, GAAP, reconciliations" marks only CPA as nice to have.
+    """
     current: Importance = "core"
-    tagged: list[tuple[str, Importance]] = []
+    tagged: list[tuple[str, Importance, bool]] = []
     for raw in job_description.splitlines():
         line = raw.strip()
         if not line:
@@ -202,13 +221,26 @@ def _classify_lines(job_description: str) -> list[tuple[str, Importance]]:
                 current = "required"
             elif NEUTRAL_HEADINGS.search(line):
                 current = "core"
-        importance = current
-        # Inline cues override the section ("Kubernetes is a plus").
-        if PREFERRED_HEADINGS.search(line) and not is_heading:
-            importance = "preferred"
-        elif re.search(r"\b(must|required|requirement|strong)\b", line, re.IGNORECASE) and not is_heading:
-            importance = "required"
-        tagged.append((line, importance))
+            tagged.append((line, current, False))
+            continue
+        # An inline label sets the section for the rest of the line ("Requirements: A, B").
+        section = current
+        label = re.match(r"^([A-Za-z' ]{2,40}):\s+", line)
+        if label:
+            if PREFERRED_HEADINGS.search(label.group(1)):
+                section = "preferred"
+            elif REQUIRED_HEADINGS.search(label.group(1)):
+                section = "required"
+        parts = re.split(r"[,;]", line) if ("," in line or ";" in line) else [line]
+        from_list = len(parts) > 1 or is_bullet
+        for part in parts:
+            importance = section
+            # Inline cues override the section for their own item ("Kubernetes is a plus").
+            if PREFERRED_HEADINGS.search(part):
+                importance = "preferred"
+            elif re.search(r"\b(must|required|requirement|strong|essential)\b", part, re.IGNORECASE):
+                importance = "required"
+            tagged.append((_expand_shorthand(part.strip()), importance, from_list))
     return tagged
 
 
@@ -216,7 +248,7 @@ def _job_keywords(job_description: str) -> dict[str, tuple[Importance, int]]:
     """Canonical skill -> (highest importance seen, total mentions)."""
     rank = {"preferred": 0, "core": 1, "required": 2}
     keywords: dict[str, tuple[Importance, int]] = {}
-    for line, importance in _classify_lines(job_description):
+    for line, importance, _ in _classify_lines(job_description):
         for skill, hits in find_skills(line).items():
             previous = keywords.get(skill)
             if previous is None:
@@ -225,6 +257,98 @@ def _job_keywords(job_description: str) -> dict[str, tuple[Importance, int]]:
                 best = importance if rank[importance] > rank[previous[0]] else previous[0]
                 keywords[skill] = (best, previous[1] + hits)
     return keywords
+
+
+# --------------------------------------------------------------------------
+# Key phrases for skills the lexicon doesn't know
+# --------------------------------------------------------------------------
+# A job ad's requirement lists name the skills that matter even when the
+# lexicon has never heard of them ("lesson planning", "pallet jack"). These
+# are pulled out of list-like lines, cleaned of filler, and matched against the
+# CV by their content words.
+
+_YEARS_PREFIX = re.compile(r"^\d+\s*\+?\s*(?:-\s*\d+\s*)?(?:years?|yrs?)\s+(?:of\s+)?(?:\w+\s+)?(?:experience\s+)?(?:in|with|as|of)?\s*", re.I)
+_FILLER_PREFIX = re.compile(
+    r"^(?:(?:strong|solid|proven|excellent|good|great|deep|hands-on|demonstrated|working|basic|advanced|practical|"
+    r"thorough|sound|current|valid|relevant|previous|prior|some)\s+)*"
+    r"(?:(?:experience|knowledge|understanding|proficiency|familiarity|expertise|skills?|background|track record|"
+    r"competence|exposure)\s+(?:with|in|of|using|for)\s+)?"
+    r"(?:(?:ability|able|willingness|willing)\s+to\s+)?",
+    re.I,
+)
+_LINE_LABEL = re.compile(r"^[A-Za-z' ]{2,40}:\s+")
+_PHRASE_STOP = {
+    "a", "an", "the", "and", "or", "of", "in", "on", "for", "with", "to", "at", "by", "as", "our", "your", "their",
+    "is", "are", "be", "you", "we", "will", "can", "must", "should", "plus", "etc", "e.g", "eg", "ie", "including",
+}
+# Words that make a phrase a requirement about the candidate, not a skill.
+_GENERIC = re.compile(
+    r"\b(experience|years?|degree|bachelor'?s?|master'?s?|diploma|qualification|certification|certificate|"
+    r"skills?|ability|team|work|role|position|job|candidate|salary|benefits?|opportunity|company|environment|"
+    r"applicants?|equal|employer|hours|shifts?|weekends?|flexible|full[- ]time|part[- ]time|remote|hybrid|"
+    r"travel|license|licence|equivalent|preferred|required|plus|bonus)\b",
+    re.I,
+)
+
+
+def _stem(word: str) -> str:
+    word = word.lower().strip(".,;:()'\"")
+    for suffix in ("ing", "ions", "ion", "es", "ed", "s"):
+        if len(word) > len(suffix) + 3 and word.endswith(suffix):
+            return word[: -len(suffix)]
+    return word
+
+
+def _content_words(text: str) -> list[str]:
+    return [_stem(w) for w in re.findall(r"[A-Za-z][A-Za-z'&-]*", text) if w.lower() not in _PHRASE_STOP and len(w) > 2]
+
+
+def _clean_phrase(part: str) -> str | None:
+    part = re.sub(r"\([^)]*\)", "", part)
+    part = re.sub(r"^\s*([-*•·▪◦]|\d+[.)])\s*", "", part).strip(" .;:!-")
+    part = _YEARS_PREFIX.sub("", part)
+    part = _FILLER_PREFIX.sub("", part).strip(" .;:!-")
+    words = part.split()
+    if not 1 <= len(words) <= 4 or _GENERIC.search(part):
+        return None
+    if not all(re.fullmatch(r"[A-Za-z][A-Za-z'&/-]*", w) for w in words):
+        return None
+    if words[0].lower() in _PHRASE_STOP or len(_content_words(part)) == 0:
+        return None
+    if find_skills(part):  # the lexicon already covers it
+        return None
+    return part[0].upper() + part[1:]
+
+
+def _job_phrases(job_description: str, known: set[str], limit: int = 10) -> dict[str, tuple[Importance, int]]:
+    """Key phrases from the ad's list-like lines that the lexicon doesn't cover."""
+    rank = {"preferred": 0, "core": 1, "required": 2}
+    phrases: dict[str, tuple[Importance, int]] = {}
+    for line, importance, from_list in _classify_lines(job_description):
+        if not from_list:
+            continue
+        body = _LINE_LABEL.sub("", line)
+        for part in re.split(r"/|\band\b|\bor\b", body):
+            phrase = _clean_phrase(part)
+            if not phrase or phrase in known:
+                continue
+            key = phrase.lower()
+            existing = next((p for p in phrases if p.lower() == key), None)
+            if existing:
+                previous = phrases[existing]
+                best = importance if rank[importance] > rank[previous[0]] else previous[0]
+                phrases[existing] = (best, previous[1] + 1)
+            else:
+                phrases[phrase] = (importance, 1)
+    ordered = sorted(phrases.items(), key=lambda item: (-rank[item[1][0]], -item[1][1]))
+    return dict(ordered[:limit])
+
+
+def _phrase_in(phrase: str, text: str) -> bool:
+    """True when every content word of the phrase appears in the text (by stem)."""
+    wanted = _content_words(phrase)
+    have = set(_content_words(text))
+    return bool(wanted) and all(word in have for word in wanted)
 
 
 def _cv_sections(cv_data: dict) -> dict[Section, str]:
@@ -255,8 +379,10 @@ def _cv_sections(cv_data: dict) -> dict[Section, str]:
 def _suggestion(keyword: str, category: SkillCategory, has_experience: bool) -> str:
     if category == "soft":
         return f"Show {keyword.lower()} in a bullet with a concrete example, or mention it in your summary."
-    if category in {"practice"}:
-        return f"Describe where you applied {keyword} in an experience or project bullet."
+    if category in {"practice", "domain"}:
+        return f"Describe where you applied {keyword.lower() if keyword[1:].islower() else keyword} in an experience bullet, if it's part of your work."
+    if category == "certification":
+        return f"If you hold {keyword}, list it under Awards & Certs with the year, or in your Skills."
     if has_experience:
         return f"If you've used {keyword}, add it to Skills and name it in the bullet where you used it."
     return f"If you've used {keyword}, add it to Skills and to a project that used it."
@@ -283,6 +409,16 @@ def analyze(cv_data: dict, job_description: str, target_role: str = "") -> JobMa
             matched.append(result)
         else:
             result.suggestion = _suggestion(skill, category, has_experience)
+            missing.append(result)
+
+    # Skills the lexicon doesn't know, taken from the ad's own requirement lists.
+    for phrase, (importance, mentions) in _job_phrases(job_description, set(job_keywords)).items():
+        found_in = [name for name, text in sections.items() if _phrase_in(phrase, text)]
+        result = KeywordResult(phrase, "domain", importance, mentions, found_in)
+        if found_in:
+            matched.append(result)
+        else:
+            result.suggestion = _suggestion(phrase, "domain", has_experience)
             missing.append(result)
 
     def weight(item: KeywordResult) -> float:
@@ -340,15 +476,15 @@ def analyze(cv_data: dict, job_description: str, target_role: str = "") -> JobMa
 
 
 def _guess_title(job_description: str) -> str:
-    for line in job_description.splitlines():
-        line = line.strip(" -:*#\t")
-        if 2 <= len(line.split()) <= 7 and re.search(
-            r"\b(engineer|developer|designer|manager|analyst|scientist|architect|lead|specialist|consultant)\b",
-            line,
-            re.IGNORECASE,
-        ):
+    """The job title: the first short line that names a role, else the ad's first short line."""
+    from services.resume_entries import ROLE_WORDS  # local import: resume_entries imports pdf_layout
+
+    lines = [line.strip(" -:*#	") for line in job_description.splitlines() if line.strip()]
+    for line in lines:
+        if 2 <= len(line.split()) <= 8 and ROLE_WORDS.search(line):
             return line
-    return ""
+    first = lines[0] if lines else ""
+    return first if 1 <= len(first.split()) <= 8 and not first.endswith(".") else ""
 
 
 def _summary(matched: int, missing: int, missing_items: list[KeywordResult], total: float) -> str:

@@ -97,19 +97,34 @@ def _letter_sources(cv_dict: dict, cover_letter) -> tuple[str, ...]:
     return (json.dumps(cv_dict, ensure_ascii=False), cover_letter.highlights, cover_letter.company, cover_letter.target_role)
 
 
+MAX_LETTER_RETRIES = 2
+
+
 def _corrected_letter(prompt: str, invented, sources: tuple[str, ...]) -> str:
-    """One retry that names what to leave out; returns "" if it still isn't grounded."""
+    """Retries that name what to leave out; returns "" if none is grounded.
+
+    Each retry lists every unsupported claim seen so far, because the model
+    tends to repeat whatever the job ad asks for.
+    """
     if not invented:
         return ""
-    correction = (
-        f"\n\nYour previous draft claimed {invented.describe()}, which the CV does not support. "
-        "Write the letter again without them. Use only facts from the CV snapshot and the emphasis."
-    )
-    candidate = clean_plain_text(
-        AIService.call_provider(prompt=prompt + correction, max_tokens=AIService.max_tokens_for_task("cover_letter"), temperature=0.4)
-    )
-    if candidate and not AIService.validate_text("cover_letter", candidate) and grounding.is_grounded(candidate, *sources):
-        return candidate
+    claims = {"skills": set(invented.skills), "numbers": set(invented.numbers)}
+    for _ in range(MAX_LETTER_RETRIES):
+        named = grounding.Ungrounded(numbers=sorted(claims["numbers"]), skills=sorted(claims["skills"]))
+        correction = (
+            f"\n\nYour previous draft claimed {named.describe()}, which the CV does not support. "
+            "Write the letter again without them. Use only facts from the CV snapshot and the emphasis."
+        )
+        candidate = clean_plain_text(
+            AIService.call_provider(prompt=prompt + correction, max_tokens=AIService.max_tokens_for_task("cover_letter"), temperature=0.4)
+        )
+        if not candidate or AIService.validate_text("cover_letter", candidate):
+            continue
+        still = grounding.check(candidate, *sources)
+        if not still:
+            return candidate
+        claims["skills"] |= set(still.skills)
+        claims["numbers"] |= set(still.numbers)
     return ""
 
 

@@ -73,7 +73,7 @@ class JobMatchRequest(BaseModel):
 
 class KeywordMatch(BaseModel):
     keyword: str
-    category: Literal["language", "framework", "data", "cloud", "devops", "ai", "practice", "soft", "tool"]
+    category: Literal["language", "framework", "data", "cloud", "devops", "ai", "practice", "soft", "tool", "domain", "certification"]
     importance: Literal["required", "core", "preferred"]
     mentions: int
     found_in: list[Literal["summary", "headline", "skills", "experience", "projects", "education", "other"]] = Field(

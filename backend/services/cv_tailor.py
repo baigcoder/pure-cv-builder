@@ -42,8 +42,11 @@ def _cv_text(cv: dict) -> str:
     return json.dumps(cv, ensure_ascii=False)
 
 
-def _reorder_skills(cv: dict, wanted: set[str]) -> int:
-    """Within each skills group, put the job's skills first. Returns how many groups changed."""
+def _reorder_skills(cv: dict, wanted: dict[str, int]) -> int:
+    """Within each skills group, put the job's skills first, most important first.
+
+    ``wanted`` maps skill -> rank (higher is more important). Returns how many groups changed.
+    """
     changed = 0
     for entry in cv.get("skills") or []:
         if not isinstance(entry, dict):
@@ -51,7 +54,10 @@ def _reorder_skills(cv: dict, wanted: set[str]) -> int:
         items = [item.strip() for item in re.split(r",\s*", str(entry.get("details") or "")) if item.strip()]
         if len(items) < 2:
             continue
-        relevant = [item for item in items if set(find_skills(item)) & wanted]
+        def rank(item: str) -> int:
+            return max((wanted[name] for name in find_skills(item) if name in wanted), default=-1)
+
+        relevant = sorted((item for item in items if rank(item) >= 0), key=rank, reverse=True)
         ordered = relevant + [item for item in items if item not in relevant]
         if ordered != items:
             entry["details"] = ", ".join(ordered)
@@ -69,7 +75,7 @@ def _headline(cv: dict, target_title: str, matched: list[str]) -> str | None:
     if not current_words & target_words:
         return None  # a different field; changing the headline would misrepresent the candidate
     # Tools and technologies read well in a headline; soft skills and practices don't.
-    technical = [name for name in matched if SKILLS.get(name, ("",))[0] not in ("soft", "practice")]
+    technical = [name for name in matched if name in SKILLS and SKILLS[name][0] not in ("soft", "practice", "certification")]
     skills = ", ".join(technical[:2])
     return f"{target_title} | {skills}" if skills else target_title
 
@@ -114,7 +120,8 @@ Return JSON only: {{"summary": "..."}}"""
     rewrite = clean_plain_text(str(parsed.get("summary") or ""))
     if not rewrite or rewrite == summary or not 25 <= word_count(rewrite) <= 110:
         return None
-    return rewrite if _grounded(rewrite, _cv_text(cv)) else None
+    # The target role is the goal being stated, not a claim of experience, so it may be named.
+    return rewrite if _grounded(rewrite, _cv_text(cv) + " " + target_title) else None
 
 
 def tailor_cv(cv_data: dict, job_description: str, target_role: str = "") -> TailoredCV:
@@ -124,7 +131,8 @@ def tailor_cv(cv_data: dict, job_description: str, target_role: str = "") -> Tai
     changes: list[str] = []
     source = "rules"
 
-    groups = _reorder_skills(tailored, set(matched))
+    importance_rank = {"preferred": 0, "core": 1, "required": 2}
+    groups = _reorder_skills(tailored, {item.keyword: importance_rank[item.importance] for item in before.matched})
     if groups:
         changes.append(f"Moved the job's skills to the front of {groups} skills group{'s' if groups != 1 else ''}.")
 

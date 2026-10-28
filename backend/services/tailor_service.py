@@ -32,8 +32,11 @@ RELATED_CATEGORIES = {
     "devops": {"devops", "cloud", "practice"},
     "ai": {"ai", "data", "language"},
     "practice": {"practice"},
-    "tool": {"tool", "practice"},
+    "tool": {"tool", "practice", "domain"},
     "soft": {"soft"},
+    "domain": {"domain", "tool", "practice"},
+    # Certifications are held or not; never hinted into a bullet.
+    "certification": set(),
 }
 LEADERSHIP_VERBS = re.compile(r"\b(led|lead|managed|mentored|coached|owned|drove|coordinated|partnered|presented)\b", re.IGNORECASE)
 
